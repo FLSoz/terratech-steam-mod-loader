@@ -12,12 +12,12 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, protocol } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 import child_process from 'child_process';
-
+const sleep = require('util').promisify(setTimeout)
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
@@ -89,6 +89,15 @@ const createWindow = async () => {
 		}
 	});
 
+	protocol.registerFileProtocol('file', (request, callback) => {
+    const pathname = request.url.replace('file:///', '');
+    callback(pathname);
+  });
+	protocol.registerFileProtocol('image', (request, callback) => {
+    const url = request.url.substr(7)
+    callback({ path: url })
+  });
+
 	mainWindow.loadURL(resolveHtmlPath('index.html'));
 
 	// @TODO: Use 'ready-to-show' event
@@ -156,31 +165,125 @@ ipcMain.on('close', () => {
 	}
 });
 
+export enum ModType {
+	WORKSHOP = 'workshop',
+	LOCAL = 'local',
+	TTQMM = 'ttqmm'
+}
+interface ModConfig {
+	name?: string;
+	description?: string;
+	author?: string;
+	hasCode?: boolean;
+	preview?: string;
+	loadAfter?: string[];
+	loadBefore?: string[];
+	dependsOn?: string[];
+}
+interface Mod {
+	type: ModType;
+	ID: string;
+	WorkshopID: string;
+	config?: ModConfig;
+}
+
+interface PathParams {
+	prefixes: string[],
+	path: string
+}
+
 // Read raw app metadata from the given paths
-ipcMain.handle('read-mod-metadata', async (_event, modPath) => {
-	return ['Hello world'];
+ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, workshopID) => {
+	const modPath = path.join(...pathParams.prefixes, pathParams.path);
+	// await sleep(5000);
+	fs.readdir(modPath, {withFileTypes: true}, (err, files) => {
+		if (err) {
+			console.error(err);
+			event.reply('mod-metadata-results', null);
+		}
+		else {
+			let potentialMod: Mod = {
+				ID: "",
+				type: type,
+				WorkshopID: workshopID,
+				config: {hasCode: false}
+			};
+			let validMod = false;
+			const config: ModConfig = potentialMod.config as ModConfig;
+			files.forEach((file) => {
+				if (file.isFile()) {
+					if (file.name === "preview.png") {
+						config.preview = `image://${path.join(modPath, file.name)}`
+					}
+					else if (file.name.match(/^(.*)\.dll$/)) {
+						config.hasCode = true;
+					}
+					else if (file.name === "ttsm_config.json") {
+						Object.assign(potentialMod.config, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
+					}
+					else {
+						if (type === "ttqmm") {
+							if (file.name === "mod.json") {
+								const modConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
+								config.name = modConfig.DisplayName;
+								config.author = modConfig.Author;
+								if (potentialMod.ID === "") {
+									potentialMod.ID = modConfig.Id
+								}
+							}
+							if (file.name === "ttmm.json") {
+								const ttmmConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
+								potentialMod.ID = ttmmConfig.CloudName;
+								config.dependsOn = ttmmConfig.RequiredModNames;
+								config.loadAfter = ttmmConfig.RequiredModNames;
+								config.description = ttmmConfig.InlineDescription;
+							}
+						}
+						else {
+							const matches = file.name.match(/^(.*)_bundle$/);
+							if (matches && matches.length > 1) {
+								potentialMod.ID = matches[1];
+								if (!config.name) {
+									config.name = matches[1];
+								}
+								validMod = true;
+							}
+						}
+					}
+				}
+			});
+			event.reply('mod-metadata-results', validMod ? potentialMod : null)
+		}
+	});
 });
 
 // Launch steam as separate process
-ipcMain.handle('launch-steam', async (_event, steamDir, workshopID) => {
+ipcMain.handle('launch-steam', async (_event, steamExec, workshopID, closeOnLaunch) => {
 	await child_process.spawn(
-		steamDir,
+		steamExec,
 		['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`],
 		{
 			detached: true
 		}
 	);
+	if (closeOnLaunch) {
+		app.quit();
+	}
 	return true;
 });
 
 // Write a json file to a certain location
-ipcMain.handle('write-file', async (_event, filepath, data) => {
-	console.log(`Writing ${JSON.stringify(data)} to file ${filepath}`);
-	return fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
+ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Writing json file ${filepath}`);
+	console.log(`Writing ${data} to file ${filepath}`);
+	return fs.writeFileSync(filepath, data, 'utf8');
 });
 
 // Update a json file
-ipcMain.handle('update-file', async (_event, filepath, newData) => {
+ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) => {
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Updating json file ${filepath}`);
 	const raw: string = fs.readFileSync(filepath) as unknown as string;
 	try {
 		const data: Record<string, unknown> = JSON.parse(raw);
@@ -201,35 +304,54 @@ ipcMain.handle('update-file', async (_event, filepath, newData) => {
 });
 
 // Delete a json file
-ipcMain.handle('delete-file', async (_event, filepath) => {
+ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Deleting file ${filepath}`);
 	return fs.unlinkSync(filepath);
 });
 
 // see what's in a directory
-ipcMain.handle('list-dir', async (_event, dir) => {
-	console.log(dir);
-	return fs.readdirSync(dir);
+ipcMain.handle('list-dir', async (_event, pathParams: PathParams) => {
+	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Listing dir contents ${dirpath}`);
+	return fs.readdirSync(dirpath);
 });
 
+// see sub-directories
+ipcMain.handle('list-subdirs', async (_event, pathParams: PathParams) => {
+	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Listing subdirs ${dirpath}`);
+	return fs.readdirSync(dirpath, { withFileTypes: true })
+		.filter(dirent => dirent.isDirectory())
+		.map(dirent => dirent.name);
+})
+
 // Check if path exists
-ipcMain.handle('mkdir', async (_event, filepath) => {
-	console.log(filepath);
+ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Mkdir ${filepath}`);
 	return fs.mkdirSync(filepath);
 });
 
 // Read json file
-ipcMain.handle('read-file', async (_event, filepath) => {
+ipcMain.handle('read-file', async (_event, pathParams: PathParams) => {
+	await sleep(5000);
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Reading file ${filepath}`);
 	return fs.readFileSync(filepath, 'utf8');
 });
 
 // Check if path exists
-ipcMain.handle('path-exists', async (_event, filepath) => {
-	console.log(filepath);
+ipcMain.handle('path-exists', async (_event, pathParams: PathParams) => {
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Checking if path exists: ${filepath}`);
 	return fs.existsSync(filepath);
 });
 
 // Check if have access to path
-ipcMain.handle('path-access', async (_event, filepath) => {
+ipcMain.handle('path-access', async (_event, pathParams: PathParams) => {
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	console.log(`Checking access to ${filepath}`);
 	try {
 		// eslint-disable-next-line no-bitwise
 		fs.accessSync(filepath, fs.constants.R_OK | fs.constants.W_OK);
@@ -241,7 +363,7 @@ ipcMain.handle('path-access', async (_event, filepath) => {
 });
 
 // get user data
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 ipcMain.handle('user-data-path', async () => {
 	return app.getPath('userData');
 });

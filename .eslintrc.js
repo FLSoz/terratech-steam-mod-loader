@@ -4,13 +4,26 @@ module.exports = {
   rules: {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
-    'prettier/prettier': ['error', { singleQuote: true, trailingComma: 'none', tabWidth: 2, useTabs: true }],
+    'prettier/prettier': ['error', {
+			singleQuote: true,
+			trailingComma: 'none',
+			tabWidth: 2,
+			useTabs: true,
+			'print-width': 999
+		}],
+		"no-restricted-imports": [
+      "error",
+      {
+        "patterns": ["@mui/*/*/*", "!@mui/material/test-utils/*"]
+      }
+    ],
     'comma-dangle': ['error', 'never'],
     'max-len': [
-      'error',
+      'warn',
       {
-        code: 120,
+        code: 160,
         ignoreComments: true,
+				ignoreUrls: true
         ignoreTrailingComments: true
       }
     ],

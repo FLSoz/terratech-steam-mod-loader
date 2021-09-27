@@ -1,4 +1,4 @@
-export const { platform } = window.electron as { platform: string };
+export const { platform } = window.electron;
 export const DEFAULT_WORKSHOP_ID = '2203815768';
 export const TT_APP_ID = '285920';
 
@@ -16,19 +16,19 @@ function getDefaultSteamExec(): string {
 }
 export const DEFAULT_STEAM_EXEC = getDefaultSteamExec();
 
-function getDefaultTerraTechDir(): string {
+function getDefaultLocalDir(): string {
 	switch (platform) {
 		case 'win32':
-			return 'C:\\Program Files(x86)\\Steam\\steamapps\\common\\TerraTech';
+			return 'C:\\Program Files(x86)\\Steam\\steamapps\\common\\TerraTech\\LocalMods';
 			break;
 		case 'darwin':
-			return '~/Library/"Application Support"/Steam/steamapps/common/TerraTech';
+			return '~/Library/"Application Support"/Steam/steamapps/common/TerraTech/LocalMods';
 			break;
 		default:
-			return '~/.steam/steam/SteamApps/common/TerraTech';
+			return '~/.steam/steam/SteamApps/common/TerraTech/LocalMods';
 	}
 }
-export const DEFAULT_TT_DIR = getDefaultTerraTechDir();
+export const DEFAULT_LOCAL_DIR = getDefaultLocalDir();
 
 function getDefaultWorkshopDir(): string {
 	switch (platform) {

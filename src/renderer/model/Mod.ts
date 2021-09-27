@@ -1,13 +1,15 @@
 export enum ModType {
-	workshop,
-	local,
-	ttqmm
+	WORKSHOP = 'workshop',
+	LOCAL = 'local',
+	TTQMM = 'ttqmm'
 }
 
 export interface ModConfig {
 	name?: string;
 	description?: string;
 	preview?: string;
+	hasCode?: boolean;
+	author?: string;
 	loadAfter?: string[];
 	loadBefore?: string[];
 	dependsOn?: string[];
@@ -16,6 +18,6 @@ export interface ModConfig {
 export interface Mod {
 	type: ModType;
 	ID: string;
-	WorkshopID: string;
+	WorkshopID?: string;
 	config?: ModConfig;
 }

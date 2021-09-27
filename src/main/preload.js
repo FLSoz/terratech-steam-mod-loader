@@ -1,12 +1,29 @@
 // eslint-disable-next-line prettier/prettier
 const { contextBridge, ipcRenderer } = require('electron');
 
+
+const validChannels = [
+	'launch-steam',
+	'write-file',
+	'update-file',
+	'delete-file',
+	'list-dir',
+	'list-subdirs',
+	'mkdir',
+	'path-exists',
+	'path-access',
+	'user-data-path',
+	'read-mod-metadata',
+	'mod-metadata-results'
+];
+
+
 contextBridge.exposeInMainWorld('electron', {
+	platform: process.platform,
 	ipcRenderer: {
 		myPing() {
 			ipcRenderer.send('ipc-example', 'ping');
 		},
-		platform: process.platform,
 
 		close: () => {
 			ipcRenderer.sendSync('close');
@@ -16,31 +33,27 @@ contextBridge.exposeInMainWorld('electron', {
 		},
 
 		// Generic ipcRenderer API replication
-		send: (channel, data) => {
-			ipcRenderer.send(channel, data);
+		send: (channel, ...args) => {
+			if (validChannels.includes(channel)) {
+				ipcRenderer.send(channel, ...args);
+			}
 		},
 		sendSync: (channel, ...args) => {
-			return ipcRenderer.sendSync(channel, ...args);
+			if (validChannels.includes(channel)) {
+				return ipcRenderer.sendSync(channel, ...args);
+			}
 		},
 		removeListener: (channel, listener) => {
-			ipcRenderer.removeListener(channel, listener);
+			if (validChannels.includes(channel)) {
+				ipcRenderer.removeListener(channel, listener);
+			}
 		},
 		removeAllListeners: (channel) => {
-			ipcRenderer.removeAllListeners(channel);
+			if (validChannels.includes(channel)) {
+				ipcRenderer.removeAllListeners(channel);
+			}
 		},
 		invoke: (channel, ...args) => {
-			const validChannels = [
-				'launch-steam',
-				'write-file',
-				'update-file',
-				'delete-file',
-				'list-dir',
-				'mkdir',
-				'path-exists',
-				'path-access',
-				'user-data-path',
-				'read-mod-metadata'
-			];
 			if (validChannels.includes(channel)) {
 				// Deliberately strip event as it includes `sender`
 				return ipcRenderer.invoke(channel, ...args);
@@ -48,14 +61,12 @@ contextBridge.exposeInMainWorld('electron', {
 			return null;
 		},
 		on(channel, func) {
-			const validChannels = ['ipc-example'];
 			if (validChannels.includes(channel)) {
 				// Deliberately strip event as it includes `sender`
 				ipcRenderer.on(channel, (event, ...args) => func(...args));
 			}
 		},
 		once(channel, func) {
-			const validChannels = ['ipc-example'];
 			if (validChannels.includes(channel)) {
 				// Deliberately strip event as it includes `sender`
 				ipcRenderer.once(channel, (event, ...args) => func(...args));

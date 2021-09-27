@@ -1,49 +1,51 @@
 import React, { Component } from 'react';
-import path from 'path';
-import icon from '../../assets/icon.svg';
-import { DEFAULT_WORKSHOP_ID, TT_APP_ID } from './Constants';
-import { AppState } from './model/AppState';
+import icon from '../../../assets/icon.svg';
+import { DEFAULT_LOCAL_DIR, DEFAULT_STEAM_EXEC, DEFAULT_WORKSHOP_DIR, DEFAULT_WORKSHOP_ID, TT_APP_ID } from '../Constants';
+import { AppState } from '../model/AppState';
+import { RouteComponentProps, withRouter } from 'react-router';
+import { AppConfig } from '../model/AppConfig';
 
-class BaseApp extends Component<unknown, AppState> {
+
+const DEFAULT_CONFIG: AppConfig = {
+	steamExec: 'E:\\Steam\\steam.exe',
+	localDir: 'E:\\Steam\\steamapps\\common\\TerraTech\\LocalMods',
+	workshopDir: `E:\\Steam\\steamapps\\workshop\\content\\${TT_APP_ID}`,
+	/*
+	steamExec: DEFAULT_STEAM_EXEC,
+	localDir: DEFAULT_LOCAL_DIR,
+	workshopDir: DEFAULT_WORKSHOP_DIR,
+	*/
+	workshopID: DEFAULT_WORKSHOP_ID,
+
+	closeOnLaunch: false,
+	language: 'english',
+	activeCollection: undefined
+};
+
+
+class ConfigView extends Component<RouteComponentProps, AppState> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: any) {
 		super(props);
 		this.state = {
-			config: {
-				steamExec: 'E:\\Steam\\steam.exe',
-				ttDir: 'E:\\Steam\\steamBaseApps\\common\\TerraTech',
-				workshopDir: `E:\\Steam\\steamBaseApps\\workshop\\content\\${TT_APP_ID}`,
-				closeOnLaunch: false,
-				language: 'english',
-				activeCollection: undefined
-			},
+			config: DEFAULT_CONFIG,
 			loadingConfig: false,
 			savingConfig: false,
-			editingConfig: false,
-
-			loadingMods: false,
-
-			loadingCollectionNames: false,
-
-			loadingCollection: false,
-			renamingCollection: false,
-			savingCollection: false,
-
-			launchingGame: false,
-			allCollections: new Map(),
-			allCollectionNames: new Set(),
-			activeCollection: undefined,
-			remoteMod: DEFAULT_WORKSHOP_ID,
-			gameRunning: false,
-			acknowledgedEmptyModlist: false
+			editingConfig: false
 		};
 	}
 
-	componentDidMount() {}
+	componentDidMount() {
+		this.loadMods();
+	}
 
 	setStateCallback(update: AppState) {
 		this.setState(update);
+	}
+
+	loadMods() {
+		this.props.history.push('/mods', this.state);
 	}
 
 	render() {
@@ -83,4 +85,4 @@ class BaseApp extends Component<unknown, AppState> {
 		);
 	}
 }
-export default BaseApp;
+export default withRouter(ConfigView);
