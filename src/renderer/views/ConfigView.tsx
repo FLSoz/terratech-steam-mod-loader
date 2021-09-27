@@ -20,7 +20,6 @@ const DEFAULT_CONFIG: AppConfig = {
 	language: 'english',
 	activeCollection: undefined
 };
-
 class ConfigView extends Component<RouteComponentProps, AppState> {
 	CONFIG_PATH: string | undefined = undefined;
 

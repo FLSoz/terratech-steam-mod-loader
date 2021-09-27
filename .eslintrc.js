@@ -23,11 +23,17 @@ module.exports = {
       {
         code: 160,
         ignoreComments: true,
-				ignoreUrls: true
+				ignoreUrls: true,
         ignoreTrailingComments: true
       }
     ],
-		'react/no-unused-state': 'warn'
+		'react/no-unused-state': 'warn',
+		'react/destructuring-assignment': 'warn',
+		'react/no-access-state-in-setstate': 'warn',
+		'react/no-direct-mutation-state': 'warn',
+		'promise/always-return': 'warn',
+		'promise/catch-or-return': 'warn',
+		'@typescript-eslint/no-explicit-any': 'warn'
   },
   parserOptions: {
     ecmaVersion: 2020,
