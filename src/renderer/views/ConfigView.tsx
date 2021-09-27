@@ -1,10 +1,9 @@
 import React, { Component } from 'react';
-import icon from '../../../assets/icon.svg';
-import { DEFAULT_LOCAL_DIR, DEFAULT_STEAM_EXEC, DEFAULT_WORKSHOP_DIR, DEFAULT_WORKSHOP_ID, TT_APP_ID } from '../Constants';
-import { AppState } from '../model/AppState';
 import { RouteComponentProps, withRouter } from 'react-router';
+import icon from '../../../assets/icon.svg';
+import { DEFAULT_WORKSHOP_ID, TT_APP_ID } from '../Constants';
+import { AppState } from '../model/AppState';
 import { AppConfig } from '../model/AppConfig';
-
 
 const DEFAULT_CONFIG: AppConfig = {
 	steamExec: 'E:\\Steam\\steam.exe',
@@ -21,7 +20,6 @@ const DEFAULT_CONFIG: AppConfig = {
 	language: 'english',
 	activeCollection: undefined
 };
-
 
 class ConfigView extends Component<RouteComponentProps, AppState> {
 	CONFIG_PATH: string | undefined = undefined;
