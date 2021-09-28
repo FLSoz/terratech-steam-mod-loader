@@ -1,7 +1,6 @@
 // eslint-disable-next-line prettier/prettier
 const { contextBridge, ipcRenderer } = require('electron');
 
-
 const validChannels = [
 	'launch-steam',
 	'write-file',
@@ -16,7 +15,6 @@ const validChannels = [
 	'read-mod-metadata',
 	'mod-metadata-results'
 ];
-
 
 contextBridge.exposeInMainWorld('electron', {
 	platform: process.platform,
@@ -42,6 +40,7 @@ contextBridge.exposeInMainWorld('electron', {
 			if (validChannels.includes(channel)) {
 				return ipcRenderer.sendSync(channel, ...args);
 			}
+			return null;
 		},
 		removeListener: (channel, listener) => {
 			if (validChannels.includes(channel)) {

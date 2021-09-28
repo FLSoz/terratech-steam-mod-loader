@@ -3,7 +3,7 @@ import { RouteComponentProps, withRouter } from 'react-router';
 import { AppConfig } from 'renderer/model/AppConfig';
 import { Mod, ModType } from 'renderer/model/Mod';
 import { ValidChannel, api } from 'renderer/model/Api';
-import LinearProgress from '@mui/material/LinearProgress';
+import { Progress } from 'antd';
 import { AppState } from '../model/AppState';
 import icon from '../../../assets/icon.svg';
 
@@ -24,7 +24,7 @@ interface ModLoadingState {
 class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: any) {
+	constructor(props: RouteComponentProps) {
 		super(props);
 
 		const state: AppState = props.location.state as AppState;
@@ -56,16 +56,31 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	}
 
 	componentDidMount() {
+		const { config } = this.state;
 		api.on(ValidChannel.MOD_METADATA_RESULTS, this.loadModCallback);
-		api.listSubdirs(this.state.config.workshopDir).then((folders) => {
-			console.log(folders);
-			this.addModPathsCallback(folders, ModType.WORKSHOP);
-		});
+		api
+			.listSubdirs(config.workshopDir)
+			.then((folders) => {
+				console.log(folders);
+				this.addModPathsCallback(folders, ModType.WORKSHOP);
+				return null;
+			})
+			.catch((error) => {
+				console.error(error);
+				throw error;
+			});
 
-		api.listSubdirs(this.state.config.localDir).then((folders) => {
-			console.log(folders);
-			this.addModPathsCallback(folders, ModType.LOCAL);
-		});
+		api
+			.listSubdirs(config.localDir)
+			.then((folders) => {
+				console.log(folders);
+				this.addModPathsCallback(folders, ModType.LOCAL);
+				return null;
+			})
+			.catch((error) => {
+				console.error(error);
+				throw error;
+			});
 	}
 
 	componentWillUnmount() {
@@ -73,27 +88,30 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	}
 
 	setStateCallback(update: AppState) {
+		const { appState } = this.state;
 		this.setState({
-			appState: Object.assign(this.state.appState, update)
+			appState: Object.assign(appState, update)
 		});
 	}
 
 	loadModCallback(mod: Mod | null) {
+		const { appState, loadedMods } = this.state;
 		if (mod) {
-			const modsMap: Map<string, Mod> = this.state.appState.mods
-				? this.state.appState.mods
+			const modsMap: Map<string, Mod> = appState.mods
+				? appState.mods
 				: new Map();
 			console.log(`Loaded mod: ${mod.ID}`);
 			console.log(JSON.stringify(mod, null, 4));
 			modsMap.set(mod.WorkshopID ? mod.WorkshopID : mod.ID, mod);
-			this.state.appState.mods = modsMap;
+			appState.mods = modsMap;
 		}
 		this.setState(
 			{
-				loadedMods: this.state.loadedMods + 1
+				loadedMods: loadedMods + 1
 			},
 			() => {
-				if (this.state.loadedMods === this.state.totalMods) {
+				const { totalMods } = this.state;
+				if (loadedMods + 1 === totalMods) {
 					this.goToMain();
 				}
 			}
@@ -102,8 +120,9 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 
 	addModPathsCallback(paths: string[], type: string) {
 		const count = paths.length;
+		const { totalMods } = this.state;
 		this.setState({
-			totalMods: this.state.totalMods + count
+			totalMods: totalMods + count
 		});
 		if (type === ModType.WORKSHOP) {
 			this.setState(
@@ -125,11 +144,13 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	}
 
 	conditionalLoadMods() {
+		const { countedLocalMods, countedWorkshopMods, totalMods, loadingMods } =
+			this.state;
 		if (
-			this.state.countedLocalMods &&
-			this.state.countedWorkshopMods &&
-			this.state.totalMods > 0 &&
-			!this.state.loadingMods
+			countedLocalMods &&
+			countedWorkshopMods &&
+			totalMods > 0 &&
+			!loadingMods
 		) {
 			this.setState({
 				loadingMods: true
@@ -139,18 +160,19 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	}
 
 	loadMods() {
-		this.state.localModPaths.forEach((modFolder) => {
+		const { localModPaths, workshopModPaths, config } = this.state;
+		localModPaths.forEach((modFolder) => {
 			api.send(
 				ValidChannel.READ_MOD_METADATA,
-				{ prefixes: [this.state.config.localDir], path: modFolder },
+				{ prefixes: [config.localDir], path: modFolder },
 				ModType.LOCAL,
 				undefined
 			);
 		});
-		this.state.workshopModPaths.forEach((modFolder) => {
+		workshopModPaths.forEach((modFolder) => {
 			api.send(
 				ValidChannel.READ_MOD_METADATA,
-				{ prefixes: [this.state.config.workshopDir], path: modFolder },
+				{ prefixes: [config.workshopDir], path: modFolder },
 				ModType.WORKSHOP,
 				parseInt(modFolder, 10)
 			);
@@ -163,17 +185,28 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	}
 
 	goToMain() {
-		this.props.history.push('/main', this.state.appState);
+		const { appState } = this.state;
+		const { history } = this.props;
+		history.push('/main', appState);
 	}
 
 	render() {
+		const { loadedMods, totalMods } = this.state;
 		return (
 			<div>
 				<div className="Hello">
 					<img width="200px" alt="icon" src={icon} />
 				</div>
 				<h1>LOADING MODS</h1>
-				<LinearProgress variant="indeterminate" />
+				<Progress
+					strokeColor={{
+						from: '#108ee9',
+						to: '#87d068'
+					}}
+					percent={
+						totalMods > 0 ? 100 * Math.ceil(loadedMods / totalMods) : 100
+					}
+				/>
 			</div>
 		);
 	}

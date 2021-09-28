@@ -31,9 +31,13 @@ module.exports = {
 		'react/destructuring-assignment': 'warn',
 		'react/no-access-state-in-setstate': 'warn',
 		'react/no-direct-mutation-state': 'warn',
+		'react/jsx-props-no-spreading': 'off',
 		'promise/always-return': 'warn',
 		'promise/catch-or-return': 'warn',
-		'@typescript-eslint/no-explicit-any': 'warn'
+		'@typescript-eslint/no-explicit-any': 'warn',
+		'no-console': "off",
+		'@typescript-eslint/no-non-null-assertion': 'off',
+		'class-methods-use-this': 'warn'
   },
   parserOptions: {
     ecmaVersion: 2020,

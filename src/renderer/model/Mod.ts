@@ -13,6 +13,7 @@ export interface ModConfig {
 	loadAfter?: string[];
 	loadBefore?: string[];
 	dependsOn?: string[];
+	tags?: string[];
 }
 
 export interface Mod {

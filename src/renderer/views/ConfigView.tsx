@@ -23,7 +23,7 @@ const DEFAULT_CONFIG: AppConfig = {
 class ConfigView extends Component<RouteComponentProps, AppState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: any) {
+	constructor(props: RouteComponentProps) {
 		super(props);
 		this.state = {
 			config: DEFAULT_CONFIG,
@@ -42,7 +42,8 @@ class ConfigView extends Component<RouteComponentProps, AppState> {
 	}
 
 	loadMods() {
-		this.props.history.push('/mods', this.state);
+		const { history } = this.props;
+		history.push('/mods', this.state);
 	}
 
 	render() {
