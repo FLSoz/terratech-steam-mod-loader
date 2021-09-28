@@ -145,15 +145,9 @@ const columns: ColumnType<object>[] = [
 				});
 			}
 			return <> </>;
-		},
-		width: 200
+		}
 	},
-	{ title: 'Author', key: 'author', dataIndex: 'author', width: 150 },
-	{
-		title: 'Description',
-		key: 'description',
-		dataIndex: 'description'
-	}
+	{ title: 'Author', key: 'author', dataIndex: 'author', width: 150 }
 ];
 
 export default class ModCollectionComponent extends Component<
@@ -236,6 +230,13 @@ export default class ModCollectionComponent extends Component<
 			fixed: true
 		};
 
+		const expandable = {
+			// eslint-disable-next-line @typescript-eslint/ban-types
+			expandedRowRender: (record: object) => (
+				<p>{(record as ModData).description}</p>
+			)
+		};
+
 		return (
 			<Layout>
 				<Header>
@@ -256,7 +257,7 @@ export default class ModCollectionComponent extends Component<
 						</Col>
 					</Row>
 				</Header>
-				<Content>
+				<Content key="main table">
 					<SizeMe monitorHeight>
 						{({ size }) => {
 							console.log('SIZE');
@@ -276,10 +277,11 @@ export default class ModCollectionComponent extends Component<
 											scroll={{
 												scrollToFirstRowOnChange: true,
 												x: 'max-content',
-												y: height
+												y: height - 50
 											}}
 											pagination={false}
 											rowSelection={rowSelection}
+											expandable={expandable}
 											columns={columns}
 										/>
 									</div>

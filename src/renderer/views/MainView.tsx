@@ -87,7 +87,7 @@ class MainView extends Component<RouteComponentProps, AppState> {
 			: [];
 
 		return (
-			<div style={{ display: 'flex', width: 1024, height: 728 }}>
+			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<ModCollectionComponent
 					mods={mods!}
 					forceUpdate={this.updatedActiveCollection()}
