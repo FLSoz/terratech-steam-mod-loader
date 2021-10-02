@@ -37,7 +37,8 @@ module.exports = {
 		'@typescript-eslint/no-explicit-any': 'warn',
 		'no-console': "off",
 		'@typescript-eslint/no-non-null-assertion': 'off',
-		'class-methods-use-this': 'warn'
+		'class-methods-use-this': 'warn',
+		'prefer-destructuring': 'warn'
   },
   parserOptions: {
     ecmaVersion: 2020,

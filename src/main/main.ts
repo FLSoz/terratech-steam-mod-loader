@@ -17,9 +17,10 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 import child_process from 'child_process';
-const sleep = require('util').promisify(setTimeout)
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+
+const sleep = require('util').promisify(setTimeout);
 
 export default class AppUpdater {
 	constructor() {
@@ -90,13 +91,13 @@ const createWindow = async () => {
 	});
 
 	protocol.registerFileProtocol('file', (request, callback) => {
-    const pathname = request.url.replace('file:///', '');
-    callback(pathname);
-  });
+		const pathname = request.url.replace('file:///', '');
+		callback(pathname);
+	});
 	protocol.registerFileProtocol('image', (request, callback) => {
-    const url = request.url.substr(7)
-    callback({ path: url })
-  });
+		const url = request.url.substr(7);
+		callback({ path: url });
+	});
 
 	mainWindow.loadURL(resolveHtmlPath('index.html'));
 
@@ -188,58 +189,63 @@ interface Mod {
 }
 
 interface PathParams {
-	prefixes: string[],
-	path: string
+	prefixes: string[];
+	path: string;
 }
 
 // Read raw app metadata from the given paths
-ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, workshopID) => {
-	const modPath = path.join(...pathParams.prefixes, pathParams.path);
-	// await sleep(5000);
-	fs.readdir(modPath, {withFileTypes: true}, (err, files) => {
-		if (err) {
-			console.error(err);
-			event.reply('mod-metadata-results', null);
-		}
-		else {
-			let potentialMod: Mod = {
-				ID: "",
-				type: type,
-				WorkshopID: workshopID,
-				config: {hasCode: false}
-			};
-			let validMod = false;
-			const config: ModConfig = potentialMod.config as ModConfig;
-			files.forEach((file) => {
-				if (file.isFile()) {
-					if (file.name === "preview.png") {
-						config.preview = `image://${path.join(modPath, file.name)}`
-					}
-					else if (file.name.match(/^(.*)\.dll$/)) {
-						config.hasCode = true;
-					}
-					else if (file.name === "ttsm_config.json") {
-						Object.assign(potentialMod.config, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
-					}
-					else {
-						if (type === "ttqmm") {
-							if (file.name === "mod.json") {
-								const modConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
+ipcMain.on(
+	'read-mod-metadata',
+	async (event, pathParams: PathParams, type, workshopID) => {
+		const modPath = path.join(...pathParams.prefixes, pathParams.path);
+		// await sleep(5000);
+		fs.readdir(modPath, { withFileTypes: true }, (err, files) => {
+			if (err) {
+				console.error(err);
+				event.reply('mod-metadata-results', null);
+			} else {
+				const potentialMod: Mod = {
+					ID: '',
+					type,
+					WorkshopID: workshopID,
+					config: { hasCode: false }
+				};
+				let validMod = false;
+				const config: ModConfig = potentialMod.config as ModConfig;
+				files.forEach((file) => {
+					if (file.isFile()) {
+						if (file.name === 'preview.png') {
+							config.preview = `image://${path.join(modPath, file.name)}`;
+						} else if (file.name.match(/^(.*)\.dll$/)) {
+							config.hasCode = true;
+						} else if (file.name === 'ttsm_config.json') {
+							Object.assign(
+								potentialMod.config,
+								JSON.parse(
+									fs.readFileSync(path.join(modPath, file.name), 'utf8')
+								)
+							);
+						} else if (type === 'ttqmm') {
+							if (file.name === 'mod.json') {
+								const modConfig = JSON.parse(
+									fs.readFileSync(path.join(modPath, file.name), 'utf8')
+								);
 								config.name = modConfig.DisplayName;
 								config.author = modConfig.Author;
-								if (potentialMod.ID === "") {
-									potentialMod.ID = modConfig.Id
+								if (potentialMod.ID === '') {
+									potentialMod.ID = modConfig.Id;
 								}
 							}
-							if (file.name === "ttmm.json") {
-								const ttmmConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
+							if (file.name === 'ttmm.json') {
+								const ttmmConfig = JSON.parse(
+									fs.readFileSync(path.join(modPath, file.name), 'utf8')
+								);
 								potentialMod.ID = ttmmConfig.CloudName;
 								config.dependsOn = ttmmConfig.RequiredModNames;
 								config.loadAfter = ttmmConfig.RequiredModNames;
 								config.description = ttmmConfig.InlineDescription;
 							}
-						}
-						else {
+						} else {
 							const matches = file.name.match(/^(.*)_bundle$/);
 							if (matches && matches.length > 1) {
 								potentialMod.ID = matches[1];
@@ -250,27 +256,30 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 							}
 						}
 					}
-				}
-			});
-			event.reply('mod-metadata-results', validMod ? potentialMod : null)
-		}
-	});
-});
+				});
+				event.reply('mod-metadata-results', validMod ? potentialMod : null);
+			}
+		});
+	}
+);
 
 // Launch steam as separate process
-ipcMain.handle('launch-steam', async (_event, steamExec, workshopID, closeOnLaunch) => {
-	await child_process.spawn(
-		steamExec,
-		['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`],
-		{
-			detached: true
+ipcMain.handle(
+	'launch-steam',
+	async (_event, steamExec, workshopID, closeOnLaunch) => {
+		await child_process.spawn(
+			steamExec,
+			['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`],
+			{
+				detached: true
+			}
+		);
+		if (closeOnLaunch) {
+			app.quit();
 		}
-	);
-	if (closeOnLaunch) {
-		app.quit();
+		return true;
 	}
-	return true;
-});
+);
 
 // Write a json file to a certain location
 ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
@@ -281,27 +290,36 @@ ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
 });
 
 // Update a json file
-ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) => {
-	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Updating json file ${filepath}`);
-	const raw: string = fs.readFileSync(filepath) as unknown as string;
-	try {
-		const data: Record<string, unknown> = JSON.parse(raw);
-		Object.entries(newData).forEach(([key, value]) => {
-			if (value === undefined) {
-				delete data[key];
-			} else {
-				data[key] = value;
-			}
-		});
-		console.log(`Writing ${JSON.stringify(data)} to file ${filepath}`);
-		return fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
-	} catch (error) {
-		console.log(`Unable to parse file ${filepath} contents into json: ${raw}`);
-		console.error(error);
-		return fs.writeFileSync(filepath, JSON.stringify(newData, null, 4), 'utf8');
+ipcMain.handle(
+	'update-file',
+	async (_event, pathParams: PathParams, newData) => {
+		const filepath = path.join(...pathParams.prefixes, pathParams.path);
+		console.log(`Updating json file ${filepath}`);
+		const raw: string = fs.readFileSync(filepath) as unknown as string;
+		try {
+			const data: Record<string, unknown> = JSON.parse(raw);
+			Object.entries(newData).forEach(([key, value]) => {
+				if (value === undefined) {
+					delete data[key];
+				} else {
+					data[key] = value;
+				}
+			});
+			console.log(`Writing ${JSON.stringify(data)} to file ${filepath}`);
+			return fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
+		} catch (error) {
+			console.log(
+				`Unable to parse file ${filepath} contents into json: ${raw}`
+			);
+			console.error(error);
+			return fs.writeFileSync(
+				filepath,
+				JSON.stringify(newData, null, 4),
+				'utf8'
+			);
+		}
 	}
-});
+);
 
 // Delete a json file
 ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
@@ -321,10 +339,11 @@ ipcMain.handle('list-dir', async (_event, pathParams: PathParams) => {
 ipcMain.handle('list-subdirs', async (_event, pathParams: PathParams) => {
 	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
 	console.log(`Listing subdirs ${dirpath}`);
-	return fs.readdirSync(dirpath, { withFileTypes: true })
-		.filter(dirent => dirent.isDirectory())
-		.map(dirent => dirent.name);
-})
+	return fs
+		.readdirSync(dirpath, { withFileTypes: true })
+		.filter((dirent) => dirent.isDirectory())
+		.map((dirent) => dirent.name);
+});
 
 // Check if path exists
 ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {

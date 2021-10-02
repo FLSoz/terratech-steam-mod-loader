@@ -3,7 +3,8 @@
  *        See https://github.com/webpack-contrib/sass-loader#imports
  */
 
-@import '~antd/dist/antd.less';
+@import '~antd/lib/style/themes/default.less';
+@import '~antd/dist/antd.dark.less'; // Introduce the official dark less style entry file
 
 html {
 	height: 100vh;
@@ -68,4 +69,5 @@ a:hover {
 	justify-content: center;
 	align-items: center;
 	margin: 20px 0;
+	padding: 20px;
 }

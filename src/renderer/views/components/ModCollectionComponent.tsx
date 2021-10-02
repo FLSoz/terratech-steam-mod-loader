@@ -1,11 +1,25 @@
-import { Layout, Row, Col, Table, Tag, Space } from 'antd';
+import {
+	Layout,
+	Row,
+	Col,
+	Table,
+	Tag,
+	Space,
+	Divider,
+	Input,
+	Select,
+	Button,
+	Upload
+} from 'antd';
 import React, { Component, ReactNode, Ref } from 'react';
 import { Mod, ModType } from 'renderer/model/Mod';
 import { ModCollection } from 'renderer/model/ModCollection';
 import {
 	DeploymentUnitOutlined,
 	FileImageOutlined,
-	ShareAltOutlined
+	ShareAltOutlined,
+	UploadOutlined,
+	CodeOutlined
 } from '@ant-design/icons';
 import { SizeMe } from 'react-sizeme';
 
@@ -15,6 +29,8 @@ import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
 
 const { Header, Footer, Sider, Content } = Layout;
+const { Option } = Select;
+const { Search } = Input;
 
 interface ModCollectionProps {
 	collection: ModCollection;
@@ -37,6 +53,7 @@ interface ModData {
 	description?: string;
 	author?: string;
 	dependsOn?: string[];
+	hasCode?: boolean;
 	isDependencyFor?: string[];
 	tags?: string[];
 }
@@ -58,7 +75,8 @@ function convertToModData(input: Map<string, Mod>): ModData[] {
 			name: mod.config && mod.config.name ? mod.config.name : mod.ID,
 			description: mod.config?.description,
 			author: mod.config?.author,
-			dependsOn: mod.config?.dependsOn
+			dependsOn: mod.config?.dependsOn,
+			hasCode: mod.config?.hasCode
 		};
 		tempMap.set(mod.ID, modData);
 		if (modData.dependsOn) {
@@ -95,6 +113,14 @@ function getImageSrcFromType(type: ModType) {
 // eslint-disable-next-line @typescript-eslint/ban-types
 const columns: ColumnType<object>[] = [
 	{
+		key: 'type',
+		dataIndex: 'type',
+		render: (type: ModType) => (
+			<img src={getImageSrcFromType(type)} width="25px" alt="" />
+		),
+		width: 25
+	},
+	{
 		key: 'preview',
 		dataIndex: 'preview',
 		render: (imgPath: string | undefined | null) => {
@@ -112,22 +138,16 @@ const columns: ColumnType<object>[] = [
 			const modData = record as ModData;
 			const isDependency = !!modData.isDependencyFor;
 			const hasDependencies = !!modData.dependsOn;
+			const hasCode = !!modData.hasCode;
 			return (
 				<Space>
 					{isDependency ? <ShareAltOutlined /> : <> </>}
 					{hasDependencies ? <DeploymentUnitOutlined /> : <> </>}
+					{hasCode ? <CodeOutlined /> : <> </>}
 				</Space>
 			);
 		},
 		width: 35
-	},
-	{
-		key: 'type',
-		dataIndex: 'type',
-		render: (type: ModType) => (
-			<img src={getImageSrcFromType(type)} width="25px" alt="" />
-		),
-		width: 25
 	},
 	{ title: 'Name', key: 'name', dataIndex: 'name', width: 150 },
 	{
@@ -145,7 +165,8 @@ const columns: ColumnType<object>[] = [
 				});
 			}
 			return <> </>;
-		}
+		},
+		width: 75
 	},
 	{ title: 'Author', key: 'author', dataIndex: 'author', width: 150 }
 ];
@@ -239,58 +260,94 @@ export default class ModCollectionComponent extends Component<
 
 		return (
 			<Layout>
-				<Header>
-					<Row key="row1">
-						<Col span={16} key="left">
-							Part 1
-						</Col>
-						<Col span={8} key="right">
-							Part 2
-						</Col>
-					</Row>
-					<Row key="row2">
-						<Col span={16} key="left">
-							Part 3
-						</Col>
-						<Col span={8} key="right">
-							Part 4
-						</Col>
-					</Row>
-				</Header>
-				<Content key="main table">
-					<SizeMe monitorHeight>
-						{({ size }) => {
-							console.log('SIZE');
-							console.log(size);
-							const height = size.height ? size.height : 400;
-							return (
-								<div style={{ position: 'relative', height: '100%' }}>
-									<div
-										style={{
-											position: 'absolute',
-											width: '100%',
-											height
-										}}
-									>
-										<Table
-											dataSource={rows}
-											scroll={{
-												scrollToFirstRowOnChange: true,
-												x: 'max-content',
-												y: height - 50
+				<SizeMe monitorHeight monitorWidth={false}>
+					{(parentSize) => {
+						console.log('PARENT SIZE');
+						console.log(parentSize.size);
+						return (
+							<Content key="main table" style={{ padding: '10px' }}>
+								<Row
+									key="row1"
+									justify="space-between"
+									gutter={[48, 16]}
+									wrap
+									style={{ marginBottom: 20 }}
+								>
+									<Col span={12} key="collections">
+										<Select style={{ width: '100%' }}>
+											<Option value="1">Modpack 1</Option>
+											<Option value="2">Modpack 2</Option>
+										</Select>
+									</Col>
+									<Col span={6} key="collections Actions">
+										<Space wrap align="center">
+											<Button key="rename">Rename</Button>
+											<Button key="new">New</Button>
+											<Button key="delete">Delete</Button>
+										</Space>
+									</Col>
+									<Col span={6}>
+										<Space wrap align="center">
+											<Upload key="upload">
+												<Button>
+													<UploadOutlined /> Upload
+												</Button>
+											</Upload>
+											<Upload key="export">
+												<Button>
+													<UploadOutlined /> Export
+												</Button>
+											</Upload>
+										</Space>
+									</Col>
+
+									<Col span={10} key="search">
+										<Search
+											placeholder="input search text"
+											onSearch={(search) => {
+												console.log(search);
 											}}
-											pagination={false}
-											rowSelection={rowSelection}
-											expandable={expandable}
-											columns={columns}
+											enterButton
 										/>
-									</div>
-								</div>
-							);
-						}}
-					</SizeMe>
-				</Content>
-				<Footer>FOOTER</Footer>
+									</Col>
+									<Col span={8} key="right">
+										Part 4
+									</Col>
+								</Row>
+								<SizeMe monitorHeight monitorWidth={false}>
+									{({ size }) => {
+										console.log('SIZE');
+										console.log(size);
+										const height: number = size.height ? size.height : 400;
+										return (
+											<div style={{ position: 'relative', height }}>
+												<div
+													style={{
+														position: 'absolute',
+														width: '100%'
+													}}
+												>
+													<Table
+														dataSource={rows}
+														scroll={{
+															scrollToFirstRowOnChange: true,
+															x: 'max-content',
+															y: height
+														}}
+														pagination={false}
+														rowSelection={rowSelection}
+														expandable={expandable}
+														columns={columns}
+													/>
+												</div>
+											</div>
+										);
+									}}
+								</SizeMe>
+							</Content>
+						);
+					}}
+				</SizeMe>
 			</Layout>
 		);
 	}
