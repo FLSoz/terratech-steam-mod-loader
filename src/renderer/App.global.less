@@ -8,19 +8,13 @@
 
 html {
 	height: 100vh;
-	width: 100%;
+	width: 100vw;
 }
 body {
 	position: relative;
 	color: white;
 	height: 100%;
 	width: 100%;
-	background: linear-gradient(
-		200.96deg,
-		#fedc2a -29.09%,
-		#dd5789 51.77%,
-		#7a2c9e 129.35%
-	);
 	font-family: sans-serif;
 	overflow-y: hidden;
 	overflow-x: hidden;
@@ -64,10 +58,41 @@ a:hover {
 
 .Hello {
 	display: flex;
-	height: 100%;
-	width: 100%;
+	height: 100vh;
+	width: 100vw;
 	justify-content: center;
 	align-items: center;
-	margin: 20px 0;
-	padding: 20px;
+	min-width: 0;
+}
+
+.image-hover {
+  transition: .5s ease;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.image {
+  opacity: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: .5s ease;
+  backface-visibility: hidden;
+}
+
+.container {
+  position: relative;
+}
+
+.container:hover .image {
+  opacity: 0.3;
+}
+
+.container:hover .middle {
+  opacity: 1;
 }

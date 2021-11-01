@@ -3,9 +3,12 @@ import { RouteComponentProps, withRouter } from 'react-router';
 import { AppConfig } from 'renderer/model/AppConfig';
 import { Mod, ModType } from 'renderer/model/Mod';
 import { ValidChannel, api } from 'renderer/model/Api';
-import { Progress } from 'antd';
+import { Layout, Progress, Spin, Skeleton } from 'antd';
+import ReactLoading from 'react-loading';
+import { SizeMe } from 'react-sizeme';
 import { AppState } from '../model/AppState';
-import icon from '../../../assets/icon.svg';
+
+const { Footer, Content } = Layout;
 
 interface ModLoadingState {
 	config: AppConfig;
@@ -55,13 +58,13 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 		this.loadModCallback = this.loadModCallback.bind(this);
 	}
 
+	// Register listener for mod load callback, start mod loading
 	componentDidMount() {
 		const { config } = this.state;
 		api.on(ValidChannel.MOD_METADATA_RESULTS, this.loadModCallback);
 		api
 			.listSubdirs(config.workshopDir)
 			.then((folders) => {
-				console.log(folders);
 				this.addModPathsCallback(folders, ModType.WORKSHOP);
 				return null;
 			})
@@ -73,7 +76,6 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 		api
 			.listSubdirs(config.localDir)
 			.then((folders) => {
-				console.log(folders);
 				this.addModPathsCallback(folders, ModType.LOCAL);
 				return null;
 			})
@@ -94,15 +96,14 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 		});
 	}
 
+	// Add to current mod list, Go to main view when all mods loaded
 	loadModCallback(mod: Mod | null) {
 		const { appState, loadedMods } = this.state;
 		if (mod) {
-			const modsMap: Map<string, Mod> = appState.mods
-				? appState.mods
-				: new Map();
+			const modsMap: Map<string, Mod> = appState.mods ? appState.mods : new Map();
 			console.log(`Loaded mod: ${mod.ID}`);
-			console.log(JSON.stringify(mod, null, 4));
-			modsMap.set(mod.WorkshopID ? mod.WorkshopID : mod.ID, mod);
+			console.log(JSON.stringify(mod, null, 2));
+			modsMap.set(mod.WorkshopID ? `${mod.WorkshopID}` : mod.ID, mod);
 			appState.mods = modsMap;
 		}
 		this.setState(
@@ -144,14 +145,8 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	}
 
 	conditionalLoadMods() {
-		const { countedLocalMods, countedWorkshopMods, totalMods, loadingMods } =
-			this.state;
-		if (
-			countedLocalMods &&
-			countedWorkshopMods &&
-			totalMods > 0 &&
-			!loadingMods
-		) {
+		const { countedLocalMods, countedWorkshopMods, totalMods, loadingMods } = this.state;
+		if (countedLocalMods && countedWorkshopMods && totalMods > 0 && !loadingMods) {
 			this.setState({
 				loadingMods: true
 			});
@@ -161,28 +156,15 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 
 	loadMods() {
 		const { localModPaths, workshopModPaths, config } = this.state;
-		localModPaths.forEach((modFolder) => {
-			api.send(
-				ValidChannel.READ_MOD_METADATA,
-				{ prefixes: [config.localDir], path: modFolder },
-				ModType.LOCAL,
-				undefined
-			);
+		localModPaths.forEach(async (modFolder) => {
+			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [config.localDir], path: modFolder }, ModType.LOCAL, undefined);
 		});
-		workshopModPaths.forEach((modFolder) => {
-			api.send(
-				ValidChannel.READ_MOD_METADATA,
-				{ prefixes: [config.workshopDir], path: modFolder },
-				ModType.WORKSHOP,
-				parseInt(modFolder, 10)
-			);
+		workshopModPaths.forEach(async (modFolder) => {
+			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [config.workshopDir], path: modFolder }, ModType.WORKSHOP, parseInt(modFolder, 10));
 		});
 	}
 
-	// Have an override for duplicate mod IDs - user picks which one is used
-	processDuplicates() {
-		const test = this.props;
-	}
+	// TODO: Have an override for duplicate mod IDs - user picks which one is used
 
 	goToMain() {
 		const { appState } = this.state;
@@ -192,22 +174,37 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 
 	render() {
 		const { loadedMods, totalMods } = this.state;
+		const percent = totalMods > 0 ? Math.ceil((100 * loadedMods) / totalMods) : 100;
 		return (
-			<div>
-				<div className="Hello">
-					<img width="200px" alt="icon" src={icon} />
-				</div>
-				<h1>LOADING MODS</h1>
-				<Progress
-					strokeColor={{
-						from: '#108ee9',
-						to: '#87d068'
+			<Layout style={{ minHeight: '100vh', minWidth: '100vw' }}>
+				<SizeMe monitorHeight monitorWidth refreshMode="debounce">
+					{({ size }) => {
+						return (
+							<Content>
+								<div
+									style={{
+										position: 'absolute',
+										left: '50%',
+										top: '30%',
+										transform: 'translate(-50%, -50%)'
+									}}
+								>
+									<ReactLoading type="bars" color="#DDD" width={(size.width as number) / 4} />
+								</div>
+							</Content>
+						);
 					}}
-					percent={
-						totalMods > 0 ? 100 * Math.ceil(loadedMods / totalMods) : 100
-					}
-				/>
-			</div>
+				</SizeMe>
+				<Footer>
+					<Progress
+						strokeColor={{
+							from: '#108ee9',
+							to: '#87d068'
+						}}
+						percent={percent}
+					/>
+				</Footer>
+			</Layout>
 		);
 	}
 }

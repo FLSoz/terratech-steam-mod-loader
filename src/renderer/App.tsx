@@ -11,13 +11,16 @@ import '@fontsource/roboto/700.css';
 import ConfigView from './views/ConfigView';
 import MainView from './views/MainView';
 import ModLoadingView from './views/ModLoadingView';
+import RawModlistView from './views/RawModlistView';
 
 export default function App() {
 	return (
 		<Router>
 			<Switch>
 				<Route path="/" exact component={ConfigView} />
+				<Route path="/settings" exact component={ConfigView} />
 				<Route path="/mods" exact component={ModLoadingView} />
+				<Route path="/raw-mods" exact component={RawModlistView} />
 				<Route path="/main" exact component={MainView} />
 			</Switch>
 		</Router>

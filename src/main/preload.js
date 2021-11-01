@@ -2,7 +2,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const validChannels = [
-	'launch-steam',
+	'game-running',
+	'query-steam',
+	'launch-game',
+	'read-file',
 	'write-file',
 	'update-file',
 	'delete-file',

@@ -9,7 +9,8 @@ module.exports = {
 			trailingComma: 'none',
 			tabWidth: 2,
 			useTabs: true,
-			'print-width': 999
+			printWidth: 160,
+			bracketSameLine: false
 		}],
 		"no-restricted-imports": [
       "error",
@@ -21,7 +22,7 @@ module.exports = {
     'max-len': [
       'warn',
       {
-        code: 160,
+        code: 180,
         ignoreComments: true,
 				ignoreUrls: true,
         ignoreTrailingComments: true
@@ -33,7 +34,7 @@ module.exports = {
 		'react/no-direct-mutation-state': 'warn',
 		'react/jsx-props-no-spreading': 'off',
 		'promise/always-return': 'warn',
-		'promise/catch-or-return': 'warn',
+		'promise/catch-or-return': ['warn', { terminationMethod: ['catch', 'asCallback', 'finally'] }],
 		'@typescript-eslint/no-explicit-any': 'warn',
 		'no-console': "off",
 		'@typescript-eslint/no-non-null-assertion': 'off',

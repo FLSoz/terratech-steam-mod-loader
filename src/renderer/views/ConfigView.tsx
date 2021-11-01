@@ -5,6 +5,13 @@ import { DEFAULT_WORKSHOP_ID, TT_APP_ID } from '../Constants';
 import { AppState } from '../model/AppState';
 import { AppConfig } from '../model/AppConfig';
 
+interface ConfigState extends AppState {
+	lastConfig: AppConfig;
+	loadingConfig?: boolean;
+	editingConfig?: boolean;
+	savingConfig?: boolean;
+}
+
 const DEFAULT_CONFIG: AppConfig = {
 	steamExec: 'E:\\Steam\\steam.exe',
 	localDir: 'E:\\Steam\\steamapps\\common\\TerraTech\\LocalMods',
@@ -20,13 +27,14 @@ const DEFAULT_CONFIG: AppConfig = {
 	language: 'english',
 	activeCollection: undefined
 };
-class ConfigView extends Component<RouteComponentProps, AppState> {
+class ConfigView extends Component<RouteComponentProps, ConfigState> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: RouteComponentProps) {
 		super(props);
 		this.state = {
 			config: DEFAULT_CONFIG,
+			lastConfig: DEFAULT_CONFIG,
 			loadingConfig: false,
 			savingConfig: false,
 			editingConfig: false
@@ -34,12 +42,15 @@ class ConfigView extends Component<RouteComponentProps, AppState> {
 	}
 
 	componentDidMount() {
+		this.readConfig();
 		this.loadMods();
 	}
 
 	setStateCallback(update: AppState) {
 		this.setState(update);
 	}
+
+	readConfig() {}
 
 	loadMods() {
 		const { history } = this.props;
@@ -54,11 +65,7 @@ class ConfigView extends Component<RouteComponentProps, AppState> {
 				</div>
 				<h1>electron-react-boilerplate</h1>
 				<div className="Hello">
-					<a
-						href="https://electron-react-boilerplate.js.org/"
-						target="_blank"
-						rel="noreferrer"
-					>
+					<a href="https://electron-react-boilerplate.js.org/" target="_blank" rel="noreferrer">
 						<button type="button">
 							<span role="img" aria-label="books">
 								📚
@@ -66,11 +73,7 @@ class ConfigView extends Component<RouteComponentProps, AppState> {
 							Read our docs
 						</button>
 					</a>
-					<a
-						href="https://github.com/sponsors/electron-react-boilerplate"
-						target="_blank"
-						rel="noreferrer"
-					>
+					<a href="https://github.com/sponsors/electron-react-boilerplate" target="_blank" rel="noreferrer">
 						<button type="button">
 							<span role="img" aria-label="books">
 								🙏

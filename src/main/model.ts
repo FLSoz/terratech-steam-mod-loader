@@ -7,18 +7,17 @@ export enum ModType {
 export interface ModConfig {
 	name?: string;
 	description?: string;
-	preview?: string;
-	hasCode?: boolean;
 	author?: string;
+	hasCode?: boolean;
+	preview?: string;
 	loadAfter?: string[];
 	loadBefore?: string[];
 	dependsOn?: string[];
 	tags?: string[];
 }
-
 export interface Mod {
 	type: ModType;
 	ID: string;
-	WorkshopID?: BigInt | null;
+	WorkshopID: BigInt | null;
 	config?: ModConfig;
 }
