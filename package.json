@@ -37,6 +37,7 @@
     "files": [
       "dist",
       "node_modules",
+			"!node_modules/greenworks/deps/**/*",
       "package.json"
     ],
     "afterSign": ".erb/scripts/notarize.js",
@@ -240,7 +241,7 @@
     "@emotion/styled": "^11.3.0",
     "@fontsource/roboto": "^4.5.1",
     "@types/react-window": "^1.8.5",
-    "antd": "^4.16.13",
+    "antd": "^4.17.0",
     "axios": "^0.21.4",
     "clsx": "^1.1.1",
     "electron-debug": "^3.2.0",

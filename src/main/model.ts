@@ -21,3 +21,9 @@ export interface Mod {
 	WorkshopID: BigInt | null;
 	config?: ModConfig;
 }
+
+export interface ModCollection {
+	name: string;
+	description?: string;
+	mods: Set<string>;
+}

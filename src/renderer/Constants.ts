@@ -1,5 +1,5 @@
 export const { platform } = window.electron;
-export const DEFAULT_WORKSHOP_ID = '2203815768';
+export const DEFAULT_WORKSHOP_ID = '2655051786';
 export const TT_APP_ID = '285920';
 
 function getDefaultSteamExec(): string {

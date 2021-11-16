@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router';
-import { AppConfig } from 'renderer/model/AppConfig';
-import { Mod, ModType } from 'renderer/model/Mod';
-import { ValidChannel, api } from 'renderer/model/Api';
 import { Layout, Progress, Spin, Skeleton } from 'antd';
 import ReactLoading from 'react-loading';
 import { SizeMe } from 'react-sizeme';
-import { AppState } from '../model/AppState';
+import { AppConfig } from 'renderer/model/AppConfig';
+import { Mod, ModType } from 'renderer/model/Mod';
+import { ValidChannel, api } from 'renderer/model/Api';
+import { AppState } from 'renderer/model/AppState';
 
 const { Footer, Content } = Layout;
 
@@ -30,11 +30,11 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	constructor(props: RouteComponentProps) {
 		super(props);
 
-		const state: AppState = props.location.state as AppState;
-		const config: AppConfig = state.config as AppConfig;
+		const appState: AppState = props.location.state as AppState;
+		const config: AppConfig = appState.config as AppConfig;
 
-		if (!state.activeCollection) {
-			state.activeCollection = {
+		if (!appState.activeCollection) {
+			appState.activeCollection = {
 				mods: new Set(),
 				name: 'default'
 			};
@@ -51,7 +51,7 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 			ttqmmModPaths: [],
 			loadedMods: 0,
 			totalMods: 0,
-			appState: state
+			appState
 		};
 
 		this.addModPathsCallback = this.addModPathsCallback.bind(this);
@@ -100,7 +100,7 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	loadModCallback(mod: Mod | null) {
 		const { appState, loadedMods } = this.state;
 		if (mod) {
-			const modsMap: Map<string, Mod> = appState.mods ? appState.mods : new Map();
+			const modsMap: Map<string, Mod> = appState.mods;
 			console.log(`Loaded mod: ${mod.ID}`);
 			console.log(JSON.stringify(mod, null, 2));
 			modsMap.set(mod.WorkshopID ? `${mod.WorkshopID}` : mod.ID, mod);
@@ -112,7 +112,7 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 			},
 			() => {
 				const { totalMods } = this.state;
-				if (loadedMods + 1 === totalMods) {
+				if (loadedMods + 1 >= totalMods) {
 					this.goToMain();
 				}
 			}
@@ -165,10 +165,10 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	}
 
 	// TODO: Have an override for duplicate mod IDs - user picks which one is used
-
 	goToMain() {
 		const { appState } = this.state;
 		const { history } = this.props;
+		appState.firstModLoad = true;
 		history.push('/main', appState);
 	}
 

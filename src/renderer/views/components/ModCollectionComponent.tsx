@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Layout, Table, Tag, Space, Button, Modal, Tooltip } from 'antd';
 import React, { Component, ReactNode } from 'react';
-import { Mod, ModType } from 'renderer/model/Mod';
-import { ModCollection } from 'renderer/model/ModCollection';
 import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined, ZoomInOutlined, CloseOutlined } from '@ant-design/icons';
 import parse from 'html-react-parser';
 
 import { ColumnType } from 'antd/lib/table';
+
+import { Mod, ModType } from 'renderer/model/Mod';
+import { ModCollection } from 'renderer/model/ModCollection';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
@@ -335,17 +336,15 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 			{
 				title: 'Tags',
 				dataIndex: 'tags',
-				render: (tags: string[] | undefined) => {
-					if (tags) {
-						return tags.map((tag) => {
-							return (
-								<Tag color="blue" key={tag}>
-									{tag}
-								</Tag>
-							);
-						});
-					}
-					return <> </>;
+				// eslint-disable-next-line @typescript-eslint/ban-types
+				render: (tags: string[] | undefined, record: object) => {
+					return [...(tags || []), (record as ModData).type].map((tag) => {
+						return (
+							<Tag color="blue" key={tag}>
+								{tag}
+							</Tag>
+						);
+					});
 				}
 			},
 			{

@@ -5,9 +5,10 @@ import { RouteComponentProps, withRouter } from 'react-router';
 import { AppstoreOutlined, FileTextOutlined, SettingOutlined } from '@ant-design/icons';
 import { Layout, Select, Input, Spin, Button, Popover, Menu, Progress, Modal, Form } from 'antd';
 
-import { AppState } from '../model/AppState';
-import { Mod } from '../model/Mod';
-import { api, ValidChannel } from '../model/Api';
+import { AppState } from 'renderer/model/AppState';
+import { Mod } from 'renderer/model/Mod';
+import { api, ValidChannel } from 'renderer/model/Api';
+import MenuBar from './components/MenuBar';
 
 const { Header, Footer, Sider, Content } = Layout;
 const { Option } = Select;
@@ -67,10 +68,11 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 		}, 5000);
 	}
 
-	baseLaunchGame(mods: string[]) {
-		const { config, text } = this.state;
+	baseLaunchGame(rawModList: string[]) {
+		const { config, text, mods } = this.state;
 		if (text) {
-			const launchPromise = api.launchGame(config!.steamExec, config!.workshopID, config!.closeOnLaunch, mods);
+			const modList: Mod[] = rawModList.map((mod) => mods!.get(mod)) as Mod[];
+			const launchPromise = api.launchGame(config.steamExec, config.workshopID, config.closeOnLaunch, modList);
 			if (!config?.closeOnLaunch) {
 				launchPromise.finally(() => {
 					this.setState({ launchingGame: false, gameRunning: true, launchGameWithErrors: false, modalActive: false });
@@ -152,7 +154,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 	readConfig() {
 		const { config } = this.state;
 		api
-			.readFile({ prefixes: [config!.localDir], path: '../modlist.txt' })
+			.readFile({ prefixes: [config.localDir], path: 'renderer/modlist.txt' })
 			.then((res) => {
 				const lines: string[] = res.split(/\r\n|\n\r|\n|\r/);
 				this.setState({
@@ -242,6 +244,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 
 	render() {
 		const { sidebarCollapsed, launchingGame, gameRunning, text, modErrors, readingLast } = this.state;
+		const { history, location, match } = this.props;
 
 		const launchGameButton = (
 			<Button loading={launchingGame} disabled={gameRunning || readingLast || launchingGame} onClick={this.launchGame}>
@@ -269,38 +272,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 						}}
 					>
 						<div className="logo" />
-						<Menu
-							theme="dark"
-							defaultSelectedKeys={['2']}
-							mode="inline"
-							disabled={readingLast || launchingGame}
-							onClick={(e) => {
-								const { history } = this.props;
-								switch (e.key) {
-									case '1':
-										// Go to mod loading again
-										history.push('/mods', this.state);
-										break;
-									case '2':
-										break;
-									case '3':
-										history.push('/settings', this.state);
-										break;
-									default:
-										break;
-								}
-							}}
-						>
-							<Menu.Item key="1" icon={<AppstoreOutlined />}>
-								Mod Collections
-							</Menu.Item>
-							<Menu.Item key="2" icon={<FileTextOutlined />}>
-								Raw Modlist
-							</Menu.Item>
-							<Menu.Item key="3" icon={<SettingOutlined />}>
-								Settings
-							</Menu.Item>
-						</Menu>
+						<MenuBar disableNavigation={readingLast || launchingGame} currentTab="raw" history={history} location={location} match={match} />
 					</Sider>
 					<Layout style={{ width: '100%' }}>
 						<Spin spinning={launchingGame} tip="Launching Game...">

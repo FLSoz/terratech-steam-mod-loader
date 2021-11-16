@@ -1,7 +1,9 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { AppConfig } from './AppConfig';
 import { ModCollection } from './ModCollection';
+import { Mod } from './Mod';
 
 /* eslint-disable @typescript-eslint/ban-types */
 export enum ValidChannel {
@@ -19,7 +21,15 @@ export enum ValidChannel {
 	PATH_ACCESS = 'path-access',
 	USER_DATA_PATH = 'user-data-path',
 	READ_MOD_METADATA = 'read-mod-metadata',
-	MOD_METADATA_RESULTS = 'mod-metadata-results'
+	MOD_METADATA_RESULTS = 'mod-metadata-results',
+	READ_CONFIG = 'read-config',
+	UPDATE_CONFIG = 'update-config',
+	READ_COLLECTION = 'read-collection',
+	COLLECTION_RESULTS = 'collection-results',
+	READ_COLLECTIONS = 'read-collections-list',
+	UPDATE_COLLECTION = 'update-collection',
+	SELECT_PATH = 'select-path',
+	SELECT_PATH_RESULT = 'select-path-result'
 }
 
 interface ElectronInterface {
@@ -77,8 +87,14 @@ class API {
 		return ipcRenderer.exit(code);
 	}
 
-	launchGame(steamExec: string, workshopID: string, closeOnLaunch: boolean, modList: string[]): Promise<any> {
-		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, steamExec, workshopID, closeOnLaunch, modList);
+	launchGame(steamExec: string, workshopID: string, closeOnLaunch: boolean, modList: Mod[]): Promise<any> {
+		const modListStr: string = modList
+			.map((mod: Mod) => {
+				return `${mod.type}:${mod.WorkshopID ? mod.WorkshopID : mod.ID}`;
+			})
+			.join(',');
+		const args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
+		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, steamExec, workshopID, closeOnLaunch, args);
 	}
 
 	gameRunning(): Promise<boolean> {
@@ -129,15 +145,15 @@ class API {
 		return ipcRenderer.invoke(ValidChannel.READ_FILE, this.convertToPathParam(path));
 	}
 
-	writeFile(path: PathParams | string, data: string): Promise<any> {
+	writeFile(path: PathParams | string, data: string): Promise<boolean> {
 		return ipcRenderer.invoke(ValidChannel.WRITE_FILE, this.convertToPathParam(path), data);
 	}
 
-	updateFile(path: PathParams | string, data: object): Promise<any> {
+	updateFile(path: PathParams | string, data: object): Promise<boolean> {
 		return ipcRenderer.invoke(ValidChannel.UPDATE_FILE, this.convertToPathParam(path), data);
 	}
 
-	deleteFile(path: PathParams | string): Promise<any> {
+	deleteFile(path: PathParams | string): Promise<boolean> {
 		return ipcRenderer.invoke(ValidChannel.DELETE_FILE, this.convertToPathParam(path));
 	}
 
@@ -149,16 +165,36 @@ class API {
 		return ipcRenderer.invoke(ValidChannel.LIST_SUBDIRS, this.convertToPathParam(path));
 	}
 
-	mkdir(path: PathParams | string): Promise<any> {
+	mkdir(path: PathParams | string): Promise<boolean> {
 		return ipcRenderer.invoke(ValidChannel.MKDIR, this.convertToPathParam(path));
 	}
 
-	exists(path: PathParams | string): Promise<any> {
+	pathExists(path: PathParams | string): Promise<any> {
 		return ipcRenderer.invoke(ValidChannel.PATH_EXISTS, this.convertToPathParam(path));
 	}
 
 	access(path: PathParams | string): Promise<any> {
 		return ipcRenderer.invoke(ValidChannel.PATH_ACCESS, this.convertToPathParam(path));
+	}
+
+	readConfig(): Promise<AppConfig> {
+		return ipcRenderer.invoke(ValidChannel.READ_CONFIG);
+	}
+
+	updateConfig(config: AppConfig): Promise<boolean> {
+		return ipcRenderer.invoke(ValidChannel.UPDATE_CONFIG, config);
+	}
+
+	readCollection(collection: string): Promise<ModCollection> {
+		return ipcRenderer.invoke(ValidChannel.READ_COLLECTION, collection);
+	}
+
+	readCollectionsList(): Promise<string[]> {
+		return ipcRenderer.invoke(ValidChannel.READ_COLLECTIONS);
+	}
+
+	updateCollection(collection: ModCollection): Promise<boolean> {
+		return ipcRenderer.invoke(ValidChannel.UPDATE_COLLECTION, collection);
 	}
 }
 export const api = new API(window);

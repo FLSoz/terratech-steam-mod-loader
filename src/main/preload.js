@@ -16,7 +16,15 @@ const validChannels = [
 	'path-access',
 	'user-data-path',
 	'read-mod-metadata',
-	'mod-metadata-results'
+	'mod-metadata-results',
+	'read-config',
+	'update-config',
+	'read-collection',
+	'collection-results',
+	'read-collections-list',
+	'update-collection',
+	'select-path',
+	'select-path-result'
 ];
 
 contextBridge.exposeInMainWorld('electron', {

@@ -17,12 +17,11 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 import child_process from 'child_process';
-import axios from 'axios';
 
 import querySteam from './steam';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import { ModType, ModConfig, Mod } from './model';
+import { ModConfig, Mod, ModCollection } from './model';
 
 const sleep = require('util').promisify(setTimeout);
 const psList = require('ps-list');
@@ -214,8 +213,10 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 					} else {
 						const matches = file.name.match(/^(.*)_bundle$/);
 						if (matches && matches.length > 1) {
+							// eslint-disable-next-line prefer-destructuring
 							potentialMod.ID = matches[1];
 							if (!config.name) {
+								// eslint-disable-next-line prefer-destructuring
 								config.name = matches[1];
 							}
 							validMod = true;
@@ -249,6 +250,73 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 	});
 });
 
+ipcMain.on('read-collection', async (event, collection) => {
+	const collectionString = fs.readFileSync(path.join(app.getPath('userData'), 'collections', `${collection}.json`));
+	try {
+		const data = JSON.parse(collectionString.toString());
+		data.mods = new Set(data.mods);
+		event.reply('collection-results', data as ModCollection);
+	} catch (error) {
+		console.log(`Failed to read collection: ${collection}`);
+		console.error(error);
+		event.reply('collection-results', null);
+	}
+});
+
+ipcMain.handle('read-collections-list', async () => {
+	const dirpath = path.join(app.getPath('userData'), 'collections');
+	try {
+		const dirContents: string[] | Buffer[] | fs.Dirent[] = fs.readdirSync(dirpath);
+		return dirContents
+			.map((elem) => {
+				const matches = elem.toString().match(/(.*)\.json/);
+				if (matches && matches[1]) {
+					return matches[1];
+				}
+				return null;
+			})
+			.filter((elem: string | null) => !!elem);
+	} catch (error) {
+		console.error(error);
+		return null;
+	}
+});
+
+ipcMain.handle('update-collection', async (_event, collection: ModCollection) => {
+	const filepath = path.join(app.getPath('userData'), 'collections', `${collection.name}.json`);
+	try {
+		fs.writeFileSync(filepath, JSON.stringify({ ...collection, mods: [...collection.mods] }, null, 4), { encoding: 'utf8', flag: 'w' });
+	} catch (error) {
+		console.error(error);
+		return false;
+	}
+	return true;
+});
+
+// return config
+ipcMain.handle('read-config', async () => {
+	const filepath = path.join(app.getPath('userData'), 'config.json');
+	try {
+		return JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
+	} catch (error) {
+		console.error(error);
+		return null;
+	}
+});
+
+// Attempt to write the config file
+ipcMain.handle('update-config', async (_event, config) => {
+	const filepath = path.join(app.getPath('userData'), 'config.json');
+	try {
+		console.log('updated config');
+		fs.writeFileSync(filepath, JSON.stringify(config, null, 4), { encoding: 'utf8', flag: 'w' });
+		return true;
+	} catch (error) {
+		console.error(error);
+		return false;
+	}
+});
+
 // Check if game is running
 interface ProcessDetails {
 	pid: number;
@@ -268,10 +336,10 @@ ipcMain.on('game-running', async (event) => {
 });
 
 // Launch steam as separate process
-ipcMain.handle('launch-game', async (_event, steamExec, workshopID, closeOnLaunch, modList) => {
-	console.log('Launching game with mod list:');
-	console.log(modList);
-	await child_process.spawn(steamExec, ['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`], {
+ipcMain.handle('launch-game', async (_event, steamExec, workshopID, closeOnLaunch, args) => {
+	console.log('Launching game with custom args:');
+	console.log(args);
+	await child_process.spawn(steamExec, ['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`, ...args], {
 		detached: true
 	});
 	if (closeOnLaunch) {
@@ -291,7 +359,13 @@ ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	console.log(`Writing json file ${filepath}`);
 	console.log(`Writing ${data} to file ${filepath}`);
-	return fs.writeFileSync(filepath, data, 'utf8');
+	try {
+		fs.writeFileSync(filepath, data, 'utf8');
+		return true;
+	} catch (error) {
+		console.error(error);
+		return false;
+	}
 });
 
 // Update a json file
@@ -309,11 +383,18 @@ ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) =>
 			}
 		});
 		console.log(`Writing ${JSON.stringify(data)} to file ${filepath}`);
-		return fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
+		fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
+		return true;
 	} catch (error) {
 		console.log(`Unable to parse file ${filepath} contents into json: ${raw}`);
 		console.error(error);
-		return fs.writeFileSync(filepath, JSON.stringify(newData, null, 4), 'utf8');
+		try {
+			fs.writeFileSync(filepath, JSON.stringify(newData, null, 4), 'utf8');
+			return true;
+		} catch (err2) {
+			console.error(err2);
+			return false;
+		}
 	}
 });
 
@@ -321,31 +402,53 @@ ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) =>
 ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	console.log(`Deleting file ${filepath}`);
-	return fs.unlinkSync(filepath);
+	try {
+		fs.unlinkSync(filepath);
+		return true;
+	} catch (error) {
+		console.error(error);
+		return false;
+	}
 });
 
 // see what's in a directory
 ipcMain.handle('list-dir', async (_event, pathParams: PathParams) => {
 	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
 	console.log(`Listing dir contents ${dirpath}`);
-	return fs.readdirSync(dirpath);
+	try {
+		return fs.readdirSync(dirpath);
+	} catch (error) {
+		console.error(error);
+		return null;
+	}
 });
 
 // see sub-directories
 ipcMain.handle('list-subdirs', async (_event, pathParams: PathParams) => {
 	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
 	console.log(`Listing subdirs ${dirpath}`);
-	return fs
-		.readdirSync(dirpath, { withFileTypes: true })
-		.filter((dirent) => dirent.isDirectory())
-		.map((dirent) => dirent.name);
+	try {
+		return fs
+			.readdirSync(dirpath, { withFileTypes: true })
+			.filter((dirent) => dirent.isDirectory())
+			.map((dirent) => dirent.name);
+	} catch (error) {
+		console.error(error);
+		return [];
+	}
 });
 
 // Check if path exists
 ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	console.log(`Mkdir ${filepath}`);
-	return fs.mkdirSync(filepath);
+	try {
+		fs.mkdirSync(filepath);
+		return true;
+	} catch (error) {
+		console.error(error);
+		return false;
+	}
 });
 
 // Read json file
@@ -353,14 +456,23 @@ ipcMain.handle('read-file', async (_event, pathParams: PathParams) => {
 	await sleep(5000);
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	console.log(`Reading file ${filepath}`);
-	return fs.readFileSync(filepath, 'utf8').toString();
+	try {
+		return fs.readFileSync(filepath, 'utf8').toString();
+	} catch (error) {
+		console.error(error);
+		return null;
+	}
 });
 
 // Check if path exists
 ipcMain.handle('path-exists', async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Checking if path exists: ${filepath}`);
-	return fs.existsSync(filepath);
+	try {
+		return fs.existsSync(filepath);
+	} catch (error) {
+		console.error(error);
+		return false;
+	}
 });
 
 // Check if have access to path

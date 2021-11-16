@@ -8,20 +8,25 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 
-import ConfigView from './views/ConfigView';
+import ConfigLoadingView from './views/ConfigLoadingView';
 import MainView from './views/MainView';
 import ModLoadingView from './views/ModLoadingView';
 import RawModlistView from './views/RawModlistView';
+import SettingsView from './views/SettingsView';
+import TTQMMBrowser from './views/TTQMMBrowser';
+import SteamBrowser from './views/SteamBrowser';
 
 export default function App() {
 	return (
 		<Router>
 			<Switch>
-				<Route path="/" exact component={ConfigView} />
-				<Route path="/settings" exact component={ConfigView} />
+				<Route path="/" exact component={ConfigLoadingView} />
+				<Route path="/settings" exact component={SettingsView} />
 				<Route path="/mods" exact component={ModLoadingView} />
 				<Route path="/raw-mods" exact component={RawModlistView} />
 				<Route path="/main" exact component={MainView} />
+				<Route path="/steam" exact component={SteamBrowser} />
+				<Route path="/ttqmn" exact component={TTQMMBrowser} />
 			</Switch>
 		</Router>
 	);

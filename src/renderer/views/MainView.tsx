@@ -6,9 +6,11 @@ import { Input, Layout, Row, Col, Menu, Select, Space, Button, Dropdown, Popover
 
 import { SizeMe } from 'react-sizeme';
 import { Mod } from 'renderer/model/Mod';
+import { AppState } from 'renderer/model/AppState';
+import { api, ValidChannel } from 'renderer/model/Api';
+import { ModCollection } from 'renderer/model/ModCollection';
 import ModCollectionComponent from './components/ModCollectionComponent';
-import { AppState } from '../model/AppState';
-import { api, ValidChannel } from '../model/Api';
+import MenuBar from './components/MenuBar';
 
 const { Header, Footer, Sider, Content } = Layout;
 const { Option } = Select;
@@ -31,7 +33,6 @@ interface MainState extends AppState {
 	validatedMods?: number;
 	modErrors?: ModErrors;
 	modalActive?: boolean;
-	sidebarCollapsed?: boolean;
 }
 
 class MainView extends Component<RouteComponentProps, MainState> {
@@ -108,10 +109,15 @@ class MainView extends Component<RouteComponentProps, MainState> {
 		allCollections?.set(name, { name, mods: new Set() });
 	}
 
-	baseLaunchGame(mods: string[]) {
+	// eslint-disable-next-line class-methods-use-this
+	saveCollection(collection: ModCollection) {
+		api.updateCollection(collection);
+	}
+
+	baseLaunchGame(mods: Mod[]) {
 		const { config } = this.state;
 		console.log('launching game');
-		const launchPromise = api.launchGame(config!.steamExec, config!.workshopID, config!.closeOnLaunch, mods);
+		const launchPromise = api.launchGame(config.steamExec, config.workshopID, config.closeOnLaunch, mods);
 		if (!config?.closeOnLaunch) {
 			launchPromise.finally(() => {
 				this.setState({ launchingGame: false, gameRunning: true, launchGameWithErrors: false, modalActive: false });
@@ -175,15 +181,15 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	validateActiveCollection(launchIfValid: boolean) {
-		const { activeCollection } = this.state;
+		const { activeCollection, mods } = this.state;
 		this.setState({ validatingMods: true, modalActive: true });
 		if (activeCollection) {
-			const mods = [...activeCollection!.mods];
+			const collectionMods = [...activeCollection!.mods];
 			console.log('Selected mods:');
-			console.log(mods);
+			console.log(collectionMods);
 			const validationPromise = new Promise((resolve, reject) => {
 				try {
-					const isValid = this.validateFunctionAsync(mods);
+					const isValid = this.validateFunctionAsync(collectionMods);
 					resolve(isValid);
 				} catch (error) {
 					reject(error);
@@ -196,7 +202,8 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					this.setState({ validatingMods: false });
 					console.log(`To launch game?: ${launchIfValid}`);
 					if (isValid && launchIfValid) {
-						this.baseLaunchGame(mods);
+						const modList: Mod[] = collectionMods.map((mod) => mods!.get(mod)) as Mod[];
+						this.baseLaunchGame(modList);
 					}
 					return isValid;
 				})
@@ -255,7 +262,8 @@ class MainView extends Component<RouteComponentProps, MainState> {
 						cancelText="Address Errors"
 						onOk={() => {
 							this.setState({ launchGameWithErrors: true });
-							this.baseLaunchGame(activeCollection ? [...activeCollection!.mods] : []);
+							const modList: Mod[] = (activeCollection ? [...activeCollection!.mods].map((mod) => mods!.get(mod)) : []) as Mod[];
+							this.baseLaunchGame(modList);
 						}}
 						onCancel={() => {
 							this.setState({ launchingGame: false, modalActive: false });
@@ -280,6 +288,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 
 	render() {
 		const { mods, activeCollection, gameRunning, launchingGame, sidebarCollapsed, modalActive } = this.state;
+		const { history, location, match } = this.props;
 
 		const launchGameButton = (
 			<Button loading={launchingGame} disabled={gameRunning || modalActive || launchingGame} onClick={this.launchGame}>
@@ -298,36 +307,14 @@ class MainView extends Component<RouteComponentProps, MainState> {
 						}}
 					>
 						<div className="logo" />
-						<Menu
-							theme="dark"
-							defaultSelectedKeys={['1']}
-							mode="inline"
-							disabled={launchingGame || modalActive}
-							onClick={(e) => {
-								const { history } = this.props;
-								switch (e.key) {
-									case '2':
-										history.push('/raw-mods', { ...this.state, ...{ modErrors: undefined } });
-										break;
-									case '3':
-										history.push('/settings', this.state);
-										break;
-									case '1':
-									default:
-										break;
-								}
-							}}
-						>
-							<Menu.Item key="1" icon={<AppstoreOutlined />}>
-								Mod Collections
-							</Menu.Item>
-							<Menu.Item key="2" icon={<FileTextOutlined />}>
-								Raw Modlist
-							</Menu.Item>
-							<Menu.Item key="3" icon={<SettingOutlined />}>
-								Settings
-							</Menu.Item>
-						</Menu>
+						<MenuBar
+							disableNavigation={launchingGame || modalActive}
+							currentTab="main"
+							history={history}
+							location={location}
+							match={match}
+							appState={this.state}
+						/>
 					</Sider>
 					<Layout>
 						<Header style={{ height: 120 }}>
