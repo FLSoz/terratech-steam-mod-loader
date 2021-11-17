@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router';
 import { AppState } from 'renderer/model/AppState';
-import { Layout } from 'antd';
+import { Layout, Skeleton } from 'antd';
 import MenuBar from './components/MenuBar';
 
-const { Header, Footer, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 
 interface SteamBrowserState extends AppState {
 	sidebarCollapsed?: boolean;
@@ -40,7 +40,9 @@ class SteamBrowserView extends Component<RouteComponentProps, SteamBrowserState>
 						<MenuBar disableNavigation={false} currentTab="steam" history={history} location={location} match={match} appState={this.state} />
 					</Sider>
 					<Layout style={{ width: '100%' }}>
-						<div />
+						<Content>
+							<Skeleton active round />
+						</Content>
 					</Layout>
 				</Layout>
 			</div>

@@ -26,7 +26,7 @@ export default function App() {
 				<Route path="/raw-mods" exact component={RawModlistView} />
 				<Route path="/main" exact component={MainView} />
 				<Route path="/steam" exact component={SteamBrowser} />
-				<Route path="/ttqmn" exact component={TTQMMBrowser} />
+				<Route path="/ttqmm" exact component={TTQMMBrowser} />
 			</Switch>
 		</Router>
 	);

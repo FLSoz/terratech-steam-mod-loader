@@ -36,6 +36,7 @@ export default class MenuBar extends Component<MenuProps, MenuState> {
 
 		return (
 			<Menu
+				id="MenuBar"
 				theme="dark"
 				className="MenuBar"
 				selectedKeys={[currentTab]}

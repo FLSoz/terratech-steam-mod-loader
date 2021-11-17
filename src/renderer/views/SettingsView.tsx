@@ -125,7 +125,7 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 								// eslint-disable-next-line @typescript-eslint/no-explicit-any
 								ref={this.formRef}
 								onFinish={this.saveChanges}
-								labelCol={{ span: 6 }}
+								labelCol={{ span: 6, xs: 14, sm: 14, md: 10, lg: 10 }}
 								wrapperCol={{ span: 14 }}
 								initialValues={{ remember: true }}
 								autoComplete="off"

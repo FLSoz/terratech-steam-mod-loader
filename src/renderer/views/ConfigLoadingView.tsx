@@ -55,6 +55,10 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 		this.updateSteamMod();
 	}
 
+	componentWillUnmount() {
+		api.removeAllListeners(ValidChannel.COLLECTION_RESULTS);
+	}
+
 	setStateCallback(update: AppState) {
 		this.setState(update);
 	}

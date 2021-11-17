@@ -276,7 +276,6 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 			{
 				title: 'Name',
 				dataIndex: 'name',
-				width: 300,
 				defaultSortOrder: 'ascend',
 				sorter: (a, b) => (a.name > b.name ? 1 : -1)
 			},
