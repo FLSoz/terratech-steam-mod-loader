@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
-import React, { Component } from 'react';
+import React, { Component, CSSProperties, ReactNode } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router';
-import { Layout, Button, Popover, Modal, Progress, Spin, Space } from 'antd';
+import { Layout, Button, Popover, Modal, Progress, Spin, Space, notification } from 'antd';
 
 import { SizeMe } from 'react-sizeme';
 import { convertToModData, filterRows, Mod, ModData } from 'renderer/model/Mod';
@@ -28,7 +28,28 @@ interface MainState extends AppState {
 	overrideGameRunning?: boolean;
 	rows: ModData[];
 	filteredRows?: ModData[];
+	madeEdits: boolean;
 }
+
+interface NotificationProps {
+	placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+	message: ReactNode;
+	description?: ReactNode;
+	btn?: ReactNode;
+	className?: string;
+	closeIcon?: ReactNode;
+	duration: number | null;
+	key?: string;
+	style?: CSSProperties;
+	onClick?: () => void;
+	onClose?: () => void;
+	top?: number;
+	bottom?: number;
+}
+
+const openNotification = (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => {
+	notification[type || 'open']({ ...props });
+};
 
 class MainView extends Component<RouteComponentProps, MainState> {
 	constructor(props: RouteComponentProps) {
@@ -44,7 +65,8 @@ class MainView extends Component<RouteComponentProps, MainState> {
 			sidebarCollapsed: true,
 			launchingGame: false,
 			modalActive: true, // we validate on load
-			...appState
+			...appState,
+			madeEdits: false
 		};
 
 		this.handleSelectAllClick = this.handleSelectAllClick.bind(this);
@@ -94,7 +116,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 			} else {
 				activeCollection.mods = activeCollection.mods.filter((mod) => mod !== id);
 			}
-			this.setState({});
+			this.setState({ madeEdits: true });
 		}
 	}
 
@@ -111,7 +133,11 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	createNewCollection(name: string) {
-		const { config, allCollectionNames, allCollections } = this.state;
+		const { config, allCollectionNames, allCollections, activeCollection, madeEdits } = this.state;
+		if (madeEdits) {
+			this.saveCollection(activeCollection, false);
+		}
+
 		this.setState({ savingCollection: true });
 		const newCollection = {
 			name,
@@ -126,14 +152,33 @@ class MainView extends Component<RouteComponentProps, MainState> {
 				// eslint-disable-next-line promise/no-nesting
 				api.updateConfig(config).catch((error) => {
 					api.logger.error(error);
-					// TODO: notify if fails
+					openNotification(
+						{
+							message: 'Failed to udpate config',
+							duration: null
+						},
+						'error'
+					);
 				});
+				openNotification(
+					{
+						message: `Created new collection ${name}`,
+						duration: 1
+					},
+					'success'
+				);
 				this.setState({ activeCollection: newCollection });
 				return true;
 			})
 			.catch((error) => {
 				api.logger.error(error);
-				// TODO: notify of failure
+				openNotification(
+					{
+						message: `Failed to create new collection ${name}`,
+						duration: null
+					},
+					'error'
+				);
 			})
 			.finally(() => {
 				this.setState({ savingCollection: false });
@@ -141,12 +186,18 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	duplicateCollection(name: string) {
-		const { config, allCollectionNames, allCollections, activeCollection } = this.state;
+		const { config, allCollectionNames, allCollections, activeCollection, madeEdits } = this.state;
 		this.setState({ savingCollection: true });
 		const newCollection = {
 			name,
 			mods: activeCollection ? [...activeCollection!.mods] : []
 		};
+
+		const oldName = activeCollection.name;
+		if (madeEdits) {
+			this.saveCollection(activeCollection, false);
+		}
+
 		api
 			.updateCollection(newCollection)
 			.then((writeSuccess) => {
@@ -154,21 +205,45 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					allCollectionNames.add(name);
 					allCollections.set(name, newCollection);
 					config.activeCollection = name;
-					// update config - TODO: notify if fails
 					// eslint-disable-next-line promise/no-nesting
 					api.updateConfig(config).catch((error) => {
 						api.logger.error(error);
-						// TODO: notify if fails
+						openNotification(
+							{
+								message: 'Failed to update config',
+								duration: null
+							},
+							'error'
+						);
 					});
-					this.setState({ activeCollection: newCollection });
+					openNotification(
+						{
+							message: `Duplicated collection ${oldName}`,
+							duration: 1
+						},
+						'success'
+					);
+					this.setState({ activeCollection: newCollection, madeEdits: false });
 				} else {
-					// TODO: notify of write success
+					openNotification(
+						{
+							message: `Failed to create new collection ${name}`,
+							duration: null
+						},
+						'error'
+					);
 				}
 				return writeSuccess;
 			})
 			.catch((error) => {
 				api.logger.error(error);
-				// TODO: notify of failure
+				openNotification(
+					{
+						message: `Failed to duplicate collection ${oldName}`,
+						duration: null
+					},
+					'error'
+				);
 			})
 			.finally(() => {
 				this.setState({ savingCollection: false });
@@ -177,6 +252,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 
 	renameCollection(name: string) {
 		const { config, activeCollection } = this.state;
+		const oldName = activeCollection.name;
 		this.setState({ savingCollection: true });
 		api
 			.renameCollection(activeCollection!.name, name)
@@ -184,20 +260,45 @@ class MainView extends Component<RouteComponentProps, MainState> {
 				if (updateSuccess) {
 					activeCollection!.name = name;
 					config.activeCollection = name;
-					// update config - TODO: notify if fails
 					// eslint-disable-next-line promise/no-nesting
 					api.updateConfig(config).catch((error) => {
 						api.logger.error(error);
-						// TODO: notify if fails
+						openNotification(
+							{
+								message: 'Failed to update config',
+								duration: null
+							},
+							'error'
+						);
 					});
+					openNotification(
+						{
+							message: `Collection ${oldName} renamed to ${name}`,
+							duration: 1
+						},
+						'success'
+					);
+					this.setState({ madeEdits: false });
 				} else {
-					// TODO: notify of failure to rename
+					openNotification(
+						{
+							message: `Failed to rename collection ${oldName} to ${name}`,
+							duration: null
+						},
+						'error'
+					);
 				}
 				return updateSuccess;
 			})
 			.catch((error) => {
 				api.logger.error(error);
-				// TODO: notify of failure
+				openNotification(
+					{
+						message: `Failed to rename collection ${oldName} to ${name}`,
+						duration: null
+					},
+					'error'
+				);
 			})
 			.finally(() => {
 				this.setState({ savingCollection: false });
@@ -228,21 +329,45 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					}
 
 					config.activeCollection = newCollectionName;
-					// update config - TODO: notify if fails
 					// eslint-disable-next-line promise/no-nesting
 					api.updateConfig(config).catch((error) => {
 						api.logger.error(error);
-						// TODO: notify if fails
+						openNotification(
+							{
+								message: 'Failed to update config',
+								duration: null
+							},
+							'error'
+						);
 					});
-					this.setState({ activeCollection: newCollection });
+					openNotification(
+						{
+							message: `Collection ${activeCollection.name} deleted`,
+							duration: 1
+						},
+						'success'
+					);
+					this.setState({ activeCollection: newCollection, madeEdits: false });
 				} else {
-					// TODO: notify of write success
+					openNotification(
+						{
+							message: 'Failed to delete collection',
+							duration: null
+						},
+						'error'
+					);
 				}
 				return deleteSuccess;
 			})
 			.catch((error) => {
 				api.logger.error(error);
-				// TODO: notify of failure
+				openNotification(
+					{
+						message: 'Failed to delete collection',
+						duration: null
+					},
+					'error'
+				);
 			})
 			.finally(() => {
 				this.setState({ savingCollection: false });
@@ -263,11 +388,39 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	// eslint-disable-next-line class-methods-use-this
-	saveCollection(collection: ModCollection) {
+	saveCollection(collection: ModCollection, pureSave: boolean) {
 		this.setState({ savingCollection: true });
-		api.updateCollection(collection).finally(() => {
-			this.setState({ savingCollection: false });
-		});
+		const oldName = collection.name;
+		api
+			.updateCollection(collection)
+			.then((writeSuccess) => {
+				if (!writeSuccess) {
+					openNotification(
+						{
+							message: `Failed to save collection ${oldName}`,
+							duration: null
+						},
+						'error'
+					);
+				} else {
+					openNotification(
+						{
+							message: `Saved collection ${oldName}`,
+							duration: 1
+						},
+						'success'
+					);
+				}
+				return writeSuccess;
+			})
+			.catch((error) => {
+				api.logger.error(error);
+			})
+			.finally(() => {
+				if (pureSave) {
+					this.setState({ savingCollection: false, madeEdits: false });
+				}
+			});
 	}
 
 	baseLaunchGame(mods: Mod[]) {
@@ -332,33 +485,69 @@ class MainView extends Component<RouteComponentProps, MainState> {
 							.updateCollection(activeCollection!)
 							.then((updateSuccess) => {
 								if (!updateSuccess) {
-									// TODO: notify of failed update
+									setTimeout(() => {
+										openNotification(
+											{
+												message: 'Failed to validate collection',
+												duration: null
+											},
+											'error'
+										);
+									}, 500);
+								} else {
+									setTimeout(() => {
+										openNotification(
+											{
+												message: 'Collection validated',
+												duration: 1
+											},
+											'success'
+										);
+									}, 500);
 								}
+								setTimeout(() => {
+									this.setState({ modalActive: false });
+								}, 500);
 								return updateSuccess;
 							})
 							.catch((error) => {
 								api.logger.error(error);
-								// TODO: notify of failed update
+								setTimeout(() => {
+									openNotification(
+										{
+											message: 'Failed to validate collection',
+											duration: null
+										},
+										'error'
+									);
+									this.setState({ modalActive: false });
+								}, 500);
 							});
 					} else {
 						api.logger.error('Failed to validate active collection');
-						// TODO: notify of failed update
 					}
 					return success;
 				})
 				.catch((error) => {
 					api.logger.error(error);
-					// TODO: notify of failed update
 					setTimeout(() => {
 						this.setState({ modalActive: false });
-					}, 2000);
+					}, 500);
+					setTimeout(() => {
+						openNotification(
+							{
+								message: 'Failed to validate collection',
+								duration: null
+							},
+							'error'
+						);
+					}, 500);
 				})
 				.finally(() => {
-					// TODO: notify of failed update
 					// validation is finished
 					setTimeout(() => {
 						this.setState({ validatingMods: false });
-					}, 2000);
+					}, 500);
 				});
 		} else {
 			api.logger.info('NO ACTIVE COLLECTION');
@@ -458,7 +647,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 									setEnabledModsCallback={(enabledMods: Set<string>) => {
 										if (activeCollection) {
 											activeCollection.mods = [...enabledMods].sort();
-											this.setState({});
+											this.setState({ madeEdits: true });
 										}
 									}}
 									setEnabledCallback={(id: string) => {
@@ -477,8 +666,18 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	render() {
-		const { filteredRows, gameRunning, overrideGameRunning, launchingGame, sidebarCollapsed, modalActive, savingCollection, allCollections, searchString } =
-			this.state;
+		const {
+			madeEdits,
+			filteredRows,
+			gameRunning,
+			overrideGameRunning,
+			launchingGame,
+			sidebarCollapsed,
+			modalActive,
+			savingCollection,
+			allCollections,
+			searchString
+		} = this.state;
 		const { history, location, match } = this.props;
 
 		const launchGameButton = (
@@ -517,6 +716,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 								onSearchChangeCallback={(search) => {
 									this.setState({ searchString: search });
 								}}
+								madeEdits={madeEdits}
 								onSearchCallback={(search) => {
 									if (search && search.length > 0) {
 										const { rows } = this.state;
@@ -537,7 +737,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 								deleteCollectionCallback={this.deleteCollection}
 								saveCollectionCallback={() => {
 									const { activeCollection } = this.state;
-									this.saveCollection(activeCollection);
+									this.saveCollection(activeCollection, true);
 								}}
 							/>
 						</Header>

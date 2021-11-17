@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Layout, Table, Tag, Space, Button, Modal, Tooltip } from 'antd';
+import { Layout, Table, Tag, Space, Button, Modal, Tooltip, Image } from 'antd';
 import React, { Component, ReactNode } from 'react';
 import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined, ZoomInOutlined, CloseOutlined } from '@ant-design/icons';
 import parse from 'html-react-parser';
@@ -130,7 +130,7 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		const rowSelection: TableRowSelection<ModData> = {
-			selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT, Table.SELECTION_NONE],
+			selections: [Table.SELECTION_INVERT],
 			selectedRowKeys: collection.mods,
 			onChange: (selectedRowKeys: React.Key[]) => {
 				api.logger.info(`changing selecton: ${selectedRowKeys}`);
@@ -214,23 +214,7 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 				dataIndex: 'preview',
 				render: (imgPath: string | undefined | null) => {
 					if (imgPath) {
-						return (
-							<Tooltip title="Click for full size image">
-								<div className="container">
-									<img src={imgPath} width="60px" alt="" key="preview" className="image" />
-									<div className="image-hover">
-										<Button
-											shape="circle"
-											icon={<ZoomInOutlined color="white" />}
-											type="dashed"
-											onClick={() => {
-												this.renderPreviewModal(imgPath);
-											}}
-										/>
-									</div>
-								</div>
-							</Tooltip>
-						);
+						return <Image width={60} src={imgPath} key="preview" />;
 					}
 					return <FileImageOutlined style={{ fontSize: '40px', color: '#08c' }} />;
 				},

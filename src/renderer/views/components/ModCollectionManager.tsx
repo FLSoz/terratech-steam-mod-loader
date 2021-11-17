@@ -19,6 +19,7 @@ interface ModCollectionManagerState extends AppState {
 }
 
 interface ModCollectionManagerProps {
+	madeEdits: boolean;
 	searchString: string;
 	appState: AppState;
 	savingCollection?: boolean;
@@ -131,7 +132,8 @@ export default class ModCollectionManagerComponent extends Component<ModCollecti
 			numResults,
 			onSearchCallback,
 			onSearchChangeCallback,
-			searchString
+			searchString,
+			madeEdits
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
 		return (
@@ -192,11 +194,10 @@ export default class ModCollectionManagerComponent extends Component<ModCollecti
 							<Button
 								shape="circle"
 								key="save"
-								size="large"
 								type="primary"
 								icon={<SaveOutlined />}
 								onClick={saveCollectionCallback}
-								disabled={disabledFeatures}
+								disabled={disabledFeatures || !madeEdits}
 								loading={savingCollection}
 							/>
 							<Button
@@ -204,7 +205,6 @@ export default class ModCollectionManagerComponent extends Component<ModCollecti
 								type="primary"
 								key="delete"
 								shape="circle"
-								size="large"
 								icon={<DeleteOutlined />}
 								onClick={deleteCollectionCallback}
 								disabled={disabledFeatures}
