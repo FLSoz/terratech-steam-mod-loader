@@ -38,7 +38,7 @@ let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
 	const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-	console.log(msgTemplate(arg));
+	log.info(msgTemplate(arg));
 	event.reply('ipc-example', msgTemplate('pong'));
 });
 
@@ -63,7 +63,7 @@ const installExtensions = async () => {
 			extensions.map((name) => installer[name]),
 			forceDownload
 		)
-		.catch(console.log);
+		.catch(log.info);
 };
 
 const createWindow = async () => {
@@ -143,7 +143,7 @@ app.on('window-all-closed', () => {
 	}
 });
 
-app.whenReady().then(createWindow).catch(console.log);
+app.whenReady().then(createWindow).catch(log.info);
 
 app.on('activate', () => {
 	// On macOS it's common to re-create a window in the app when the
@@ -158,7 +158,7 @@ ipcMain.on('exit', (_event, code) => {
 
 // close all windows
 ipcMain.on('close', () => {
-	console.log('Trying to close mm');
+	log.info('Trying to close mm');
 	if (mainWindow) {
 		mainWindow.close();
 	}
@@ -175,11 +175,13 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 	// await sleep(5000);
 	fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
 		if (err) {
-			console.error(err);
+			log.error(err);
 			event.reply('mod-metadata-results', null);
 		} else {
+			const tempID = workshopID ? `${workshopID}` : '';
 			const potentialMod: Mod = {
-				ID: workshopID ? `${workshopID}` : '',
+				UID: `${type}:${tempID}`,
+				ID: tempID,
 				type,
 				WorkshopID: workshopID,
 				config: { hasCode: false }
@@ -201,11 +203,13 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 							config.author = modConfig.Author;
 							if (potentialMod.ID === '') {
 								potentialMod.ID = modConfig.Id;
+								potentialMod.UID = `ttqmm:${modConfig.Id}`;
 							}
 						}
 						if (file.name === 'ttmm.json') {
 							const ttmmConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
 							potentialMod.ID = ttmmConfig.CloudName;
+							potentialMod.UID = `ttqmm:${ttmmConfig.CloudName}`;
 							config.dependsOn = ttmmConfig.RequiredModNames;
 							config.loadAfter = ttmmConfig.RequiredModNames;
 							config.description = ttmmConfig.InlineDescription;
@@ -215,6 +219,9 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 						if (matches && matches.length > 1) {
 							// eslint-disable-next-line prefer-destructuring
 							potentialMod.ID = matches[1];
+							if (type !== 'workshop') {
+								potentialMod.UID = `local:${potentialMod.ID}`;
+							}
 							if (!config.name) {
 								// eslint-disable-next-line prefer-destructuring
 								config.name = matches[1];
@@ -241,7 +248,7 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 					}
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				} catch (error: any) {
-					console.error(error);
+					log.error(error);
 				}
 			}
 
@@ -254,11 +261,11 @@ ipcMain.on('read-collection', async (event, collection) => {
 	const collectionString = fs.readFileSync(path.join(app.getPath('userData'), 'collections', `${collection}.json`));
 	try {
 		const data = JSON.parse(collectionString.toString());
-		data.mods = new Set(data.mods);
+		data.name = collection;
 		event.reply('collection-results', data as ModCollection);
 	} catch (error) {
-		console.log(`Failed to read collection: ${collection}`);
-		console.error(error);
+		log.info(`Failed to read collection: ${collection}`);
+		log.error(error);
 		event.reply('collection-results', null);
 	}
 });
@@ -266,6 +273,9 @@ ipcMain.on('read-collection', async (event, collection) => {
 ipcMain.handle('read-collections-list', async () => {
 	const dirpath = path.join(app.getPath('userData'), 'collections');
 	try {
+		if (!fs.existsSync(dirpath)) {
+			fs.mkdirSync(dirpath);
+		}
 		const dirContents: string[] | Buffer[] | fs.Dirent[] = fs.readdirSync(dirpath);
 		return dirContents
 			.map((elem) => {
@@ -277,8 +287,8 @@ ipcMain.handle('read-collections-list', async () => {
 			})
 			.filter((elem: string | null) => !!elem);
 	} catch (error) {
-		console.error(error);
-		return null;
+		log.error(error);
+		return [];
 	}
 });
 
@@ -287,10 +297,37 @@ ipcMain.handle('update-collection', async (_event, collection: ModCollection) =>
 	try {
 		fs.writeFileSync(filepath, JSON.stringify({ ...collection, mods: [...collection.mods] }, null, 4), { encoding: 'utf8', flag: 'w' });
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return false;
 	}
 	return true;
+});
+
+// Rename a file
+ipcMain.handle('rename-collection', async (_event, oldName: string, newName: string) => {
+	const oldpath = path.join(app.getPath('userData'), 'collections', `${oldName}.json`);
+	const newpath = path.join(app.getPath('userData'), 'collections', `${newName}.json`);
+	log.info(`Renaming file ${oldpath} to ${newpath}`);
+	try {
+		fs.renameSync(oldpath, newpath);
+		return true;
+	} catch (error) {
+		log.error(error);
+		return false;
+	}
+});
+
+// Delete a json file
+ipcMain.handle('delete-collection', async (_event, collection: string) => {
+	const filepath = path.join(app.getPath('userData'), 'collections', `${collection}.json`);
+	log.info(`Deleting file ${filepath}`);
+	try {
+		fs.unlinkSync(filepath);
+		return true;
+	} catch (error) {
+		log.error(error);
+		return false;
+	}
 });
 
 // return config
@@ -299,7 +336,7 @@ ipcMain.handle('read-config', async () => {
 	try {
 		return JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return null;
 	}
 });
@@ -308,11 +345,11 @@ ipcMain.handle('read-config', async () => {
 ipcMain.handle('update-config', async (_event, config) => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
 	try {
-		console.log('updated config');
+		log.info('updated config');
 		fs.writeFileSync(filepath, JSON.stringify(config, null, 4), { encoding: 'utf8', flag: 'w' });
 		return true;
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return false;
 	}
 });
@@ -337,9 +374,9 @@ ipcMain.on('game-running', async (event) => {
 
 // Launch steam as separate process
 ipcMain.handle('launch-game', async (_event, steamExec, workshopID, closeOnLaunch, args) => {
-	console.log('Launching game with custom args:');
-	console.log(args);
-	await child_process.spawn(steamExec, ['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`, ...args], {
+	log.info('Launching game with custom args:');
+	log.info(args);
+	await child_process.spawn(steamExec, ['-applaunch', '285920', '+custom_mod_list', `:${workshopID}]`, ...args], {
 		detached: true
 	});
 	if (closeOnLaunch) {
@@ -357,13 +394,13 @@ ipcMain.handle('query-steam', async (_event, workshopID) => {
 // Write a json file to a certain location
 ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Writing json file ${filepath}`);
-	console.log(`Writing ${data} to file ${filepath}`);
+	log.info(`Writing json file ${filepath}`);
+	log.info(`Writing ${data} to file ${filepath}`);
 	try {
 		fs.writeFileSync(filepath, data, 'utf8');
 		return true;
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return false;
 	}
 });
@@ -371,7 +408,7 @@ ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
 // Update a json file
 ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Updating json file ${filepath}`);
+	log.info(`Updating json file ${filepath}`);
 	const raw: string = fs.readFileSync(filepath) as unknown as string;
 	try {
 		const data: Record<string, unknown> = JSON.parse(raw);
@@ -382,17 +419,17 @@ ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) =>
 				data[key] = value;
 			}
 		});
-		console.log(`Writing ${JSON.stringify(data)} to file ${filepath}`);
+		log.info(`Writing ${JSON.stringify(data)} to file ${filepath}`);
 		fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
 		return true;
 	} catch (error) {
-		console.log(`Unable to parse file ${filepath} contents into json: ${raw}`);
-		console.error(error);
+		log.info(`Unable to parse file ${filepath} contents into json: ${raw}`);
+		log.error(error);
 		try {
 			fs.writeFileSync(filepath, JSON.stringify(newData, null, 4), 'utf8');
 			return true;
 		} catch (err2) {
-			console.error(err2);
+			log.error(err2);
 			return false;
 		}
 	}
@@ -401,12 +438,12 @@ ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) =>
 // Delete a json file
 ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Deleting file ${filepath}`);
+	log.info(`Deleting file ${filepath}`);
 	try {
 		fs.unlinkSync(filepath);
 		return true;
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return false;
 	}
 });
@@ -414,11 +451,11 @@ ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
 // see what's in a directory
 ipcMain.handle('list-dir', async (_event, pathParams: PathParams) => {
 	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Listing dir contents ${dirpath}`);
+	log.info(`Listing dir contents ${dirpath}`);
 	try {
 		return fs.readdirSync(dirpath);
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return null;
 	}
 });
@@ -426,14 +463,14 @@ ipcMain.handle('list-dir', async (_event, pathParams: PathParams) => {
 // see sub-directories
 ipcMain.handle('list-subdirs', async (_event, pathParams: PathParams) => {
 	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Listing subdirs ${dirpath}`);
+	log.info(`Listing subdirs ${dirpath}`);
 	try {
 		return fs
 			.readdirSync(dirpath, { withFileTypes: true })
 			.filter((dirent) => dirent.isDirectory())
 			.map((dirent) => dirent.name);
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return [];
 	}
 });
@@ -441,12 +478,12 @@ ipcMain.handle('list-subdirs', async (_event, pathParams: PathParams) => {
 // Check if path exists
 ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Mkdir ${filepath}`);
+	log.info(`Mkdir ${filepath}`);
 	try {
 		fs.mkdirSync(filepath);
 		return true;
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return false;
 	}
 });
@@ -455,11 +492,11 @@ ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {
 ipcMain.handle('read-file', async (_event, pathParams: PathParams) => {
 	await sleep(5000);
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Reading file ${filepath}`);
+	log.info(`Reading file ${filepath}`);
 	try {
 		return fs.readFileSync(filepath, 'utf8').toString();
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return null;
 	}
 });
@@ -470,7 +507,7 @@ ipcMain.handle('path-exists', async (_event, pathParams: PathParams) => {
 	try {
 		return fs.existsSync(filepath);
 	} catch (error) {
-		console.error(error);
+		log.error(error);
 		return false;
 	}
 });
@@ -478,13 +515,13 @@ ipcMain.handle('path-exists', async (_event, pathParams: PathParams) => {
 // Check if have access to path
 ipcMain.handle('path-access', async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
-	console.log(`Checking access to ${filepath}`);
+	log.info(`Checking access to ${filepath}`);
 	try {
 		// eslint-disable-next-line no-bitwise
 		fs.accessSync(filepath, fs.constants.R_OK | fs.constants.W_OK);
 		return true;
 	} catch (err) {
-		console.error(`bad access to file ${filepath}!`, err);
+		log.error(`bad access to file ${filepath}!`, err);
 		return false;
 	}
 });

@@ -1,5 +1,6 @@
 // eslint-disable-next-line prettier/prettier
 const { contextBridge, ipcRenderer } = require('electron');
+const log = require('electron-log');
 
 const validChannels = [
 	'game-running',
@@ -20,6 +21,8 @@ const validChannels = [
 	'read-config',
 	'update-config',
 	'read-collection',
+	'rename-collection',
+	'delete-collection',
 	'collection-results',
 	'read-collections-list',
 	'update-collection',
@@ -29,6 +32,7 @@ const validChannels = [
 
 contextBridge.exposeInMainWorld('electron', {
 	platform: process.platform,
+	log: log.functions,
 	ipcRenderer: {
 		myPing() {
 			ipcRenderer.send('ipc-example', 'ping');

@@ -35,7 +35,7 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 
 		if (!appState.activeCollection) {
 			appState.activeCollection = {
-				mods: new Set(),
+				mods: [],
 				name: 'default'
 			};
 		}
@@ -101,8 +101,8 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 		const { appState, loadedMods } = this.state;
 		if (mod) {
 			const modsMap: Map<string, Mod> = appState.mods;
-			console.log(`Loaded mod: ${mod.ID}`);
-			console.log(JSON.stringify(mod, null, 2));
+			api.logger.info(`Loaded mod: ${mod.ID}`);
+			api.logger.info(JSON.stringify(mod, null, 2));
 			modsMap.set(mod.WorkshopID ? `${mod.WorkshopID}` : mod.ID, mod);
 			appState.mods = modsMap;
 		}

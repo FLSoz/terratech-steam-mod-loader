@@ -7,7 +7,7 @@ import { api, ValidChannel } from 'renderer/model/Api';
 import { FolderOutlined } from '@ant-design/icons';
 import MenuBar from './components/MenuBar';
 
-const { Header, Footer, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 const { Search } = Input;
 
 interface SettingsState extends AppState {
@@ -15,7 +15,6 @@ interface SettingsState extends AppState {
 	savingConfig?: boolean;
 	configErrors: { [field: string]: string };
 	madeEdits?: boolean;
-	firstValidation: boolean;
 }
 class SettingsView extends Component<RouteComponentProps, SettingsState> {
 	formRef = React.createRef<FormInstance>();
@@ -30,8 +29,7 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 			editingConfig: { ...appState.config },
 			...appState,
 			savingConfig: false,
-			configErrors,
-			firstValidation: false
+			configErrors
 		};
 
 		this.saveChanges = this.saveChanges.bind(this);
@@ -97,8 +95,8 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 	render() {
 		const { sidebarCollapsed, editingConfig, madeEdits, savingConfig, configErrors } = this.state;
 		const { history, location, match } = this.props;
-		console.log(editingConfig);
-		console.log(configErrors);
+		api.logger.info(editingConfig);
+		api.logger.info(configErrors);
 		return (
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<Layout style={{ minHeight: '100vh' }}>

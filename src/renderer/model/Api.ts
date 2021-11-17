@@ -25,6 +25,8 @@ export enum ValidChannel {
 	READ_CONFIG = 'read-config',
 	UPDATE_CONFIG = 'update-config',
 	READ_COLLECTION = 'read-collection',
+	DELETE_COLLECTION = 'delete-collection',
+	RENAME_COLLECTION = 'rename-collection',
 	COLLECTION_RESULTS = 'collection-results',
 	READ_COLLECTIONS = 'read-collections-list',
 	UPDATE_COLLECTION = 'update-collection',
@@ -34,6 +36,12 @@ export enum ValidChannel {
 
 interface ElectronInterface {
 	platform: string;
+	log: {
+		info: (message: any) => void;
+		debug: (message: any) => void;
+		warn: (message: any) => void;
+		error: (message: any) => void;
+	};
 	ipcRenderer: {
 		close: () => void;
 		exit: (code: number) => void;
@@ -65,8 +73,29 @@ class API {
 
 	userDataPath: string | undefined;
 
+	logger: {
+		info: (...message: any[]) => void;
+		debug: (...message: any[]) => void;
+		warn: (...message: any[]) => void;
+		error: (...message: any[]) => void;
+	};
+
 	constructor(window: Window) {
 		this.platform = window.electron.platform;
+		this.logger = {
+			info: (message) => {
+				window.electron.log.info(message);
+			},
+			debug: (message) => {
+				window.electron.log.debug(message);
+			},
+			warn: (message) => {
+				window.electron.log.warn(message);
+			},
+			error: (message) => {
+				window.electron.log.error(message);
+			}
+		};
 	}
 
 	async getUserDataPath() {
@@ -185,8 +214,8 @@ class API {
 		return ipcRenderer.invoke(ValidChannel.UPDATE_CONFIG, config);
 	}
 
-	readCollection(collection: string): Promise<ModCollection> {
-		return ipcRenderer.invoke(ValidChannel.READ_COLLECTION, collection);
+	readCollection(collection: string): void {
+		ipcRenderer.send(ValidChannel.READ_COLLECTION, collection);
 	}
 
 	readCollectionsList(): Promise<string[]> {
@@ -195,6 +224,14 @@ class API {
 
 	updateCollection(collection: ModCollection): Promise<boolean> {
 		return ipcRenderer.invoke(ValidChannel.UPDATE_COLLECTION, collection);
+	}
+
+	deleteCollection(collection: string): Promise<boolean> {
+		return ipcRenderer.invoke(ValidChannel.DELETE_COLLECTION, collection);
+	}
+
+	renameCollection(oldName: string, newName: string): Promise<boolean> {
+		return ipcRenderer.invoke(ValidChannel.RENAME_COLLECTION, oldName, newName);
 	}
 }
 export const api = new API(window);

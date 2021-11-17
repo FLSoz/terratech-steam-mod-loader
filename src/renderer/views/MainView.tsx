@@ -1,29 +1,21 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router';
-import { AppstoreOutlined, CloseOutlined, EditOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
-import { Input, Layout, Row, Col, Menu, Select, Space, Button, Dropdown, Popover, Modal, Progress, Spin } from 'antd';
+import { Layout, Button, Popover, Modal, Progress, Spin } from 'antd';
 
 import { SizeMe } from 'react-sizeme';
 import { Mod } from 'renderer/model/Mod';
 import { AppState } from 'renderer/model/AppState';
 import { api, ValidChannel } from 'renderer/model/Api';
-import { ModCollection } from 'renderer/model/ModCollection';
+import { ModCollection, ModError, ModErrors, ModErrorType } from 'renderer/model/ModCollection';
+import { validateActiveCollection } from 'renderer/util/Validation';
 import ModCollectionComponent from './components/ModCollectionComponent';
 import MenuBar from './components/MenuBar';
+import ModCollectionManager from './components/ModCollectionManager';
 
 const { Header, Footer, Sider, Content } = Layout;
-const { Option } = Select;
-const { Search } = Input;
-
-interface ModErrors {
-	[id: string]: string;
-}
 
 interface MainState extends AppState {
-	loadingCollectionNames?: boolean;
-	loadingCollection?: boolean;
-	renamingCollection?: boolean;
 	savingCollection?: boolean;
 	launchingGame?: boolean;
 	launchGameWithErrors?: boolean;
@@ -48,6 +40,12 @@ class MainView extends Component<RouteComponentProps, MainState> {
 		this.handleClick = this.handleClick.bind(this);
 		this.setGameRunningCallback = this.setGameRunningCallback.bind(this);
 		this.launchGame = this.launchGame.bind(this);
+		this.baseLaunchGame = this.baseLaunchGame.bind(this);
+
+		this.renameCollection = this.renameCollection.bind(this);
+		this.createNewCollection = this.createNewCollection.bind(this);
+		this.duplicateCollection = this.duplicateCollection.bind(this);
+		this.deleteCollection = this.deleteCollection.bind(this);
 		// this.isItemSelected = this.isItemSelected.bind(this);
 	}
 
@@ -65,27 +63,27 @@ class MainView extends Component<RouteComponentProps, MainState> {
 		const { mods, activeCollection } = this.state;
 		if (mods && activeCollection) {
 			if (event.target.checked) {
-				[...mods.values()].forEach((mod) => {
-					activeCollection.mods.add(mod.ID);
-				});
+				activeCollection.mods = [...mods.values()].map((mod) => mod.ID);
 			} else {
-				activeCollection.mods.clear();
+				activeCollection.mods = [];
 			}
 		}
 		this.setState({});
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	handleClick(event: any, id: string) {
+	handleClick(checked: boolean, id: string) {
 		const { activeCollection } = this.state;
 		if (activeCollection) {
-			if (event.target.checked) {
-				activeCollection.mods.add(id);
+			if (checked) {
+				if (!activeCollection.mods.includes(id)) {
+					activeCollection.mods.push(id);
+				}
 			} else {
-				activeCollection.mods.delete(id);
+				activeCollection.mods = activeCollection.mods.filter((mod) => mod !== id);
 			}
+			this.setState({});
 		}
-		this.setState({});
 	}
 
 	setGameRunningCallback(running: boolean) {
@@ -94,6 +92,145 @@ class MainView extends Component<RouteComponentProps, MainState> {
 
 	setStateCallback(update: AppState) {
 		this.setState(update);
+	}
+
+	createNewCollection(name: string) {
+		const { config, allCollectionNames, allCollections } = this.state;
+		this.setState({ savingCollection: true });
+		const newCollection = {
+			name,
+			mods: []
+		};
+		api
+			.updateCollection(newCollection)
+			.then(() => {
+				allCollectionNames.add(name);
+				allCollections.set(name, newCollection);
+				config.activeCollection = name;
+				// eslint-disable-next-line promise/no-nesting
+				api.updateConfig(config).catch((error) => {
+					api.logger.error(error);
+					// TODO: notify if fails
+				});
+				this.setState({ activeCollection: newCollection });
+				return true;
+			})
+			.catch((error) => {
+				api.logger.error(error);
+				// TODO: notify of failure
+			})
+			.finally(() => {
+				this.setState({ savingCollection: false });
+			});
+	}
+
+	duplicateCollection(name: string) {
+		const { config, allCollectionNames, allCollections, activeCollection } = this.state;
+		this.setState({ savingCollection: true });
+		const newCollection = {
+			name,
+			mods: activeCollection ? [...activeCollection!.mods] : []
+		};
+		api
+			.updateCollection(newCollection)
+			.then((writeSuccess) => {
+				if (writeSuccess) {
+					allCollectionNames.add(name);
+					allCollections.set(name, newCollection);
+					config.activeCollection = name;
+					// update config - TODO: notify if fails
+					// eslint-disable-next-line promise/no-nesting
+					api.updateConfig(config).catch((error) => {
+						api.logger.error(error);
+						// TODO: notify if fails
+					});
+					this.setState({ activeCollection: newCollection });
+				} else {
+					// TODO: notify of write success
+				}
+				return writeSuccess;
+			})
+			.catch((error) => {
+				api.logger.error(error);
+				// TODO: notify of failure
+			})
+			.finally(() => {
+				this.setState({ savingCollection: false });
+			});
+	}
+
+	renameCollection(name: string) {
+		const { config, activeCollection } = this.state;
+		this.setState({ savingCollection: true });
+		api
+			.renameCollection(activeCollection!.name, name)
+			.then((updateSuccess) => {
+				if (updateSuccess) {
+					activeCollection!.name = name;
+					config.activeCollection = name;
+					// update config - TODO: notify if fails
+					// eslint-disable-next-line promise/no-nesting
+					api.updateConfig(config).catch((error) => {
+						api.logger.error(error);
+						// TODO: notify if fails
+					});
+				} else {
+					// TODO: notify of failure to rename
+				}
+				return updateSuccess;
+			})
+			.catch((error) => {
+				api.logger.error(error);
+				// TODO: notify of failure
+			})
+			.finally(() => {
+				this.setState({ savingCollection: false });
+			});
+	}
+
+	deleteCollection() {
+		const { config, allCollectionNames, allCollections, activeCollection } = this.state;
+		this.setState({ savingCollection: true });
+		const { name } = activeCollection!;
+		api
+			.deleteCollection(name)
+			.then((deleteSuccess) => {
+				if (deleteSuccess) {
+					allCollectionNames.delete(name);
+					allCollections.delete(name);
+
+					let newCollection: ModCollection = {
+						name: 'default',
+						mods: []
+					};
+					let newCollectionName = 'default';
+
+					if (allCollectionNames.size > 0) {
+						// eslint-disable-next-line prefer-destructuring
+						newCollectionName = [...allCollectionNames].sort()[0];
+						newCollection = allCollections.get(newCollectionName)!;
+					}
+
+					config.activeCollection = newCollectionName;
+					// update config - TODO: notify if fails
+					// eslint-disable-next-line promise/no-nesting
+					api.updateConfig(config).catch((error) => {
+						api.logger.error(error);
+						// TODO: notify if fails
+					});
+					this.setState({ activeCollection: newCollection });
+				} else {
+					// TODO: notify of write success
+				}
+				return deleteSuccess;
+			})
+			.catch((error) => {
+				api.logger.error(error);
+				// TODO: notify of failure
+			})
+			.finally(() => {
+				this.setState({ savingCollection: false });
+			});
 	}
 
 	pollGameRunning() {
@@ -106,7 +243,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	addCollection(name: string) {
 		const { allCollectionNames, allCollections } = this.state;
 		allCollectionNames?.add(name);
-		allCollections?.set(name, { name, mods: new Set() });
+		allCollections?.set(name, { name, mods: [] });
 	}
 
 	// eslint-disable-next-line class-methods-use-this
@@ -116,7 +253,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 
 	baseLaunchGame(mods: Mod[]) {
 		const { config } = this.state;
-		console.log('launching game');
+		api.logger.info('launching game');
 		const launchPromise = api.launchGame(config.steamExec, config.workshopID, config.closeOnLaunch, mods);
 		if (!config?.closeOnLaunch) {
 			launchPromise.finally(() => {
@@ -137,47 +274,11 @@ class MainView extends Component<RouteComponentProps, MainState> {
 
 	isItemSelected(id: string): boolean {
 		const { activeCollection } = this.state;
-		return activeCollection ? activeCollection.mods.has(id) : false;
+		return activeCollection ? activeCollection.mods.includes(id) : false;
 	}
 
 	updatedActiveCollection(): boolean {
 		return false;
-	}
-
-	validateFunctionAsync(modList: string[]) {
-		let valid = true;
-		const { mods } = this.state;
-		let validatedMods = 0;
-		const errors: { [id: string]: string } = {};
-		modList.forEach((mod) => {
-			const modData = mods!.get(mod);
-			if (mod) {
-				if (modData?.config) {
-					const dependencies = modData!.config!.dependsOn;
-					if (dependencies) {
-						const missingDependencies: string[] = [];
-						dependencies.forEach((dependency) => {
-							if (!modList.includes(dependency)) {
-								missingDependencies.push(dependency);
-							}
-						});
-						if (missingDependencies.length > 0) {
-							valid = false;
-							errors[mod] = `Mod ${mods} is missing dependencies ${missingDependencies.join(', ')}`;
-						}
-					}
-				}
-			} else {
-				valid = false;
-				errors[mod] = `Mod ${mod} does not exist!`;
-			}
-			validatedMods += 1;
-			this.setState({ validatedMods });
-		});
-		if (!valid) {
-			this.setState({ modErrors: errors });
-		}
-		return valid;
 	}
 
 	validateActiveCollection(launchIfValid: boolean) {
@@ -185,34 +286,61 @@ class MainView extends Component<RouteComponentProps, MainState> {
 		this.setState({ validatingMods: true, modalActive: true });
 		if (activeCollection) {
 			const collectionMods = [...activeCollection!.mods];
-			console.log('Selected mods:');
-			console.log(collectionMods);
-			const validationPromise = new Promise((resolve, reject) => {
-				try {
-					const isValid = this.validateFunctionAsync(collectionMods);
-					resolve(isValid);
-				} catch (error) {
-					reject(error);
+			api.logger.info('Selected mods:');
+			api.logger.info(collectionMods);
+			validateActiveCollection({
+				modList: collectionMods,
+				allMods: mods,
+				updateValidatedModsCallback: (validatedMods: number) => {
+					this.setState({ validatedMods });
+				},
+				setModErrorsCallback: (modErrors: ModErrors) => {
+					this.setState({ modErrors });
 				}
-			});
-			validationPromise
-				.then((isValid) => {
-					console.log('IS VALID:');
-					console.log(isValid);
-					this.setState({ validatingMods: false });
-					console.log(`To launch game?: ${launchIfValid}`);
-					if (isValid && launchIfValid) {
-						const modList: Mod[] = collectionMods.map((mod) => mods!.get(mod)) as Mod[];
-						this.baseLaunchGame(modList);
+			})
+				.then((success) => {
+					if (success) {
+						api.logger.info(`To launch game?: ${launchIfValid}`);
+						if (success && launchIfValid) {
+							const modDataList = collectionMods.map((modID) => {
+								return mods.get(modID) as Mod;
+							});
+							this.baseLaunchGame(modDataList);
+						}
+						// eslint-disable-next-line promise/no-nesting
+						api
+							.updateCollection(activeCollection!)
+							.then((updateSuccess) => {
+								if (!updateSuccess) {
+									// TODO: notify of failed update
+								}
+								return updateSuccess;
+							})
+							.catch((error) => {
+								api.logger.error(error);
+								// TODO: notify of failed update
+							});
+					} else {
+						api.logger.error('Failed to validate active collection');
+						// TODO: notify of failed update
+						// remove modal, since we are done validating - success or fail
+						this.setState({ modalActive: false });
 					}
-					return isValid;
+					return success;
 				})
 				.catch((error) => {
-					console.error(error);
+					api.logger.error(error);
+					// TODO: notify of failed update
+					// remove modal, since we are done validating - success or fail
+					this.setState({ modalActive: false });
+				})
+				.finally(() => {
+					// TODO: notify of failed update
+					// validation is finished
 					this.setState({ validatingMods: false });
 				});
 		} else {
-			console.log('NO ACTIVE COLLECTION');
+			api.logger.info('NO ACTIVE COLLECTION');
 			this.baseLaunchGame([]);
 		}
 	}
@@ -229,7 +357,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					progressPercent = 100;
 				} else {
 					const currentlyValidatedMods = validatedMods || 0;
-					progressPercent = (100 * currentlyValidatedMods) / activeCollection.mods.size;
+					progressPercent = (100 * currentlyValidatedMods) / activeCollection.mods.length;
 					if (progressPercent < 100) {
 						const collectionMods = [...activeCollection.mods];
 						currentMod = mods?.get(collectionMods[currentlyValidatedMods]);
@@ -286,8 +414,44 @@ class MainView extends Component<RouteComponentProps, MainState> {
 		return null;
 	}
 
+	renderContent() {
+		const { mods, activeCollection, launchingGame, searchString } = this.state;
+		return (
+			<SizeMe monitorHeight monitorWidth refreshMode="debounce">
+				{({ size }) => {
+					return (
+						<Content key="collection" style={{ padding: '0px', overflowY: 'clip', overflowX: 'clip' }}>
+							<Spin spinning={launchingGame} tip="Launching Game...">
+								<ModCollectionComponent
+									searchString={searchString}
+									mods={mods!}
+									height={size.height as number}
+									width={size.width as number}
+									forceUpdate={this.updatedActiveCollection()}
+									collection={activeCollection!}
+									setEnabledModsCallback={(enabledMods: Set<string>) => {
+										if (activeCollection) {
+											activeCollection.mods = [...enabledMods].sort();
+											this.setState({});
+										}
+									}}
+									setEnabledCallback={(id: string) => {
+										this.handleClick(true, id);
+									}}
+									setDisabledCallback={(id: string) => {
+										this.handleClick(false, id);
+									}}
+								/>
+							</Spin>
+						</Content>
+					);
+				}}
+			</SizeMe>
+		);
+	}
+
 	render() {
-		const { mods, activeCollection, gameRunning, launchingGame, sidebarCollapsed, modalActive } = this.state;
+		const { gameRunning, launchingGame, sidebarCollapsed, modalActive, searchString, savingCollection, allCollections } = this.state;
 		const { history, location, match } = this.props;
 
 		const launchGameButton = (
@@ -318,92 +482,24 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					</Sider>
 					<Layout>
 						<Header style={{ height: 120 }}>
-							<Row key="row1" justify="space-between" gutter={[48, 16]}>
-								<Col span={10} key="collections">
-									<Select style={{ width: '100%' }}>
-										<Option value="1">Modpack 1</Option>
-										<Option value="2">Modpack 2</Option>
-									</Select>
-								</Col>
-								<Space align="start">
-									<Button key="rename" icon={<EditOutlined />}>
-										Rename
-									</Button>
-									<Dropdown.Button
-										key="new"
-										overlay={
-											<Menu>
-												<Menu.Item key="duplicate">Duplicate</Menu.Item>
-											</Menu>
-										}
-									>
-										<PlusOutlined />
-										New
-									</Dropdown.Button>
-									<Button key="delete" icon={<CloseOutlined />}>
-										Delete
-									</Button>
-								</Space>
-							</Row>
-							<Row key="row2" justify="space-between" gutter={48}>
-								<Col span={10} key="search">
-									<Search
-										placeholder="input search text"
-										onSearch={(search) => {
-											console.log(search);
-										}}
-										enterButton
-									/>
-								</Col>
-								<Col span={8} key="right">
-									Part 4
-								</Col>
-							</Row>
+							<ModCollectionManager
+								searchString={searchString}
+								appState={this.state}
+								savingCollection={savingCollection}
+								onSearchCallback={(search) => {
+									this.setState({ searchString: search });
+								}}
+								changeActiveCollectionCallback={(name: string) => {
+									this.setState({ activeCollection: allCollections.get(name)! });
+								}}
+								newCollectionCallback={this.createNewCollection}
+								duplicateCollectionCallback={this.duplicateCollection}
+								renameCollectionCallback={this.renameCollection}
+								deleteCollectionCallback={this.deleteCollection}
+							/>
 						</Header>
 						{this.renderModal()}
-						<SizeMe monitorHeight monitorWidth refreshMode="debounce">
-							{({ size }) => {
-								return (
-									<Content key="collection" style={{ padding: '0px', overflowY: 'clip', overflowX: 'clip' }}>
-										<Spin spinning={launchingGame} tip="Launching Game...">
-											<ModCollectionComponent
-												mods={mods!}
-												height={size.height as number}
-												width={size.width as number}
-												forceUpdate={this.updatedActiveCollection()}
-												collection={activeCollection!}
-												setEnabledModsCallback={(enabledMods: Set<string>) => {
-													if (activeCollection) {
-														enabledMods.forEach((element) => {
-															activeCollection?.mods.add(element);
-														});
-													}
-												}}
-												setDisabledModsCallback={(disabledMods: Set<string>) => {
-													if (activeCollection) {
-														disabledMods.forEach((element) => {
-															activeCollection?.mods.delete(element);
-														});
-													}
-												}}
-												setAllEnabledCallback={() => {
-													this.handleSelectAllClick(true);
-												}}
-												clearAllEnabledCallback={() => {
-													this.handleSelectAllClick(false);
-												}}
-												setEnabledCallback={(id: string) => {
-													this.handleClick(true, id);
-												}}
-												setDisabledCallback={(id: string) => {
-													this.handleClick(false, id);
-												}}
-											/>
-										</Spin>
-									</Content>
-								);
-							}}
-						</SizeMe>
+						{this.renderContent()}
 						<Footer style={{ justifyContent: 'center', display: 'flex' }}>
 							{launchingGame ? (
 								<Popover content="Already launching game">{launchGameButton}</Popover>

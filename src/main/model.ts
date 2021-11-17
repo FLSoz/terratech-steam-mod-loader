@@ -18,6 +18,7 @@ export interface ModConfig {
 export interface Mod {
 	type: ModType;
 	ID: string;
+	UID: string;
 	WorkshopID: BigInt | null;
 	config?: ModConfig;
 }

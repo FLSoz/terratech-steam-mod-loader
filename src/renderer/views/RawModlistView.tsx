@@ -37,7 +37,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 	constructor(props: RouteComponentProps) {
 		super(props);
 		const appState: AppState = props.location.state as AppState;
-		this.state = { gameRunning: false, validatingMods: false, modErrors: undefined, sidebarCollapsed: true, ...appState };
+		this.state = { gameRunning: false, validatingMods: false, modErrors: undefined, sidebarCollapsed: true, ...appState, launchingGame: false };
 
 		this.launchGame = this.launchGame.bind(this);
 		this.setGameRunningCallback = this.setGameRunningCallback.bind(this);
@@ -189,7 +189,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 					progressPercent = 100;
 				} else {
 					const currentlyValidatedMods = validatedMods || 0;
-					progressPercent = (100 * currentlyValidatedMods) / activeCollection.mods.size;
+					progressPercent = (100 * currentlyValidatedMods) / activeCollection.mods.length;
 					if (progressPercent < 100) {
 						const collectionMods = [...activeCollection.mods];
 						currentMod = mods?.get(collectionMods[currentlyValidatedMods]);
@@ -272,7 +272,14 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 						}}
 					>
 						<div className="logo" />
-						<MenuBar disableNavigation={readingLast || launchingGame} currentTab="raw" history={history} location={location} match={match} />
+						<MenuBar
+							disableNavigation={readingLast || launchingGame}
+							currentTab="raw"
+							history={history}
+							location={location}
+							match={match}
+							appState={this.state}
+						/>
 					</Sider>
 					<Layout style={{ width: '100%' }}>
 						<Spin spinning={launchingGame} tip="Launching Game...">

@@ -17,6 +17,7 @@ interface ConfigLoadingState extends AppState {
 	configErrors?: { [field: string]: string };
 	loadedCollections: number;
 	totalCollections: number;
+	updatingSteamMod: boolean;
 }
 
 class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingState> {
@@ -34,7 +35,11 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 			totalCollections: -1,
 			loadedCollections: 0,
 			allCollections: new Map(),
-			mods: new Map()
+			allCollectionNames: new Set(),
+			mods: new Map(),
+			updatingSteamMod: true,
+			activeCollection: null,
+			searchString: ''
 		};
 		this.loadCollectionCallback = this.loadCollectionCallback.bind(this);
 	}
@@ -44,6 +49,7 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 		this.readUserDataPath();
 		this.readConfig();
 		this.loadCollections();
+		this.updateSteamMod();
 	}
 
 	setStateCallback(update: AppState) {
@@ -60,7 +66,7 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 					this.setState({ config });
 					this.validateConfig(config);
 				} else {
-					console.log('No config present - using default config');
+					api.logger.info('No config present - using default config');
 					this.validateConfig(DEFAULT_CONFIG);
 				}
 				return null;
@@ -86,6 +92,10 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 			});
 	}
 
+	updateSteamMod() {
+		this.setState({ updatingSteamMod: false }, this.checkCanProceed);
+	}
+
 	loadCollections() {
 		// Attempt to load collections. We allow app to proceed if it fails
 		api
@@ -106,9 +116,10 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 	}
 
 	loadCollectionCallback(collection: ModCollection | null) {
-		const { allCollections, loadedCollections } = this.state;
+		const { allCollections, allCollectionNames, loadedCollections } = this.state;
 		if (collection) {
 			allCollections!.set(collection.name, collection);
+			allCollectionNames.add(collection.name);
 		}
 		this.setState({ loadedCollections: loadedCollections + 1 }, this.checkCanProceed);
 	}
@@ -129,15 +140,42 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 			});
 	}
 
+	proceedToNext() {
+		const { configErrors } = this.state;
+		const { history } = this.props;
+		if (configErrors) {
+			// We have an invalid configuration - go to Settings tab for enhanced validation logic
+			history.push('/settings', this.state);
+		} else {
+			history.push('/mods', this.state);
+		}
+	}
+
 	checkCanProceed() {
-		const { loadedCollections, loadingConfig, totalCollections, configErrors } = this.state;
-		if (totalCollections >= 0 && loadedCollections >= totalCollections && !loadingConfig) {
-			const { history } = this.props;
-			if (configErrors) {
-				// We have an invalid configuration - go to Settings tab for enhanced validation logic
-				history.push('/settings', this.state);
+		const { loadedCollections, loadingConfig, totalCollections, updatingSteamMod, config, allCollections, allCollectionNames } = this.state;
+		if (!updatingSteamMod && totalCollections >= 0 && loadedCollections >= totalCollections && !loadingConfig) {
+			console.log('hello world');
+			if (config && config.activeCollection) {
+				const collection = allCollections.get(config.activeCollection);
+				if (collection) {
+					this.setState({ activeCollection: collection }, this.proceedToNext);
+				} else {
+					console.log('what');
+				}
+			}
+			if (allCollectionNames.size > 0) {
+				const collectionName = [...allCollectionNames].sort()[0];
+				config.activeCollection = collectionName;
+				this.setState({ activeCollection: allCollections.get(collectionName)! }, this.proceedToNext);
 			} else {
-				history.push('/mods', this.state);
+				const defaultCollection = {
+					name: 'default',
+					mods: []
+				};
+				allCollectionNames.add('default');
+				config.activeCollection = 'default';
+				allCollections.set('default', defaultCollection);
+				this.setState({ activeCollection: defaultCollection }, this.proceedToNext);
 			}
 		}
 	}

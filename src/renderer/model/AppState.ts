@@ -6,10 +6,11 @@ export interface AppState {
 	config: AppConfig;
 	userDataPath: string;
 	mods: Map<string, Mod>;
-	allCollections?: Map<string, ModCollection>;
-	allCollectionNames?: Set<string>;
-	activeCollection?: ModCollection | null;
+	allCollections: Map<string, ModCollection>;
+	allCollectionNames: Set<string>;
+	activeCollection: ModCollection | null;
 	firstModLoad?: boolean;
 	targetPathAfterLoad: string;
 	sidebarCollapsed?: boolean;
+	searchString: string;
 }

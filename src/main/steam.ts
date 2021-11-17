@@ -1,6 +1,7 @@
 import { parse, HTMLElement, NodeType } from 'node-html-parser';
 import axios from 'axios';
 import { Url } from 'url';
+import log from 'electron-log';
 import { ModType, ModConfig, Mod } from './model';
 
 interface Author {
@@ -244,7 +245,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export default async function querySteam(id: BigInt): Promise<Mod | null> {
 	const response = await axios.get(`https://steamcommunity.com/sharedfiles/filedetails/?id=${id.toString()}`);
 	await delay(10);
-	console.log(`Got steam results for ${id}`);
+	log.info(`Got steam results for ${id}`);
 	const mod: HTMLElement = parse(response.data.toString());
 	return parsePage(mod, id);
 }
