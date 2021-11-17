@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router';
 import { AppState } from 'renderer/model/AppState';
 import { AppConfig } from 'renderer/model/AppConfig';
-import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space } from 'antd';
+import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader } from 'antd';
 import { api, ValidChannel } from 'renderer/model/Api';
 import { FolderOutlined } from '@ant-design/icons';
 import MenuBar from './components/MenuBar';
@@ -101,6 +101,7 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<Layout style={{ minHeight: '100vh' }}>
 					<Sider
+						className="MenuBar"
 						collapsible
 						collapsed={sidebarCollapsed}
 						onCollapse={(collapsed) => {
@@ -118,7 +119,8 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 						/>
 					</Sider>
 					<Layout style={{ width: '100%' }}>
-						<Content>
+						<Content className="Settings">
+							<PageHeader className="site-page-header" title="Settings" />
 							<Form
 								// eslint-disable-next-line @typescript-eslint/no-explicit-any
 								ref={this.formRef}

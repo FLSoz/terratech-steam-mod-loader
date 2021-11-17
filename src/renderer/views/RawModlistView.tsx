@@ -189,7 +189,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 					progressPercent = 100;
 				} else {
 					const currentlyValidatedMods = validatedMods || 0;
-					progressPercent = (100 * currentlyValidatedMods) / activeCollection.mods.length;
+					progressPercent = Math.round((100 * currentlyValidatedMods) / activeCollection.mods.length);
 					if (progressPercent < 100) {
 						const collectionMods = [...activeCollection.mods];
 						currentMod = mods?.get(collectionMods[currentlyValidatedMods]);
@@ -265,6 +265,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<Layout style={{ minHeight: '100vh' }}>
 					<Sider
+						className="MenuBar"
 						collapsible
 						collapsed={sidebarCollapsed}
 						onCollapse={(collapsed) => {

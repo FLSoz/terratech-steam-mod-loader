@@ -1,13 +1,13 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component } from 'react';
 import { RouteComponentProps, withRouter } from 'react-router';
-import { Layout, Button, Popover, Modal, Progress, Spin } from 'antd';
+import { Layout, Button, Popover, Modal, Progress, Spin, Space } from 'antd';
 
 import { SizeMe } from 'react-sizeme';
-import { Mod } from 'renderer/model/Mod';
+import { convertToModData, filterRows, Mod, ModData } from 'renderer/model/Mod';
 import { AppState } from 'renderer/model/AppState';
 import { api, ValidChannel } from 'renderer/model/Api';
-import { ModCollection, ModError, ModErrors, ModErrorType } from 'renderer/model/ModCollection';
+import { ModCollection, ModErrors } from 'renderer/model/ModCollection';
 import { validateActiveCollection } from 'renderer/util/Validation';
 import ModCollectionComponent from './components/ModCollectionComponent';
 import MenuBar from './components/MenuBar';
@@ -25,17 +25,28 @@ interface MainState extends AppState {
 	validatedMods?: number;
 	modErrors?: ModErrors;
 	modalActive?: boolean;
+	overrideGameRunning?: boolean;
+	rows: ModData[];
+	filteredRows?: ModData[];
 }
 
 class MainView extends Component<RouteComponentProps, MainState> {
-	CONFIG_PATH: string | undefined = undefined;
-
 	constructor(props: RouteComponentProps) {
 		super(props);
 		const appState = props.location.state as AppState;
-		this.state = { gameRunning: false, validatingMods: false, modErrors: undefined, sidebarCollapsed: true, launchingGame: false, ...appState };
+		const rows: ModData[] = appState.mods ? convertToModData(appState.mods) : [];
+		this.state = {
+			rows,
+			filteredRows: undefined,
+			gameRunning: false,
+			validatingMods: true, // we validate on load
+			modErrors: undefined,
+			sidebarCollapsed: true,
+			launchingGame: false,
+			modalActive: true, // we validate on load
+			...appState
+		};
 
-		this.validateActiveCollection(false);
 		this.handleSelectAllClick = this.handleSelectAllClick.bind(this);
 		this.handleClick = this.handleClick.bind(this);
 		this.setGameRunningCallback = this.setGameRunningCallback.bind(this);
@@ -46,12 +57,13 @@ class MainView extends Component<RouteComponentProps, MainState> {
 		this.createNewCollection = this.createNewCollection.bind(this);
 		this.duplicateCollection = this.duplicateCollection.bind(this);
 		this.deleteCollection = this.deleteCollection.bind(this);
-		// this.isItemSelected = this.isItemSelected.bind(this);
+		this.saveCollection = this.saveCollection.bind(this);
 	}
 
 	componentDidMount() {
 		api.on(ValidChannel.GAME_RUNNING, this.setGameRunningCallback);
 		this.pollGameRunning();
+		this.validateActiveCollection(false);
 	}
 
 	componentWillUnmount() {
@@ -87,6 +99,10 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	setGameRunningCallback(running: boolean) {
+		const { overrideGameRunning } = this.state;
+		if (overrideGameRunning && running) {
+			this.setState({ overrideGameRunning: false });
+		}
 		this.setState({ gameRunning: running });
 	}
 
@@ -248,23 +264,35 @@ class MainView extends Component<RouteComponentProps, MainState> {
 
 	// eslint-disable-next-line class-methods-use-this
 	saveCollection(collection: ModCollection) {
-		api.updateCollection(collection);
+		this.setState({ savingCollection: true });
+		api.updateCollection(collection).finally(() => {
+			this.setState({ savingCollection: false });
+		});
 	}
 
 	baseLaunchGame(mods: Mod[]) {
 		const { config } = this.state;
 		api.logger.info('launching game');
-		const launchPromise = api.launchGame(config.steamExec, config.workshopID, config.closeOnLaunch, mods);
-		if (!config?.closeOnLaunch) {
-			launchPromise.finally(() => {
-				this.setState({ launchingGame: false, gameRunning: true, launchGameWithErrors: false, modalActive: false });
-			});
-		}
+		this.setState({ overrideGameRunning: true, launchingGame: true });
+		// add a visual delay so the user gets to see the nice spinning wheel
+		setTimeout(() => {
+			const launchPromise = api.launchGame(config.steamExec, config.workshopID, config.closeOnLaunch, mods);
+			if (!config?.closeOnLaunch) {
+				launchPromise.finally(() => {
+					this.setState({ launchingGame: false, gameRunning: true, launchGameWithErrors: false, modalActive: false });
+				});
+				setTimeout(() => {
+					this.setState({ overrideGameRunning: false });
+				}, 7000);
+			}
+		}, 1000);
 	}
 
 	launchGame() {
-		this.setState({ launchingGame: true });
-		this.validateActiveCollection(true);
+		console.log('launching game');
+		this.setState({ validatingMods: true, launchingGame: true, modErrors: undefined, validatedMods: 0 }, () => {
+			this.validateActiveCollection(true);
+		});
 	}
 
 	refreshMods() {
@@ -272,18 +300,9 @@ class MainView extends Component<RouteComponentProps, MainState> {
 		history.push('/mods', this.state);
 	}
 
-	isItemSelected(id: string): boolean {
-		const { activeCollection } = this.state;
-		return activeCollection ? activeCollection.mods.includes(id) : false;
-	}
-
-	updatedActiveCollection(): boolean {
-		return false;
-	}
-
 	validateActiveCollection(launchIfValid: boolean) {
 		const { activeCollection, mods } = this.state;
-		this.setState({ validatingMods: true, modalActive: true });
+		this.setState({ modalActive: true });
 		if (activeCollection) {
 			const collectionMods = [...activeCollection!.mods];
 			api.logger.info('Selected mods:');
@@ -292,6 +311,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 				modList: collectionMods,
 				allMods: mods,
 				updateValidatedModsCallback: (validatedMods: number) => {
+					api.logger.info(`We have validated ${validatedMods} mods`);
 					this.setState({ validatedMods });
 				},
 				setModErrorsCallback: (modErrors: ModErrors) => {
@@ -323,21 +343,22 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					} else {
 						api.logger.error('Failed to validate active collection');
 						// TODO: notify of failed update
-						// remove modal, since we are done validating - success or fail
-						this.setState({ modalActive: false });
 					}
 					return success;
 				})
 				.catch((error) => {
 					api.logger.error(error);
 					// TODO: notify of failed update
-					// remove modal, since we are done validating - success or fail
-					this.setState({ modalActive: false });
+					setTimeout(() => {
+						this.setState({ modalActive: false });
+					}, 2000);
 				})
 				.finally(() => {
 					// TODO: notify of failed update
 					// validation is finished
-					this.setState({ validatingMods: false });
+					setTimeout(() => {
+						this.setState({ validatingMods: false });
+					}, 2000);
 				});
 		} else {
 			api.logger.info('NO ACTIVE COLLECTION');
@@ -348,8 +369,8 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	// We allow you to load multiple mods with the same ID (bundle name), but only the local mod will be used
 	// If multiple workshop mods have the same ID, and you select multiple, then we will force you to choose one to use
 	renderModal() {
-		const { launchingGame, launchGameWithErrors, validatingMods, validatedMods, activeCollection, modErrors, mods } = this.state;
-		if (launchingGame) {
+		const { modalActive, launchingGame, launchGameWithErrors, validatingMods, validatedMods, activeCollection, modErrors, mods } = this.state;
+		if (modalActive || launchingGame) {
 			if (validatingMods) {
 				let progressPercent = 0;
 				let currentMod: Mod | undefined;
@@ -357,7 +378,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					progressPercent = 100;
 				} else {
 					const currentlyValidatedMods = validatedMods || 0;
-					progressPercent = (100 * currentlyValidatedMods) / activeCollection.mods.length;
+					progressPercent = Math.round((100 * currentlyValidatedMods) / activeCollection.mods.length);
 					if (progressPercent < 100) {
 						const collectionMods = [...activeCollection.mods];
 						currentMod = mods?.get(collectionMods[currentlyValidatedMods]);
@@ -370,13 +391,17 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					status = 'success';
 				}
 				return (
-					<Modal title="Validating Mod Collection" visible closable={false} footer={null}>
-						{currentMod ? (
-							<p>Validating mod {currentMod.config?.name ? currentMod.config!.name : currentMod.ID}</p>
-						) : progressPercent >= 100 ? (
-							<p>All mods validated!</p>
-						) : null}
-						<Progress type="circle" percent={progressPercent} status={status} />
+					<Modal title={`Validating Mod Collection ${activeCollection.name}`} visible closable={false} footer={null}>
+						<div>
+							<Space direction="vertical" size="large" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+								<Progress type="circle" percent={progressPercent} status={status} />
+								{currentMod ? (
+									<p>Validating mod {currentMod.config?.name ? currentMod.config!.name : currentMod.ID}</p>
+								) : progressPercent >= 100 ? (
+									<p>Validation complete!</p>
+								) : null}
+							</Space>
+						</div>
 					</Modal>
 				);
 			}
@@ -394,9 +419,10 @@ class MainView extends Component<RouteComponentProps, MainState> {
 							this.baseLaunchGame(modList);
 						}}
 						onCancel={() => {
+							console.log('cancel error modal');
 							this.setState({ launchingGame: false, modalActive: false });
 						}}
-						okButtonProps={{ disabled: launchGameWithErrors, loading: launchGameWithErrors }}
+						okButtonProps={{ disabled: launchGameWithErrors, loading: launchGameWithErrors, danger: true }}
 						cancelButtonProps={{ disabled: launchGameWithErrors }}
 					>
 						<p>One or more mods have either missing dependencies, or is selected alongside incompatible mods.</p>
@@ -415,7 +441,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	renderContent() {
-		const { mods, activeCollection, launchingGame, searchString } = this.state;
+		const { mods, activeCollection, launchingGame, rows, filteredRows } = this.state;
 		return (
 			<SizeMe monitorHeight monitorWidth refreshMode="debounce">
 				{({ size }) => {
@@ -423,11 +449,11 @@ class MainView extends Component<RouteComponentProps, MainState> {
 						<Content key="collection" style={{ padding: '0px', overflowY: 'clip', overflowX: 'clip' }}>
 							<Spin spinning={launchingGame} tip="Launching Game...">
 								<ModCollectionComponent
-									searchString={searchString}
+									rows={rows}
+									filteredRows={filteredRows || rows}
 									mods={mods!}
 									height={size.height as number}
 									width={size.width as number}
-									forceUpdate={this.updatedActiveCollection()}
 									collection={activeCollection!}
 									setEnabledModsCallback={(enabledMods: Set<string>) => {
 										if (activeCollection) {
@@ -451,11 +477,12 @@ class MainView extends Component<RouteComponentProps, MainState> {
 	}
 
 	render() {
-		const { gameRunning, launchingGame, sidebarCollapsed, modalActive, searchString, savingCollection, allCollections } = this.state;
+		const { filteredRows, gameRunning, overrideGameRunning, launchingGame, sidebarCollapsed, modalActive, savingCollection, allCollections, searchString } =
+			this.state;
 		const { history, location, match } = this.props;
 
 		const launchGameButton = (
-			<Button loading={launchingGame} disabled={gameRunning || modalActive || launchingGame} onClick={this.launchGame}>
+			<Button type="primary" loading={launchingGame} disabled={overrideGameRunning || gameRunning || modalActive || launchingGame} onClick={this.launchGame}>
 				Launch Game
 			</Button>
 		);
@@ -464,6 +491,7 @@ class MainView extends Component<RouteComponentProps, MainState> {
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<Layout style={{ minHeight: '100vh' }}>
 					<Sider
+						className="MenuBar"
 						collapsible
 						collapsed={sidebarCollapsed}
 						onCollapse={(collapsed) => {
@@ -483,27 +511,42 @@ class MainView extends Component<RouteComponentProps, MainState> {
 					<Layout>
 						<Header style={{ height: 120 }}>
 							<ModCollectionManager
-								searchString={searchString}
 								appState={this.state}
+								searchString={searchString}
 								savingCollection={savingCollection}
+								onSearchChangeCallback={(search) => {
+									this.setState({ searchString: search });
+								}}
 								onSearchCallback={(search) => {
+									if (search && search.length > 0) {
+										const { rows } = this.state;
+										const newFilteredRows = filterRows(rows, search);
+										this.setState({ filteredRows: newFilteredRows });
+									} else {
+										this.setState({ filteredRows: undefined });
+									}
 									this.setState({ searchString: search });
 								}}
 								changeActiveCollectionCallback={(name: string) => {
 									this.setState({ activeCollection: allCollections.get(name)! });
 								}}
+								numResults={filteredRows ? filteredRows.length : undefined}
 								newCollectionCallback={this.createNewCollection}
 								duplicateCollectionCallback={this.duplicateCollection}
 								renameCollectionCallback={this.renameCollection}
 								deleteCollectionCallback={this.deleteCollection}
+								saveCollectionCallback={() => {
+									const { activeCollection } = this.state;
+									this.saveCollection(activeCollection);
+								}}
 							/>
 						</Header>
 						{this.renderModal()}
 						{this.renderContent()}
-						<Footer style={{ justifyContent: 'center', display: 'flex' }}>
+						<Footer className="MainFooter" style={{ justifyContent: 'center', display: 'flex' }}>
 							{launchingGame ? (
 								<Popover content="Already launching game">{launchGameButton}</Popover>
-							) : gameRunning ? (
+							) : gameRunning || !!overrideGameRunning ? (
 								<Popover content="Game already running">{launchGameButton}</Popover>
 							) : (
 								launchGameButton

@@ -7,7 +7,7 @@ import parse from 'html-react-parser';
 import { ColumnType } from 'antd/lib/table';
 import { TableRowSelection } from 'antd/lib/table/interface';
 import { api } from 'renderer/model/Api';
-import { convertToModData, filterRows, Mod, ModData, ModType } from 'renderer/model/Mod';
+import { Mod, ModData, ModType } from 'renderer/model/Mod';
 import { ModCollection } from 'renderer/model/ModCollection';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
@@ -45,12 +45,12 @@ function getImageSrcFromType(type: ModType) {
 }
 
 interface ModCollectionProps {
-	searchString?: string;
+	rows: ModData[];
+	filteredRows: ModData[];
 	collection: ModCollection;
 	mods: Map<string, Mod>;
 	height: number;
 	width: number;
-	forceUpdate: boolean;
 	children?: ReactNode;
 	setEnabledModsCallback: (mods: Set<string>) => any;
 	setEnabledCallback: (mod: string) => any;
@@ -58,8 +58,6 @@ interface ModCollectionProps {
 }
 
 interface ModCollectionState {
-	rows: ModData[];
-	selectedModKeys: string[];
 	renderPreviewModal?: string;
 	failAddModal?: string;
 	failRemoveModal?: string;
@@ -71,13 +69,9 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 
 	constructor(props: ModCollectionProps) {
 		super(props);
-		const { mods, collection } = this.props;
-		const rows: ModData[] = mods ? convertToModData(mods) : [];
+		const { mods } = this.props;
 		api.logger.info(mods);
-		this.state = {
-			rows,
-			selectedModKeys: [...collection.mods]
-		};
+		this.state = {};
 	}
 
 	componentDidMount() {
@@ -122,8 +116,7 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 	}
 
 	render() {
-		const { rows, selectedModKeys } = this.state;
-		console.log(selectedModKeys);
+		const { collection, rows, filteredRows } = this.props;
 		// <img src={cellData} height="50px" width="50px" />
 		// <div>
 		/*
@@ -133,14 +126,12 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 			? ttmm
 			: local}
 			*/
-		const { searchString, setEnabledModsCallback, setEnabledCallback, setDisabledCallback } = this.props;
-
-		const filteredRows = filterRows(rows, searchString);
+		const { setEnabledModsCallback, setEnabledCallback, setDisabledCallback } = this.props;
 
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		const rowSelection: TableRowSelection<ModData> = {
 			selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT, Table.SELECTION_NONE],
-			selectedRowKeys: selectedModKeys,
+			selectedRowKeys: collection.mods,
 			onChange: (selectedRowKeys: React.Key[]) => {
 				api.logger.info(`changing selecton: ${selectedRowKeys}`);
 				const currentVisible = new Set(filteredRows.map((modData) => modData.id));
@@ -150,26 +141,22 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 						return !currentVisible.has(mod) || selectedRowKeys.includes(mod);
 					});
 				setEnabledModsCallback(new Set(newSelection));
-				this.setState({ selectedModKeys: newSelection });
 			},
 			onSelect: (record: ModData, selected: boolean) => {
 				api.logger.info(`selecting ${record.id}: ${selected}`);
 				if (selected) {
-					if (!selectedModKeys.includes(record.id)) {
-						selectedModKeys.push(record.id);
+					if (!collection.mods.includes(record.id)) {
+						collection.mods.push(record.id);
 					}
-					this.setState({ selectedModKeys });
 					setEnabledCallback(record.id);
 				} else {
-					this.setState({ selectedModKeys: selectedModKeys.filter((key) => key !== record.id) });
 					setDisabledCallback(record.id);
 				}
-				this.forceUpdate();
 			},
 			onSelectAll: (selected: boolean) => {
 				api.logger.info(`selecting all: ${selected}`);
 				const currentVisible = filteredRows.map((modData) => modData.id);
-				const selectedMods = new Set(selectedModKeys);
+				const selectedMods = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
 					if (selected) {
 						selectedMods.add(mod);
@@ -178,12 +165,11 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 					}
 				});
 				setEnabledModsCallback(selectedMods);
-				this.setState({ selectedModKeys: [...selectedMods].sort() });
 			},
 			onSelectInvert: () => {
 				api.logger.info(`inverting selection`);
 				const currentVisible = filteredRows.map((modData) => modData.id);
-				const selected = new Set(selectedModKeys);
+				const selected = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
 					if (!selected.has(mod)) {
 						selected.add(mod);
@@ -192,17 +178,15 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 					}
 				});
 				setEnabledModsCallback(selected);
-				this.setState({ selectedModKeys: [...selected].sort() });
 			},
 			onSelectNone: () => {
 				api.logger.info(`clearing selection`);
 				const currentVisible = filteredRows.map((modData) => modData.id);
-				const selected = new Set(selectedModKeys);
+				const selected = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
 					selected.delete(mod);
 				});
 				setEnabledModsCallback(selected);
-				this.setState({ selectedModKeys: [...selected].sort() });
 			}
 		};
 
@@ -333,7 +317,7 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 			// eslint-disable-next-line react/destructuring-assignment
 			<Layout style={{ width: this.props.width, height: this.props.height }}>
 				{this.renderModals()}
-				<Content key="main table" style={{ padding: '0px', overflowY: 'scroll' }}>
+				<Content key="main table" style={{ padding: '0px', overflowY: 'auto', scrollbarWidth: 'none' }}>
 					<Table
 						dataSource={filteredRows}
 						pagination={false}

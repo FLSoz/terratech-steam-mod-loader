@@ -86,22 +86,23 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 
 export function filterRows(rows: ModData[], searchString: string | undefined): ModData[] {
 	if (searchString && searchString.length > 0) {
+		const lowerSearchString = searchString.toLowerCase();
 		return rows.filter((modData) => {
-			console.log(`Checking if ${searchString} matches mod ${JSON.stringify(modData, null, 2)}`);
-			if (modData.name.includes(searchString)) {
+			console.log(`Checking if ${lowerSearchString} matches mod ${JSON.stringify(modData, null, 2)}`);
+			if (modData.name.toLowerCase().includes(lowerSearchString)) {
 				return true;
 			}
-			if (modData.type.includes(searchString)) {
+			if (modData.type.toLowerCase().includes(lowerSearchString)) {
 				return true;
 			}
-			if (modData.author?.includes(searchString)) {
+			if (modData.author?.toLowerCase().includes(lowerSearchString)) {
 				return true;
 			}
 			return modData.tags?.reduce((acc: boolean, tag: string) => {
 				if (acc) {
 					return true;
 				}
-				return tag.includes(searchString);
+				return tag.toLowerCase().includes(lowerSearchString);
 			}, false);
 		});
 	}

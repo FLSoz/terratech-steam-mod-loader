@@ -14,6 +14,7 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 	const ttModSearch = mod.querySelector('.apphub_AppName');
 	if (ttModSearch && ttModSearch.text === 'TerraTech') {
 		const resultMod: Mod = {
+			UID: `workshop:${workshopID}`,
 			ID: workshopID.toString(),
 			WorkshopID: workshopID,
 			type: ModType.WORKSHOP

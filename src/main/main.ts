@@ -34,13 +34,8 @@ export default class AppUpdater {
 	}
 }
 
+// enforce minimum of 1000 pixels wide
 let mainWindow: BrowserWindow | null = null;
-
-ipcMain.on('ipc-example', async (event, arg) => {
-	const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-	log.info(msgTemplate(arg));
-	event.reply('ipc-example', msgTemplate('pong'));
-});
 
 if (process.env.NODE_ENV === 'production') {
 	const sourceMapSupport = require('source-map-support');
@@ -172,7 +167,6 @@ interface PathParams {
 // Read raw app metadata from the given paths
 ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, workshopID: BigInt | null) => {
 	const modPath = path.join(...pathParams.prefixes, pathParams.path);
-	// await sleep(5000);
 	fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
 		if (err) {
 			log.error(err);
@@ -490,7 +484,6 @@ ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {
 
 // Read json file
 ipcMain.handle('read-file', async (_event, pathParams: PathParams) => {
-	await sleep(5000);
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Reading file ${filepath}`);
 	try {

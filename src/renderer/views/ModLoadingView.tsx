@@ -7,6 +7,8 @@ import { AppConfig } from 'renderer/model/AppConfig';
 import { Mod, ModType } from 'renderer/model/Mod';
 import { ValidChannel, api } from 'renderer/model/Api';
 import { AppState } from 'renderer/model/AppState';
+import { delayForEach, ForEachProps } from 'renderer/util/Sleep';
+import { Props } from 'html-react-parser/lib/attributes-to-props';
 
 const { Footer, Content } = Layout;
 
@@ -156,12 +158,12 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 
 	loadMods() {
 		const { localModPaths, workshopModPaths, config } = this.state;
-		localModPaths.forEach(async (modFolder) => {
-			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [config.localDir], path: modFolder }, ModType.LOCAL, undefined);
-		});
-		workshopModPaths.forEach(async (modFolder) => {
-			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [config.workshopDir], path: modFolder }, ModType.WORKSHOP, parseInt(modFolder, 10));
-		});
+		const sendRequest = (props: ForEachProps<string>, prefix: string, type: ModType) => {
+			const path: string = props.value;
+			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [prefix], path }, type, type === ModType.WORKSHOP ? parseInt(path, 10) : undefined);
+		};
+		delayForEach(localModPaths, 10, sendRequest, config.localDir, ModType.LOCAL);
+		delayForEach(workshopModPaths, 10, sendRequest, config.workshopDir, ModType.WORKSHOP);
 	}
 
 	// TODO: Have an override for duplicate mod IDs - user picks which one is used
@@ -174,7 +176,7 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 
 	render() {
 		const { loadedMods, totalMods } = this.state;
-		const percent = totalMods > 0 ? Math.ceil((100 * loadedMods) / totalMods) : 100;
+		const percent = totalMods > 0 ? Math.round((100 * loadedMods) / totalMods) : 100;
 		return (
 			<Layout style={{ minHeight: '100vh', minWidth: '100vw' }}>
 				<SizeMe monitorHeight monitorWidth refreshMode="debounce">

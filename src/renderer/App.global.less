@@ -65,6 +65,34 @@ a:hover {
 	min-width: 0;
 }
 
+.MenuBar {
+	background: @layout-footer-background !important;
+}
+
+.Settings {
+	background: @layout-header-background;
+}
+
+.MainFooter {
+	background: @layout-header-background;
+}
+
+::-webkit-scrollbar {
+	background: @layout-header-background;
+	width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: @shadow-color;        /* color of the tracking area */
+	border-radius: 6px;
+	border-color: @background-color-light;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: @disabled-color;    /* color of the scroll thumb */
+  border-radius: 6px;       /* roundness of the scroll thumb */
+}
+
 .image-hover {
   transition: .5s ease;
   opacity: 0;

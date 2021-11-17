@@ -8,7 +8,7 @@ export interface AppState {
 	mods: Map<string, Mod>;
 	allCollections: Map<string, ModCollection>;
 	allCollectionNames: Set<string>;
-	activeCollection: ModCollection | null;
+	activeCollection: ModCollection;
 	firstModLoad?: boolean;
 	targetPathAfterLoad: string;
 	sidebarCollapsed?: boolean;

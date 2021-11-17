@@ -31,10 +31,13 @@ export default class MenuBar extends Component<MenuProps, MenuState> {
 		const { disableNavigation, appState } = this.props;
 		const { currentTab } = this.state;
 		const loadBeforeNavigation = !appState.firstModLoad;
+		const MenuIconStyle = { fontSize: 28, lineHeight: 0, marginLeft: -4 };
+		const MenuItemStyle = { display: 'flex', alignItems: 'center' };
 
 		return (
 			<Menu
 				theme="dark"
+				className="MenuBar"
 				selectedKeys={[currentTab]}
 				mode="inline"
 				disabled={disableNavigation}
@@ -79,16 +82,16 @@ export default class MenuBar extends Component<MenuProps, MenuState> {
 					}
 				}}
 			>
-				<Menu.Item key="main" icon={<AppstoreOutlined />}>
+				<Menu.Item key="main" style={MenuItemStyle} icon={<AppstoreOutlined style={MenuIconStyle} />}>
 					Mod Collections
 				</Menu.Item>
-				<Menu.Item key="raw" icon={<FileTextOutlined />}>
+				<Menu.Item key="raw" style={MenuItemStyle} icon={<FileTextOutlined style={MenuIconStyle} />}>
 					Raw Modlist
 				</Menu.Item>
-				<Menu.Item key="ttqmm" icon={<GithubOutlined />}>
+				<Menu.Item key="ttqmm" style={MenuItemStyle} icon={<GithubOutlined style={MenuIconStyle} />}>
 					TTQMM Browser
 				</Menu.Item>
-				<Menu.Item key="settings" icon={<SettingOutlined />}>
+				<Menu.Item key="settings" style={MenuItemStyle} icon={<SettingOutlined style={MenuIconStyle} />}>
 					Settings
 				</Menu.Item>
 			</Menu>

@@ -2,6 +2,7 @@ import { api } from 'renderer/model/Api';
 import { ModError, ModErrors, ModErrorType } from 'renderer/model/ModCollection';
 import { AppConfig } from '../model/AppConfig';
 import { Mod } from '../model/Mod';
+import { delayForEach, ForEachProps, sleep } from './Sleep';
 
 async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
 	const errors: { [field: string]: string } = {};
@@ -38,47 +39,69 @@ interface ModCollectionValidationProps {
 	setModErrorsCallback?: (errors: ModErrors) => void;
 }
 
-function validateFunctionAsync(validationProps: ModCollectionValidationProps) {
-	const { modList, allMods, updateValidatedModsCallback, setModErrorsCallback } = validationProps;
-	let valid = true;
-	let validatedMods = 0;
-	const errors: { [id: string]: ModError } = {};
-	modList.forEach((mod) => {
-		if (mod) {
-			const modData = allMods.get(mod);
-			if (modData) {
-				if (modData.config) {
-					const dependencies = modData.config!.dependsOn;
-					if (dependencies) {
-						const missingDependencies: string[] = [];
-						dependencies.forEach((dependency) => {
-							if (!modList.includes(dependency)) {
-								missingDependencies.push(dependency);
-							}
-						});
-						if (missingDependencies.length > 0) {
-							valid = false;
-							errors[mod] = {
-								errorType: ModErrorType.MISSING_DEPENDENCY,
-								values: missingDependencies
-							};
+function validateMod(
+	props: ForEachProps<string>,
+	modList: string[],
+	allMods: Map<string, Mod>,
+	errors: ModErrors,
+	updateValidatedModsCallback?: (numValidatedMods: number) => void
+) {
+	const mod: string = props.value;
+	const { index } = props;
+	if (mod) {
+		api.logger.info(`validating ${mod}`);
+		const modData = allMods.get(mod);
+		if (modData) {
+			if (modData.config) {
+				const dependencies = modData.config!.dependsOn;
+				if (dependencies) {
+					const missingDependencies: string[] = [];
+					dependencies.forEach((dependency) => {
+						if (!modList.includes(dependency)) {
+							missingDependencies.push(dependency);
 						}
+					});
+					if (missingDependencies.length > 0) {
+						errors[mod] = {
+							errorType: ModErrorType.MISSING_DEPENDENCY,
+							values: missingDependencies
+						};
 					}
 				}
-			} else {
-				valid = false;
-				errors[mod] = { errorType: ModErrorType.INVALID_ID };
 			}
+		} else {
+			errors[mod] = { errorType: ModErrorType.INVALID_ID };
 		}
-		validatedMods += 1;
-		if (updateValidatedModsCallback) {
-			updateValidatedModsCallback(validatedMods);
-		}
-	});
-	if (!valid && setModErrorsCallback) {
-		setModErrorsCallback(errors);
 	}
-	return valid;
+	if (updateValidatedModsCallback) {
+		updateValidatedModsCallback(index + 1);
+	}
+}
+
+function validateFunctionAsync(validationProps: ModCollectionValidationProps) {
+	const { modList, allMods, updateValidatedModsCallback, setModErrorsCallback } = validationProps;
+	const errors: { [id: string]: ModError } = {};
+	return new Promise((resolve) => {
+		delayForEach(modList, 10, validateMod, modList, allMods, errors, updateValidatedModsCallback)
+			.then(() => {
+				// eslint-disable-next-line promise/always-return
+				if (Object.keys(errors).length > 0) {
+					if (setModErrorsCallback) {
+						setModErrorsCallback(errors);
+					}
+					resolve(false);
+				}
+				resolve(true);
+			})
+			.catch((error) => {
+				api.logger.error(error);
+				errors.undefined = error.toString();
+				if (setModErrorsCallback) {
+					setModErrorsCallback(errors);
+				}
+				resolve(false);
+			});
+	});
 }
 
 function validateActiveCollection(validationProps: ModCollectionValidationProps) {
@@ -88,8 +111,15 @@ function validateActiveCollection(validationProps: ModCollectionValidationProps)
 	api.logger.info(modList);
 	const validationPromise = new Promise((resolve, reject) => {
 		try {
-			const isValid = validateFunctionAsync(validationProps);
-			resolve(isValid);
+			validateFunctionAsync(validationProps)
+				// eslint-disable-next-line promise/always-return
+				.then((isValid) => {
+					resolve(isValid);
+				})
+				.catch((error) => {
+					api.logger.error(error);
+					reject(error);
+				});
 		} catch (error) {
 			reject(error);
 		}

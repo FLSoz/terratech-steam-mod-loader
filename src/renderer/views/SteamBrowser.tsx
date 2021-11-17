@@ -29,6 +29,7 @@ class SteamBrowserView extends Component<RouteComponentProps, SteamBrowserState>
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<Layout style={{ minHeight: '100vh' }}>
 					<Sider
+						className="MenuBar"
 						collapsible
 						collapsed={sidebarCollapsed}
 						onCollapse={(collapsed) => {

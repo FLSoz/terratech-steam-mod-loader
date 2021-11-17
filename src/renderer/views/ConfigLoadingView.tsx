@@ -38,7 +38,10 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 			allCollectionNames: new Set(),
 			mods: new Map(),
 			updatingSteamMod: true,
-			activeCollection: null,
+			activeCollection: {
+				name: 'default',
+				mods: []
+			},
 			searchString: ''
 		};
 		this.loadCollectionCallback = this.loadCollectionCallback.bind(this);
@@ -152,30 +155,28 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 	}
 
 	checkCanProceed() {
-		const { loadedCollections, loadingConfig, totalCollections, updatingSteamMod, config, allCollections, allCollectionNames } = this.state;
+		const { activeCollection, loadedCollections, loadingConfig, totalCollections, updatingSteamMod, config, allCollections, allCollectionNames } = this.state;
 		if (!updatingSteamMod && totalCollections >= 0 && loadedCollections >= totalCollections && !loadingConfig) {
 			console.log('hello world');
-			if (config && config.activeCollection) {
-				const collection = allCollections.get(config.activeCollection);
-				if (collection) {
-					this.setState({ activeCollection: collection }, this.proceedToNext);
-				} else {
-					console.log('what');
-				}
-			}
 			if (allCollectionNames.size > 0) {
+				// We always override activeCollection with something
+				if (config && config.activeCollection) {
+					const collection = allCollections.get(config.activeCollection);
+					if (collection) {
+						this.setState({ activeCollection: collection }, this.proceedToNext);
+					} else {
+						// activeCollection is no longer there: default to first available in ASCII-betical order
+					}
+				}
 				const collectionName = [...allCollectionNames].sort()[0];
 				config.activeCollection = collectionName;
 				this.setState({ activeCollection: allCollections.get(collectionName)! }, this.proceedToNext);
 			} else {
-				const defaultCollection = {
-					name: 'default',
-					mods: []
-				};
-				allCollectionNames.add('default');
+				// activeCollection has already been set to default. Add to maps
 				config.activeCollection = 'default';
-				allCollections.set('default', defaultCollection);
-				this.setState({ activeCollection: defaultCollection }, this.proceedToNext);
+				allCollectionNames.add('default');
+				allCollections.set('default', activeCollection);
+				this.setState({}, this.proceedToNext);
 			}
 		}
 	}

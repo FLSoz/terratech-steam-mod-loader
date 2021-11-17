@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
 import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
-import { EditOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { EditOutlined, PlusOutlined, SaveOutlined, DeleteOutlined } from '@ant-design/icons';
 import { api } from 'renderer/model/Api';
 
 const { Option } = Select;
@@ -19,10 +19,13 @@ interface ModCollectionManagerState extends AppState {
 }
 
 interface ModCollectionManagerProps {
+	searchString: string;
 	appState: AppState;
 	savingCollection?: boolean;
-	searchString?: string;
+	numResults?: number;
 	onSearchCallback: (search: string) => void;
+	onSearchChangeCallback: (search: string) => void;
+	saveCollectionCallback: () => void;
 	changeActiveCollectionCallback: (name: string) => void;
 	newCollectionCallback: (name: string) => void;
 	duplicateCollectionCallback: (name: string) => void;
@@ -119,7 +122,17 @@ export default class ModCollectionManagerComponent extends Component<ModCollecti
 	}
 
 	render() {
-		const { deleteCollectionCallback, onSearchCallback, searchString, appState, changeActiveCollectionCallback } = this.props;
+		const {
+			deleteCollectionCallback,
+			saveCollectionCallback,
+			appState,
+			changeActiveCollectionCallback,
+			savingCollection,
+			numResults,
+			onSearchCallback,
+			onSearchChangeCallback,
+			searchString
+		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
 		return (
 			<div>
@@ -142,48 +155,71 @@ export default class ModCollectionManagerComponent extends Component<ModCollecti
 							})}
 						</Select>
 					</Col>
-					<Space align="start">
-						<Button
-							key="rename"
-							icon={<EditOutlined />}
-							onClick={() => {
-								this.setState({ modalType: ModCollectionManagerModalType.RENAME_COLLECTION });
-							}}
-							disabled={disabledFeatures}
-						>
-							Rename
-						</Button>
-						<Dropdown.Button
-							key="new"
-							overlay={
-								<Menu
-									selectedKeys={[]}
-									onClick={(e) => {
-										if (e.key === 'duplicate') {
-											this.setState({ modalType: ModCollectionManagerModalType.DUPLICATE_COLLECTION });
-										}
-									}}
-								>
-									<Menu.Item key="duplicate">Duplicate</Menu.Item>
-								</Menu>
-							}
-							disabled={disabledFeatures}
-							onClick={() => {
-								this.setState({ modalType: ModCollectionManagerModalType.NEW_COLLECTION });
-							}}
-						>
-							<PlusOutlined />
-							New
-						</Dropdown.Button>
-						<Button key="delete" icon={<CloseOutlined />} onClick={deleteCollectionCallback} disabled={disabledFeatures}>
-							Delete
-						</Button>
-					</Space>
+					<Col>
+						<Space align="start">
+							<Button
+								key="rename"
+								icon={<EditOutlined />}
+								onClick={() => {
+									this.setState({ modalType: ModCollectionManagerModalType.RENAME_COLLECTION });
+								}}
+								disabled={disabledFeatures}
+							>
+								Rename
+							</Button>
+							<Dropdown.Button
+								key="new"
+								overlay={
+									<Menu
+										selectedKeys={[]}
+										onClick={(e) => {
+											if (e.key === 'duplicate') {
+												this.setState({ modalType: ModCollectionManagerModalType.DUPLICATE_COLLECTION });
+											}
+										}}
+									>
+										<Menu.Item key="duplicate">Duplicate</Menu.Item>
+									</Menu>
+								}
+								disabled={disabledFeatures}
+								onClick={() => {
+									this.setState({ modalType: ModCollectionManagerModalType.NEW_COLLECTION });
+								}}
+							>
+								<PlusOutlined />
+								New
+							</Dropdown.Button>
+							<Button
+								shape="circle"
+								key="save"
+								size="large"
+								type="primary"
+								icon={<SaveOutlined />}
+								onClick={saveCollectionCallback}
+								disabled={disabledFeatures}
+								loading={savingCollection}
+							/>
+							<Button
+								danger
+								type="primary"
+								key="delete"
+								shape="circle"
+								size="large"
+								icon={<DeleteOutlined />}
+								onClick={deleteCollectionCallback}
+								disabled={disabledFeatures}
+							/>
+						</Space>
+					</Col>
 				</Row>
 				<Row key="row2" justify="space-between" gutter={48}>
-					<Col span={10} key="search">
+					<Col span={numResults !== undefined ? 16 : 24} key="search">
 						<Search
 							placeholder="input search text"
+							onChange={(event) => {
+								onSearchChangeCallback(event.target.value);
+							}}
+							value={searchString}
 							onSearch={(search) => {
 								api.logger.info(`Searching for: ${search}`);
 								onSearchCallback(search);
@@ -192,9 +228,13 @@ export default class ModCollectionManagerComponent extends Component<ModCollecti
 							disabled={disabledFeatures}
 						/>
 					</Col>
-					<Col span={8} key="right">
-						Part 4
-					</Col>
+					{numResults !== undefined ? (
+						<Col span={8} key="right">
+							<span className="ant-input-wrapper ant-input-group" style={{ paddingTop: 6 }}>
+								{numResults} mods found
+							</span>
+						</Col>
+					) : null}
 				</Row>
 			</div>
 		);
