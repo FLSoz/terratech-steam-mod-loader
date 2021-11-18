@@ -131,7 +131,7 @@ function validateActiveCollection(validationProps: ModCollectionValidationProps)
 			return isValid;
 		})
 		.catch((error) => {
-			console.error(error);
+			api.logger.error(error);
 			return false;
 		});
 }

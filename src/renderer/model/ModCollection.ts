@@ -1,3 +1,5 @@
+import { ModData } from './Mod';
+
 export interface ModCollection {
 	name: string;
 	description?: string;
@@ -17,4 +19,15 @@ export interface ModError {
 
 export interface ModErrors {
 	[id: string]: ModError;
+}
+
+export interface ModCollectionProps {
+	rows: ModData[];
+	filteredRows: ModData[];
+	collection: ModCollection;
+	height: number;
+	width: number;
+	setEnabledModsCallback: (mods: Set<string>) => any;
+	setEnabledCallback: (mod: string) => any;
+	setDisabledCallback: (mod: string) => any;
 }

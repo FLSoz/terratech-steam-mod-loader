@@ -8,7 +8,7 @@ import { ColumnType } from 'antd/lib/table';
 import { TableRowSelection } from 'antd/lib/table/interface';
 import { api } from 'renderer/model/Api';
 import { Mod, ModData, ModType } from 'renderer/model/Mod';
-import { ModCollection } from 'renderer/model/ModCollection';
+import { ModCollection, ModCollectionProps } from 'renderer/model/ModCollection';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
@@ -44,75 +44,9 @@ function getImageSrcFromType(type: ModType) {
 	}
 }
 
-interface ModCollectionProps {
-	rows: ModData[];
-	filteredRows: ModData[];
-	collection: ModCollection;
-	mods: Map<string, Mod>;
-	height: number;
-	width: number;
-	children?: ReactNode;
-	setEnabledModsCallback: (mods: Set<string>) => any;
-	setEnabledCallback: (mod: string) => any;
-	setDisabledCallback: (mod: string) => any;
-}
-
-interface ModCollectionState {
-	renderPreviewModal?: string;
-	failAddModal?: string;
-	failRemoveModal?: string;
-	missingModsModal?: string[];
-}
-
-export default class ModCollectionComponent extends Component<ModCollectionProps, ModCollectionState> {
-	CONFIG_PATH: string | undefined = undefined;
-
-	constructor(props: ModCollectionProps) {
-		super(props);
-		const { mods } = this.props;
-		api.logger.info(mods);
-		this.state = {};
-	}
-
+export default class MainCollectionComponent extends Component<ModCollectionProps, never> {
 	componentDidMount() {
 		this.setState({});
-	}
-
-	renderPreviewModal(path: string) {
-		this.setState({
-			renderPreviewModal: path
-		});
-	}
-
-	renderModals() {
-		const { renderPreviewModal } = this.state;
-		if (renderPreviewModal) {
-			return (
-				<Modal
-					title="Preview"
-					visible
-					footer={null}
-					closeIcon={
-						<Button
-							shape="circle"
-							icon={<CloseOutlined color="white" />}
-							type="dashed"
-							onClick={() => {
-								this.setState({ renderPreviewModal: undefined });
-							}}
-						/>
-					}
-					style={{
-						display: 'flex',
-						maxWidth: '100%'
-					}}
-					width="100%"
-				>
-					<img src={renderPreviewModal} key="full-preview" alt="" />
-				</Modal>
-			);
-		}
-		return null;
 	}
 
 	render() {
@@ -299,7 +233,6 @@ export default class ModCollectionComponent extends Component<ModCollectionProps
 		return (
 			// eslint-disable-next-line react/destructuring-assignment
 			<Layout style={{ width: this.props.width, height: this.props.height }}>
-				{this.renderModals()}
 				<Content key="main table" style={{ padding: '0px', overflowY: 'auto', scrollbarWidth: 'none' }}>
 					<Table
 						dataSource={filteredRows}

@@ -42,7 +42,8 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 				name: 'default',
 				mods: []
 			},
-			searchString: ''
+			searchString: '',
+			sidebarCollapsed: true
 		};
 		this.loadCollectionCallback = this.loadCollectionCallback.bind(this);
 	}

@@ -3,6 +3,18 @@ import { api } from 'renderer/model/Api';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const pause = (ms: number, callback: (...args: any[]) => any, ...args: any[]): Promise<any> => {
+	return new Promise((resolve, reject) => {
+		setTimeout(async () => {
+			try {
+				resolve(await callback(...args));
+			} catch (error) {
+				reject(error);
+			}
+		}, ms);
+	});
+};
+
 async function sleep(ms: number) {
 	await delay(ms);
 }
@@ -38,4 +50,4 @@ function delayForEach<Type>(array: Type[], delayTime: number, func: (props: ForE
 	return promise;
 }
 
-export { sleep, delayForEach };
+export { sleep, pause, delayForEach };

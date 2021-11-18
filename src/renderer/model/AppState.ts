@@ -14,3 +14,7 @@ export interface AppState {
 	sidebarCollapsed?: boolean;
 	searchString: string;
 }
+
+export interface CollectionViewState extends AppState {
+	launchingGame?: boolean;
+}
