@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
-import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal, Popover } from 'antd';
+import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
 import {
 	EditOutlined,
 	PlusOutlined,
@@ -176,16 +176,14 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 							</Col>
 							<Col>
 								<Space align="start">
-									<Popover content="Rename collection">
-										<Button
-											key="rename"
-											icon={<EditOutlined />}
-											onClick={() => {
-												this.setState({ modalType: CollectionManagementToolbarModalType.RENAME_COLLECTION });
-											}}
-											disabled={disabledFeatures}
-										/>
-									</Popover>
+									<Button
+										key="rename"
+										icon={<EditOutlined />}
+										onClick={() => {
+											this.setState({ modalType: CollectionManagementToolbarModalType.RENAME_COLLECTION });
+										}}
+										disabled={disabledFeatures}
+									/>
 									<Dropdown.Button
 										key="new"
 										overlay={
@@ -214,50 +212,42 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 					</Col>
 					<Col span={4} style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
 						<Space align="center">
-							<Popover content="Save collection to disk">
-								<Button
-									shape="circle"
-									key="save"
-									type="primary"
-									icon={<DownloadOutlined />}
-									onClick={saveCollectionCallback}
-									disabled={disabledFeatures || !madeEdits}
-									loading={savingCollection}
-								/>
-							</Popover>
-							<Popover content="Copy collection to clipboard">
-								<Button
-									shape="circle"
-									key="save"
-									type="primary"
-									icon={<CopyOutlined />}
-									onClick={saveCollectionCallback}
-									disabled={disabledFeatures || !madeEdits}
-									loading={savingCollection}
-								/>
-							</Popover>
-							<Popover content="Save collection">
-								<Button
-									shape="circle"
-									key="save"
-									type="primary"
-									icon={<SaveOutlined />}
-									onClick={saveCollectionCallback}
-									disabled={disabledFeatures || !madeEdits}
-									loading={savingCollection}
-								/>
-							</Popover>
-							<Popover content="Delete collection">
-								<Button
-									danger
-									type="primary"
-									key="delete"
-									shape="circle"
-									icon={<DeleteOutlined />}
-									onClick={deleteCollectionCallback}
-									disabled={disabledFeatures}
-								/>
-							</Popover>
+							<Button
+								shape="circle"
+								key="save"
+								type="primary"
+								icon={<DownloadOutlined />}
+								onClick={saveCollectionCallback}
+								disabled={disabledFeatures || !madeEdits}
+								loading={savingCollection}
+							/>
+							<Button
+								shape="circle"
+								key="save"
+								type="primary"
+								icon={<CopyOutlined />}
+								onClick={saveCollectionCallback}
+								disabled={disabledFeatures || !madeEdits}
+								loading={savingCollection}
+							/>
+							<Button
+								shape="circle"
+								key="save"
+								type="primary"
+								icon={<SaveOutlined />}
+								onClick={saveCollectionCallback}
+								disabled={disabledFeatures || !madeEdits}
+								loading={savingCollection}
+							/>
+							<Button
+								danger
+								type="primary"
+								key="delete"
+								shape="circle"
+								icon={<DeleteOutlined />}
+								onClick={deleteCollectionCallback}
+								disabled={disabledFeatures}
+							/>
 						</Space>
 					</Col>
 				</Row>
@@ -294,20 +284,16 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 						<Space align="center" style={{ lineHeight: '32px' }}>
 							<Button key="undo" shape="circle" icon={<UndoOutlined />} disabled={disabledFeatures || true} />
 							<Button key="redo" shape="circle" icon={<RedoOutlined />} disabled={disabledFeatures || true} />
-							<Popover content="Validate collection">
-								<Button
-									shape="circle"
-									key="validate"
-									type="primary"
-									icon={<CheckCircleOutlined />}
-									disabled={disabledFeatures}
-									loading={validatingCollection}
-									onClick={validateCollectionCallback}
-								/>
-							</Popover>
-							<Popover content="Refresh mods cache">
-								<Button danger type="primary" key="refresh" shape="circle" icon={<SyncOutlined />} disabled={disabledFeatures} />
-							</Popover>
+							<Button
+								shape="circle"
+								key="validate"
+								type="primary"
+								icon={<CheckCircleOutlined />}
+								disabled={disabledFeatures}
+								loading={validatingCollection}
+								onClick={validateCollectionCallback}
+							/>
+							<Button danger type="primary" key="refresh" shape="circle" icon={<SyncOutlined />} disabled={disabledFeatures} />
 						</Space>
 					</Col>
 				</Row>
