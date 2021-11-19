@@ -1,0 +1,18 @@
+{
+  "name": "terratech-steam-mod-loader",
+  "productName": "ttsm",
+  "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
+  "version": "2.0.0",
+  "main": "./dist/main/main.js",
+  "author": {
+    "name": "FLSoz",
+    "url": "https://github.com/FLSoz/terratech-steam-mod-loader"
+  },
+  "scripts": {
+    "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",
+    "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts",
+    "postinstall": "npm run electron-rebuild && npm run link-modules"
+  },
+  "license": "MIT",
+	"dependencies": {}
+}

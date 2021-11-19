@@ -1,0 +1,1 @@
+{"version":3,"file":"menu.d.ts","sourceRoot":"","sources":["../../../../src/main/menu.ts"],"names":[],"mappings":"AAAA,OAAO,EAEL,IAAI,EAEJ,aAAa,EACb,0BAA0B,EAC3B,MAAM,UAAU,CAAC;AAOlB,MAAM,CAAC,OAAO,OAAO,WAAW;IAC9B,UAAU,EAAE,aAAa,CAAC;gBAEd,UAAU,EAAE,aAAa;IAIrC,SAAS,IAAI,IAAI;IAmBjB,2BAA2B,IAAI,IAAI;IAenC,mBAAmB,IAAI,0BAA0B,EAAE;IA4InD,oBAAoB;;;;;;;;;;;;;;;;;;CA+FrB"}

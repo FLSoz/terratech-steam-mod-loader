@@ -11,7 +11,8 @@ import {
 	SyncOutlined,
 	CheckCircleOutlined,
 	CopyOutlined,
-	DownloadOutlined
+	ImportOutlined,
+	ExportOutlined
 } from '@ant-design/icons';
 import { api } from 'renderer/model/Api';
 
@@ -216,7 +217,16 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								shape="circle"
 								key="save"
 								type="primary"
-								icon={<DownloadOutlined />}
+								icon={<ImportOutlined />}
+								onClick={saveCollectionCallback}
+								disabled={disabledFeatures || !madeEdits}
+								loading={savingCollection}
+							/>
+							<Button
+								shape="circle"
+								key="save"
+								type="primary"
+								icon={<ExportOutlined />}
 								onClick={saveCollectionCallback}
 								disabled={disabledFeatures || !madeEdits}
 								loading={savingCollection}

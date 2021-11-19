@@ -45,7 +45,7 @@ if (process.env.NODE_ENV === 'production') {
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 if (isDevelopment) {
-	require('electron-debug')({ showDevTools: false });
+	require('electron-debug')();
 }
 
 const installExtensions = async () => {
@@ -96,9 +96,7 @@ const createWindow = async () => {
 
 	mainWindow.loadURL(resolveHtmlPath('index.html'));
 
-	// @TODO: Use 'ready-to-show' event
-	//        https://github.com/electron/electron/blob/main/docs/api/browser-window.md#using-ready-to-show-event
-	mainWindow.webContents.on('did-finish-load', () => {
+	mainWindow.once('ready-to-show', () => {
 		if (!mainWindow) {
 			throw new Error('"mainWindow" is not defined');
 		}
@@ -140,13 +138,17 @@ app.on('window-all-closed', () => {
 	}
 });
 
-app.whenReady().then(createWindow).catch(log.info);
-
-app.on('activate', () => {
-	// On macOS it's common to re-create a window in the app when the
-	// dock icon is clicked and there are no other windows open.
-	if (mainWindow === null) createWindow();
-});
+app
+	.whenReady()
+	.then(() => {
+		createWindow();
+		app.on('activate', () => {
+			// On macOS it's common to re-create a window in the app when the
+			// dock icon is clicked and there are no other windows open.
+			if (mainWindow === null) createWindow();
+		});
+	})
+	.catch(log.error);
 
 // close and exit with error code
 ipcMain.on('exit', (_event, code) => {

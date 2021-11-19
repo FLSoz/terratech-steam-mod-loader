@@ -1,6 +1,5 @@
 {
   "files.associations": {
-    ".babelrc": "jsonc",
     ".eslintrc": "jsonc",
     ".prettierrc": "jsonc",
     ".eslintignore": "ignore"
@@ -14,13 +13,11 @@
     ".git": true,
     ".eslintcache": true,
     ".erb/dll": true,
-    "build/{release,app/dist}": true,
+    "release/{build,app/dist}": true,
     "node_modules": true,
     "npm-debug.log.*": true,
     "test/**/__snapshots__": true,
-    "yarn.lock": true,
+    "package-lock.json": true,
     "*.{css,sass,scss}.d.ts": true
-},
-"editor.insertSpaces": false,
-"editor.detectIndentation": false
+	}
 }
