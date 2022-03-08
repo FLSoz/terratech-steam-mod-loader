@@ -45,6 +45,7 @@
     "afterSign": ".erb/scripts/notarize.js",
     "mac": {
       "type": "distribution",
+			"target": ["dmg"],
       "hardenedRuntime": true,
       "entitlements": "assets/entitlements.mac.plist",
       "entitlementsInherit": "assets/entitlements.mac.plist",
@@ -69,7 +70,10 @@
       "target": [
         "nsis"
       ],
-			"publish": ["github"]
+			"publish": ["github"],
+			"certificateSubjectName": "FLSoz",
+			"certificateFile": "E:\\Documents\\FLSoz.pfx",
+			"publisherName": "FLSoz"
     },
     "linux": {
       "target": [
@@ -78,6 +82,10 @@
 			"publish": ["github"],
       "category": "Development"
     },
+		"appImage": {
+			"synopsis": "Steam Workshop mod manager for TerraTech",
+			"category": "Game"
+		},
     "directories": {
       "app": "release/app",
       "buildResources": "assets",
