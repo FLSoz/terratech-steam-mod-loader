@@ -2,7 +2,7 @@
   "name": "terratech-steam-mod-loader",
   "productName": "ttsm",
   "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "main": "./dist/main/main.js",
   "author": {
     "name": "FLSoz",

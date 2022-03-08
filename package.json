@@ -87,7 +87,7 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "flsoz",
+      "owner": "FLSoz",
       "repo": "terratech-steam-mod-loader"
     }
   },
