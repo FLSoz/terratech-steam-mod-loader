@@ -88,12 +88,6 @@ class MenuBar extends Component<MenuProps, MenuState> {
 				<Menu.Item key="main" style={MenuItemStyle} icon={<AppstoreOutlined style={MenuIconStyle} />}>
 					Mod Collections
 				</Menu.Item>
-				<Menu.Item key="raw" style={MenuItemStyle} icon={<FileTextOutlined style={MenuIconStyle} />}>
-					Raw Modlist
-				</Menu.Item>
-				<Menu.Item key="ttqmm" style={MenuItemStyle} icon={<GithubOutlined style={MenuIconStyle} disabled />}>
-					TTQMM Browser
-				</Menu.Item>
 				<Menu.Item key="settings" style={MenuItemStyle} icon={<SettingOutlined style={MenuIconStyle} />}>
 					Settings
 				</Menu.Item>
