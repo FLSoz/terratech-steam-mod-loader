@@ -207,7 +207,7 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 						if (file.name === 'mod.json') {
 							const modConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
 							config.name = modConfig.DisplayName;
-							config.author = modConfig.Author;
+							config.authors = [modConfig.Author];
 							if (potentialMod.ID === '') {
 								potentialMod.ID = modConfig.Id;
 								potentialMod.UID = `ttqmm:${modConfig.Id}`;
@@ -313,12 +313,17 @@ ipcMain.handle('update-collection', async (_event, collection: ModCollection) =>
 });
 
 // Rename a file
-ipcMain.handle('rename-collection', async (_event, oldName: string, newName: string) => {
+ipcMain.handle('rename-collection', async (_event, collection: ModCollection, newName: string) => {
+	const oldName = collection.name;
 	const oldpath = path.join(app.getPath('userData'), 'collections', `${oldName}.json`);
 	const newpath = path.join(app.getPath('userData'), 'collections', `${newName}.json`);
 	log.info(`Renaming file ${oldpath} to ${newpath}`);
 	try {
-		fs.renameSync(oldpath, newpath);
+		if (fs.existsSync(oldpath)) {
+			fs.renameSync(oldpath, newpath);
+		} else {
+			fs.writeFileSync(newpath, JSON.stringify({ ...collection, mods: [...collection.mods] }, null, 4), { encoding: 'utf8', flag: 'w' });
+		}
 		return true;
 	} catch (error) {
 		log.error(error);
@@ -384,8 +389,9 @@ ipcMain.on('game-running', async (event) => {
 // Launch steam as separate process
 ipcMain.handle('launch-game', async (_event, steamExec, workshopID, closeOnLaunch, args) => {
 	log.info('Launching game with custom args:');
-	log.info(args);
-	await child_process.spawn(steamExec, ['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`, ...args], {
+	const allArgs = ['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`, ...args];
+	log.info(allArgs);
+	await child_process.spawn(steamExec, allArgs, {
 		detached: true
 	});
 	if (closeOnLaunch) {

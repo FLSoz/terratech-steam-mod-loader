@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Layout, Progress, Spin, Skeleton } from 'antd';
+import { Layout, Progress } from 'antd';
 import ReactLoading from 'react-loading';
 import { SizeMe } from 'react-sizeme';
 import { AppConfig } from 'renderer/model/AppConfig';
@@ -16,10 +16,10 @@ interface ModLoadingState {
 	loadingMods: boolean;
 	countedWorkshopMods: boolean;
 	countedLocalMods: boolean;
-	countedTTQMMMods: boolean;
+	countedTTQMMMods?: boolean;
 	workshopModPaths: string[];
 	localModPaths: string[];
-	ttqmmModPaths: string[];
+	ttqmmModPaths?: string[];
 	loadedMods: number;
 	totalMods: number;
 }
@@ -38,10 +38,8 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 			loadingMods: false,
 			countedWorkshopMods: false,
 			countedLocalMods: false,
-			countedTTQMMMods: false,
 			workshopModPaths: [],
 			localModPaths: [],
-			ttqmmModPaths: [],
 			loadedMods: 0,
 			totalMods: 0
 		};
@@ -94,7 +92,7 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 			const modsMap: Map<string, Mod> = appState.mods;
 			api.logger.info(`Loaded mod: ${mod.ID}`);
 			api.logger.info(JSON.stringify(mod, null, 2));
-			modsMap.set(mod.WorkshopID ? `${mod.WorkshopID}` : mod.ID, mod);
+			modsMap.set(mod.UID, mod);
 			appState.mods = modsMap;
 		}
 		this.setState(
@@ -193,6 +191,6 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 	}
 }
 
-export default (props: any) => {
-	return <ModLoadingComponent {...props} appState={useOutletContext<AppState>()} />;
+export default () => {
+	return <ModLoadingComponent appState={useOutletContext<AppState>()} />;
 };

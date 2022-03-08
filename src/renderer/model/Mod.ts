@@ -9,7 +9,7 @@ export interface ModConfig {
 	description?: string;
 	preview?: string;
 	hasCode?: boolean;
-	author?: string;
+	authors?: string[];
 	loadAfter?: string[];
 	loadBefore?: string[];
 	dependsOn?: string[];
@@ -49,12 +49,13 @@ export interface ModData {
 	preview?: string;
 	name: string;
 	description?: string;
-	author?: string;
+	authors?: string[];
 	dependsOn?: string[];
 	hasCode?: boolean;
 	isDependencyFor?: string[];
 	tags?: string[];
 	errors?: ModError[];
+	subscribed?: boolean;
 }
 
 export function convertToModData(input: Map<string, Mod>): ModData[] {
@@ -62,7 +63,7 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 	const tempMap: Map<string, ModData> = new Map();
 	const workshopMap: Map<string, string> = new Map();
 	[...input.values()].forEach((mod: Mod) => {
-		const modData = {
+		const modData: ModData = {
 			key: mod.ID,
 			uid: mod.UID,
 			id: mod.WorkshopID ? `${mod.WorkshopID}` : mod.ID,
@@ -70,10 +71,11 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 			preview: mod.config?.preview,
 			name: mod.config && mod.config.name ? mod.config.name : mod.ID,
 			description: mod.config?.description,
-			author: mod.config?.author,
+			authors: mod.config?.authors,
 			dependsOn: mod.config?.dependsOn,
 			hasCode: mod.config?.hasCode,
-			tags: mod.config?.tags
+			tags: mod.config?.tags,
+			subscribed: mod.subscribed
 		};
 		tempMap.set(mod.ID, modData);
 		if (mod.WorkshopID) {
@@ -113,7 +115,14 @@ export function filterRows(rows: ModData[], searchString: string | undefined): M
 			if (modData.type.toLowerCase().includes(lowerSearchString)) {
 				return true;
 			}
-			if (modData.author?.toLowerCase().includes(lowerSearchString)) {
+			if (
+				modData.authors?.reduce((acc: boolean, tag: string) => {
+					if (acc) {
+						return true;
+					}
+					return tag.toLowerCase().includes(lowerSearchString);
+				}, false)
+			) {
 				return true;
 			}
 			return modData.tags?.reduce((acc: boolean, tag: string) => {

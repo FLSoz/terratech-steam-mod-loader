@@ -231,8 +231,8 @@ class API {
 		return ipcRenderer.invoke(ValidChannel.DELETE_COLLECTION, collection);
 	}
 
-	renameCollection(oldName: string, newName: string): Promise<boolean> {
-		return ipcRenderer.invoke(ValidChannel.RENAME_COLLECTION, oldName, newName);
+	renameCollection(collection: ModCollection, newName: string): Promise<boolean> {
+		return ipcRenderer.invoke(ValidChannel.RENAME_COLLECTION, collection, newName);
 	}
 }
 export const api = new API(window);

@@ -38,6 +38,7 @@ interface CollectionManagementToolbarProps {
 	savingCollection?: boolean;
 	validatingCollection?: boolean;
 	numResults?: number;
+	lastValidationStatus?: boolean;
 	onSearchCallback: (search: string) => void;
 	onSearchChangeCallback: (search: string) => void;
 	saveCollectionCallback: () => void;
@@ -60,7 +61,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 
 	constructor(props: CollectionManagementToolbarProps) {
 		super(props);
-		const { appState, renameCollectionCallback, newCollectionCallback, duplicateCollectionCallback } = this.props;
+		const { renameCollectionCallback, newCollectionCallback, duplicateCollectionCallback } = this.props;
 		this.modalProps = {
 			[CollectionManagementToolbarModalType.NEW_COLLECTION]: {
 				title: 'New Collection',
@@ -148,7 +149,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 			onSearchChangeCallback,
 			searchString,
 			madeEdits,
-			currentPath
+			lastValidationStatus
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
 		return (
@@ -220,7 +221,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								type="primary"
 								icon={<ImportOutlined />}
 								onClick={saveCollectionCallback}
-								disabled={disabledFeatures || !madeEdits}
+								disabled={true || disabledFeatures || !madeEdits}
 								loading={savingCollection}
 							>
 								Import
@@ -231,7 +232,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								type="primary"
 								icon={<ExportOutlined />}
 								onClick={saveCollectionCallback}
-								disabled={disabledFeatures || !madeEdits}
+								disabled={true || disabledFeatures || !madeEdits}
 								loading={savingCollection}
 							>
 								Export
@@ -242,7 +243,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								type="primary"
 								icon={<CopyOutlined />}
 								onClick={saveCollectionCallback}
-								disabled={disabledFeatures || !madeEdits}
+								disabled={true || disabledFeatures || !madeEdits}
 								loading={savingCollection}
 							/>
 							<Button
@@ -303,6 +304,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								shape="round"
 								key="validate"
 								type="primary"
+								danger={!lastValidationStatus}
 								icon={<CheckCircleOutlined />}
 								disabled={disabledFeatures}
 								loading={validatingCollection}

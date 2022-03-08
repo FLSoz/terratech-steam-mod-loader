@@ -7,7 +7,7 @@ export enum ModType {
 export interface ModConfig {
 	name?: string;
 	description?: string;
-	author?: string;
+	authors?: string[];
 	hasCode?: boolean;
 	preview?: string;
 	loadAfter?: string[];

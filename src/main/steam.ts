@@ -166,7 +166,7 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 										})
 										.filter((author) => !!author);
 									const castAuthors = authors as string[];
-									modConfig.author = castAuthors.join(', ');
+									modConfig.authors = castAuthors.sort();
 								}
 							}
 						} catch (error) {

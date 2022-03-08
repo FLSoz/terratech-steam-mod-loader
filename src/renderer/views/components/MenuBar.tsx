@@ -104,6 +104,6 @@ class MenuBar extends Component<MenuProps, MenuState> {
 	}
 }
 
-export default (props: any) => {
+export default (props: { disableNavigation: boolean; currentTab: string; appState: AppState }) => {
 	return <MenuBar {...props} navigate={useNavigate()} />;
 };

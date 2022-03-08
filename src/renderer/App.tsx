@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unused-state */
 /* eslint-disable no-nested-ternary */
 import React, { Component } from 'react';
 import { Layout } from 'antd';
@@ -36,13 +37,15 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 
 	componentDidMount() {
 		const { initializedConfigs: initialized } = this.state;
+		const { navigate } = this.props;
 		if (!initialized) {
 			this.setState({ initializedConfigs: true }, () => {
-				this.props.navigate('/loading/config');
+				navigate('/loading/config');
 			});
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	updateState(props: any, callback?: () => void) {
 		this.setState({ ...props }, () => {
 			if (callback) {
@@ -52,7 +55,8 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 	}
 
 	navigate(path: string) {
-		this.props.navigate(path);
+		const { navigate } = this.props;
+		navigate(path);
 	}
 
 	render() {
@@ -89,6 +93,6 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 	}
 }
 
-export default (props: any) => {
-	return <App {...props} location={useLocation()} navigate={useNavigate()} />;
+export default () => {
+	return <App location={useLocation()} navigate={useNavigate()} />;
 };

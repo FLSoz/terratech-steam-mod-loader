@@ -17,6 +17,18 @@ interface SettingsState {
 	selectingDirectory: boolean;
 }
 
+interface SettingsFields {
+	steamExec?: string;
+	localDir?: string;
+	workshopDir?: string;
+	logsDir?: string;
+	closeOnLaunch?: boolean;
+	workshopID?: string;
+	steamMaxConcurrency?: number;
+	extraParams?: string[];
+	loggingParams?: string[];
+}
+
 class SettingsView extends Component<AppState, SettingsState> {
 	formRef = React.createRef<FormInstance>();
 
@@ -52,7 +64,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 			const { editingConfig } = this.state;
 			editingConfig![target] = path;
 			this.setState({ selectingDirectory: false }, () => {
-				const changedFields: any = {};
+				const changedFields: SettingsFields = {};
 				changedFields[target] = path;
 				this.formRef.current!.setFieldsValue(changedFields);
 				this.formRef.current!.validateFields();
@@ -366,6 +378,6 @@ class SettingsView extends Component<AppState, SettingsState> {
 	}
 }
 
-export default (props: any) => {
+export default () => {
 	return <SettingsView {...useOutletContext<AppState>()} />;
 };

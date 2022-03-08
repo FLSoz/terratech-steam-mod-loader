@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Layout, Table, Tag, Space, Button, Modal, Tooltip, Image } from 'antd';
-import { useOutletContext, Outlet } from 'react-router-dom';
-import React, { Component, ReactNode } from 'react';
-import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined, ZoomInOutlined, CloseOutlined } from '@ant-design/icons';
+import { Layout, Table, Tag, Space, Tooltip, Image } from 'antd';
+import { useOutletContext } from 'react-router-dom';
+import React, { Component } from 'react';
+import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined } from '@ant-design/icons';
 import parse from 'html-react-parser';
 
 import { ColumnType } from 'antd/lib/table';
 import { TableRowSelection } from 'antd/lib/table/interface';
 import { api } from 'renderer/model/Api';
-import { Mod, ModData, ModType } from 'renderer/model/Mod';
-import { ModCollection, ModCollectionProps } from 'renderer/model/ModCollection';
+import { ModData, ModType } from 'renderer/model/Mod';
+import { ModCollectionProps } from 'renderer/model/ModCollection';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
@@ -68,7 +68,6 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 			selections: [Table.SELECTION_INVERT],
 			selectedRowKeys: collection.mods,
 			onChange: (selectedRowKeys: React.Key[]) => {
-				api.logger.info(`changing selecton: ${selectedRowKeys}`);
 				const currentVisible = new Set(filteredRows.map((modData) => modData.uid));
 				const newSelection = rows
 					.map((modData) => modData.uid)
@@ -213,20 +212,48 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				}
 			},
 			{
-				title: 'Author',
-				dataIndex: 'author',
+				title: 'Authors',
+				dataIndex: 'authors',
 				width: 150,
 				defaultSortOrder: 'ascend',
 				sorter: (a, b) => {
 					const v1 = a;
 					const v2 = b;
-					if (v1.author) {
-						if (v2.author) {
-							return v1.author > v2.author ? 1 : -1;
+					if (v1.authors) {
+						if (v2.authors) {
+							const l1 = v1.authors.length;
+							const l2 = v2.authors.length;
+							let ind = 0;
+							while (ind < l1 && ind < l2) {
+								if (v1.authors[ind] > v2.authors[ind]) {
+									return 1;
+								}
+								if (v1.authors[ind] < v2.authors[ind]) {
+									return -1;
+								}
+								ind += 1;
+							}
+							if (l1 > l2) {
+								return 1;
+							}
+							if (l1 < l2) {
+								return -1;
+							}
+							return 0;
 						}
 						return 1;
 					}
 					return -1;
+				},
+				// eslint-disable-next-line @typescript-eslint/ban-types
+				render: (authors: string[] | undefined) => {
+					return (authors || []).map((author) => {
+						return (
+							<Tag color="green" key={author}>
+								{author}
+							</Tag>
+						);
+					});
 				}
 			}
 		];
@@ -238,7 +265,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 					<Table
 						dataSource={filteredRows}
 						pagination={false}
-						rowKey="id"
+						rowKey="uid"
 						rowSelection={rowSelection}
 						expandable={expandable}
 						columns={columns}
@@ -251,6 +278,6 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 	}
 }
 
-export default (props: any) => {
+export default () => {
 	return <MainCollectionComponent {...useOutletContext()} />;
 };

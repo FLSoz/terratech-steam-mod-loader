@@ -144,12 +144,13 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 	}
 
 	proceedToNext() {
-		const { configErrors } = this.props.appState;
+		const { appState, navigate } = this.props;
+		const { configErrors } = appState;
 		if (!!configErrors && Object.keys(configErrors).length > 0) {
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
-			this.props.navigate('/settings', { state: this.state });
+			navigate('/settings', { state: this.state });
 		} else {
-			this.props.navigate('/loading/mods', { state: this.state });
+			navigate('/loading/mods', { state: this.state });
 		}
 	}
 
@@ -171,7 +172,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 				}
 				const collectionName = [...allCollectionNames].sort()[0];
 				config!.activeCollection = collectionName;
-				updateState({ activeCollection: allCollections.get(collectionName)! }, this.proceedToNext.bind(this));
+				updateState({ activeCollection: allCollections.get(collectionName) }, this.proceedToNext.bind(this));
 			} else {
 				// there are no collections - create a new defaultCollection
 				config!.activeCollection = 'default';
@@ -181,13 +182,13 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 				};
 				allCollectionNames.add('default');
 				allCollections.set('default', defaultCollection);
-				this.setState({}, this.proceedToNext);
+				updateState({ activeCollection: defaultCollection }, this.proceedToNext.bind(this));
 			}
 		}
 	}
 
 	render() {
-		const { loadedCollections, totalCollections } = this.state;
+		const { loadedCollections, totalCollections, configLoadError, userDataPathError } = this.state;
 		const percent = totalCollections > 0 ? Math.ceil((100 * loadedCollections) / totalCollections) : 100;
 		return (
 			<Layout style={{ minHeight: '100vh', minWidth: '100vw' }}>
@@ -199,6 +200,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 							to: '#87d068'
 						}}
 						percent={percent}
+						status={configLoadError || userDataPathError ? 'exception' : undefined}
 					/>
 				</Footer>
 			</Layout>
@@ -206,6 +208,6 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 	}
 }
 
-export default (props: any) => {
+export default () => {
 	return <ConfigLoadingComponent navigate={useNavigate()} appState={useOutletContext<AppState>()} />;
 };

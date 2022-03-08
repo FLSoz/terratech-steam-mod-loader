@@ -1,15 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Layout, Table, Tag, Space, Button, Modal, Tooltip, Image, Skeleton } from 'antd';
-import { useOutletContext, Outlet } from 'react-router-dom';
-import React, { Component, ReactNode } from 'react';
-import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined, ZoomInOutlined, CloseOutlined } from '@ant-design/icons';
-import parse from 'html-react-parser';
-
-import { ColumnType } from 'antd/lib/table';
-import { TableRowSelection } from 'antd/lib/table/interface';
-import { api } from 'renderer/model/Api';
-import { Mod, ModData, ModType } from 'renderer/model/Mod';
-import { ModCollection, ModCollectionProps } from 'renderer/model/ModCollection';
+import { Layout, Skeleton } from 'antd';
+import { useOutletContext } from 'react-router-dom';
+import React, { Component } from 'react';
+import { ModCollectionProps } from 'renderer/model/ModCollection';
 
 const { Content } = Layout;
 
@@ -41,6 +34,6 @@ class RawCollectionComponent extends Component<ModCollectionProps, never> {
 	}
 }
 
-export default (props: any) => {
+export default () => {
 	return <RawCollectionComponent {...useOutletContext<ModCollectionProps>()} />;
 };

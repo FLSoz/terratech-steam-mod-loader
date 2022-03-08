@@ -1,7 +1,7 @@
 import { api } from 'renderer/model/Api';
 import { AppConfig } from '../model/AppConfig';
-import { Mod, ModError, ModErrors, ModErrorType } from '../model/Mod';
-import { delayForEach, ForEachProps, sleep } from './Sleep';
+import { Mod, ModError, ModErrors, ModErrorType, ModData, ModType } from '../model/Mod';
+import { delayForEach, ForEachProps } from './Sleep';
 
 async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
 	const errors: { [field: string]: string } = {};
@@ -32,54 +32,44 @@ async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: 
 }
 
 interface ModCollectionValidationProps {
-	modList: string[];
+	modList: ModData[];
 	allMods: Map<string, Mod>;
 	updateValidatedModsCallback?: (numValidatedMods: number) => void;
 	setModErrorsCallback?: (errors: ModErrors) => void;
 }
 
 function validateMod(
-	props: ForEachProps<string>,
-	modList: string[],
+	props: ForEachProps<ModData>,
+	modList: ModData[],
 	allMods: Map<string, Mod>,
 	errors: ModErrors,
 	updateValidatedModsCallback?: (numValidatedMods: number) => void
 ) {
-	const mod: string = props.value;
+	const modData: ModData = props.value;
 	const { index } = props;
-	if (mod) {
-		api.logger.info(`validating ${mod}`);
-		const modData = allMods.get(mod);
-		if (modData) {
-			const thisModErrors = [];
-			if (modData.WorkshopID && !modData.subscribed) {
-				thisModErrors.push({
-					errorType: ModErrorType.NOT_SUBSCRIBED
-				})
-			}
-			if (modData.config) {
-				const dependencies = modData.config!.dependsOn;
-				if (dependencies) {
-					const missingDependencies: string[] = [];
-					dependencies.forEach((dependency) => {
-						if (!modList.includes(dependency)) {
-							missingDependencies.push(dependency);
-						}
-					});
-					if (missingDependencies.length > 0) {
-						thisModErrors.push({
-							errorType: ModErrorType.MISSING_DEPENDENCY,
-							values: missingDependencies
-						});
-					}
-				}
-			}
-			if (thisModErrors.length > 0) {
-				errors[mod] = thisModErrors;
-			}
-		} else {
-			errors[mod] = [{ errorType: ModErrorType.INVALID_ID }];
+	api.logger.info(`validating ${modData.name}`);
+	const thisModErrors = [];
+	if (modData.type === ModType.WORKSHOP && !modData.subscribed) {
+		thisModErrors.push({
+			errorType: ModErrorType.NOT_SUBSCRIBED
+		});
+	}
+	const dependencies = modData.dependsOn;
+	if (dependencies) {
+		const missingDependencies: Set<string> = new Set(dependencies);
+		modList.forEach((mod: ModData) => {
+			missingDependencies.delete(mod.uid);
+			missingDependencies.delete(mod.id);
+		});
+		if (missingDependencies.size > 0) {
+			thisModErrors.push({
+				errorType: ModErrorType.MISSING_DEPENDENCY,
+				values: [...missingDependencies]
+			});
 		}
+	}
+	if (thisModErrors.length > 0) {
+		errors[modData.uid] = thisModErrors;
 	}
 	if (updateValidatedModsCallback) {
 		updateValidatedModsCallback(index + 1);
