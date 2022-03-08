@@ -71,7 +71,7 @@
       ],
 			"publish": ["github"],
 			"certificateSubjectName": "FLSoz",
-			"certificateFile": "~/Documents/FLSoz.pfx",
+			"certificateFile": "../../FLSoz.pfx",
 			"publisherName": "FLSoz"
     },
     "linux": {
