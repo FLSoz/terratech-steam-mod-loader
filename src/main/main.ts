@@ -23,7 +23,6 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ModConfig, Mod, ModCollection } from './model';
 
-const sleep = require('util').promisify(setTimeout);
 const psList = require('ps-list');
 
 export default class AppUpdater {
@@ -121,6 +120,12 @@ const createWindow = async () => {
 		shell.openExternal(url);
 	});
 
+	mainWindow.webContents.on('did-finish-load', () => {
+		const name = 'TerraTech Steam Mod Loader';
+		const version = app.getVersion();
+		mainWindow?.setTitle(`${name} ${version}`);
+	});
+
 	// Remove this if your app does not use auto updates
 	// eslint-disable-next-line
   new AppUpdater();
@@ -140,6 +145,7 @@ app.on('window-all-closed', () => {
 
 app
 	.whenReady()
+	// eslint-disable-next-line promise/always-return
 	.then(() => {
 		createWindow();
 		app.on('activate', () => {
