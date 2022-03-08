@@ -3,16 +3,16 @@ import React, { Component } from 'react';
 import { Layout } from 'antd';
 
 import { AppState } from 'renderer/model/AppState';
-import MenuBar from './views/components/MenuBar';
 import { Outlet, useLocation, Location, useNavigate, NavigateFunction } from 'react-router-dom';
+import MenuBar from './views/components/MenuBar';
 import { Mod } from './model/Mod';
 import { ModCollection } from './model/ModCollection';
 import { DEFAULT_CONFIG } from './model/AppConfig';
 
 const { Sider } = Layout;
 
-class App extends Component<{location: Location, navigate: NavigateFunction}, AppState> {
-	constructor(props: {location: Location, navigate: NavigateFunction}) {
+class App extends Component<{ location: Location; navigate: NavigateFunction }, AppState> {
+	constructor(props: { location: Location; navigate: NavigateFunction }) {
 		super(props);
 		this.state = {
 			config: DEFAULT_CONFIG,
@@ -37,14 +37,14 @@ class App extends Component<{location: Location, navigate: NavigateFunction}, Ap
 	componentDidMount() {
 		const { initializedConfigs: initialized } = this.state;
 		if (!initialized) {
-			this.setState({initializedConfigs: true}, () => {
+			this.setState({ initializedConfigs: true }, () => {
 				this.props.navigate('/loading/config');
 			});
 		}
 	}
 
 	updateState(props: any, callback?: () => void) {
-		this.setState({...props}, () => {
+		this.setState({ ...props }, () => {
 			if (callback) {
 				callback();
 			}
@@ -72,7 +72,11 @@ class App extends Component<{location: Location, navigate: NavigateFunction}, Ap
 						<div className="logo" />
 						<MenuBar
 							disableNavigation={
-								launchingGame || location.pathname.includes("loading") || savingConfig || madeConfigEdits || (!!configErrors && Object.keys(configErrors).length > 0)
+								launchingGame ||
+								location.pathname.includes('loading') ||
+								savingConfig ||
+								madeConfigEdits ||
+								(!!configErrors && Object.keys(configErrors).length > 0)
 							}
 							currentTab="main"
 							appState={this.state}
@@ -87,4 +91,4 @@ class App extends Component<{location: Location, navigate: NavigateFunction}, Ap
 
 export default (props: any) => {
 	return <App {...props} location={useLocation()} navigate={useNavigate()} />;
-}
+};

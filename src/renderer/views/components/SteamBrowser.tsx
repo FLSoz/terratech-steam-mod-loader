@@ -1,16 +1,17 @@
 import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
 import { Layout, Skeleton } from 'antd';
-import MenuBar from './MenuBar';
 import { useNavigate, useLocation, Location } from 'react-router-dom';
+import MenuBar from './MenuBar';
 
 const { Sider, Content } = Layout;
 
-class SteamBrowserView extends Component<{location: Location}, AppState> {
+class SteamBrowserView extends Component<{ location: Location }, AppState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: {location: Location}) {
+	constructor(props: { location: Location }) {
 		super(props);
+		console.log('hi');
 	}
 
 	componentDidMount() {}
@@ -43,5 +44,5 @@ class SteamBrowserView extends Component<{location: Location}, AppState> {
 }
 
 export default (props: any) => {
-	return <SteamBrowserView {...props} location={useLocation()}/>;
-}
+	return <SteamBrowserView {...props} location={useLocation()} />;
+};

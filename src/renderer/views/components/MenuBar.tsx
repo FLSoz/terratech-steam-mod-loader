@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
 import { Menu } from 'antd';
-import { AppstoreOutlined, FileTextOutlined, GithubOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate, NavigateFunction } from 'react-router-dom';
 
 interface MenuState {
@@ -49,7 +49,9 @@ class MenuBar extends Component<MenuProps, MenuState> {
 						switch (e.key) {
 							case 'raw':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/collections/raw-mods' }, () => { appState.navigate('/loading/mods') });
+									appState.updateState({ targetPathAfterLoad: '/collections/raw-mods' }, () => {
+										appState.navigate('/loading/mods');
+									});
 								} else {
 									appState.navigate('/collections/raw-mods');
 								}
@@ -59,21 +61,27 @@ class MenuBar extends Component<MenuProps, MenuState> {
 								break;
 							case 'main':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/colections/main' }, () => { appState.navigate('/loading/mods') });
+									appState.updateState({ targetPathAfterLoad: '/colections/main' }, () => {
+										appState.navigate('/loading/mods');
+									});
 								} else {
 									appState.navigate('/collections/main');
 								}
 								break;
 							case 'steam':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/browse/steam' }, () => { appState.navigate('/loading/mods') });
+									appState.updateState({ targetPathAfterLoad: '/browse/steam' }, () => {
+										appState.navigate('/loading/mods');
+									});
 								} else {
 									appState.navigate('/browse/steam');
 								}
 								break;
 							case 'ttqmm':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/browse/ttqmm' }, () => { appState.navigate('/loading/mods') });
+									appState.updateState({ targetPathAfterLoad: '/browse/ttqmm' }, () => {
+										appState.navigate('/loading/mods');
+									});
 									appState.navigate('/loading/mods');
 								} else {
 									appState.navigate('/browse/ttqmm');
@@ -97,5 +105,5 @@ class MenuBar extends Component<MenuProps, MenuState> {
 }
 
 export default (props: any) => {
-	return <MenuBar {...props} navigate={useNavigate()}/>;
-}
+	return <MenuBar {...props} navigate={useNavigate()} />;
+};

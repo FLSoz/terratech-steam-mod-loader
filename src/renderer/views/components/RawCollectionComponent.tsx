@@ -42,5 +42,5 @@ class RawCollectionComponent extends Component<ModCollectionProps, never> {
 }
 
 export default (props: any) => {
-	return <RawCollectionComponent {...useOutletContext<ModCollectionProps>()}/>;
-}
+	return <RawCollectionComponent {...useOutletContext<ModCollectionProps>()} />;
+};

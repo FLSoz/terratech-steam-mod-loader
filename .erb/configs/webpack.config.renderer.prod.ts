@@ -3,7 +3,7 @@
  */
 
 import path from 'path';
-import webpack from 'webpack';
+import webpack, { Configuration } from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
@@ -25,7 +25,7 @@ const devtoolsConfig =
       }
     : {};
 
-export default merge(baseConfig, {
+export default merge<Configuration>(baseConfig, {
   ...devtoolsConfig,
 
   mode: 'production',

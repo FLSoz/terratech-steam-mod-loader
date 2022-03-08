@@ -24,13 +24,13 @@ interface ModLoadingState {
 	totalMods: number;
 }
 
-class ModLoadingComponent extends Component<{appState: AppState}, ModLoadingState> {
+class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: {appState: AppState}) {
+	constructor(props: { appState: AppState }) {
 		super(props);
 
-		const { appState} = this.props;
+		const { appState } = this.props;
 		const config: AppConfig = appState.config as AppConfig;
 
 		this.state = {
@@ -105,7 +105,7 @@ class ModLoadingComponent extends Component<{appState: AppState}, ModLoadingStat
 				const { totalMods } = this.state;
 				if (loadedMods + 1 >= totalMods) {
 					appState.firstModLoad = true;
-					appState.navigate(appState.targetPathAfterLoad)
+					appState.navigate(appState.targetPathAfterLoad);
 				}
 			}
 		);
@@ -195,4 +195,4 @@ class ModLoadingComponent extends Component<{appState: AppState}, ModLoadingStat
 
 export default (props: any) => {
 	return <ModLoadingComponent {...props} appState={useOutletContext<AppState>()} />;
-}
+};

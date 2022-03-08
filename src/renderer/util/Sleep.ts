@@ -1,5 +1,3 @@
-import { api } from 'renderer/model/Api';
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

@@ -6,7 +6,6 @@ import { AppState } from 'renderer/model/AppState';
 import { validateAppConfig } from 'renderer/util/Validation';
 import { Layout, Progress } from 'antd';
 import { useNavigate, NavigateFunction, useOutletContext } from 'react-router-dom';
-import { apps } from 'open';
 
 const { Footer, Content } = Layout;
 
@@ -19,20 +18,17 @@ interface ConfigLoadingState {
 	updatingSteamMod: boolean;
 }
 
-class ConfigLoadingComponent extends Component<{navigate: NavigateFunction, appState: AppState}, ConfigLoadingState> {
+class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; appState: AppState }, ConfigLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: {navigate: NavigateFunction, appState: AppState}) {
+	constructor(props: { navigate: NavigateFunction; appState: AppState }) {
 		super(props);
-
-		const { appState } = props;
-
 		this.state = {
 			loadingConfig: true,
 			totalCollections: -1,
 			loadedCollections: 0,
 			updatingSteamMod: true
-		}
+		};
 		this.loadCollectionCallback = this.loadCollectionCallback.bind(this);
 	}
 
@@ -144,17 +140,16 @@ class ConfigLoadingComponent extends Component<{navigate: NavigateFunction, appS
 				.finally(() => {
 					this.setState({ loadingConfig: false }, this.checkCanProceed);
 				});
-			}
-		);
+		});
 	}
 
 	proceedToNext() {
 		const { configErrors } = this.props.appState;
-		if ((!!configErrors && Object.keys(configErrors).length > 0)) {
+		if (!!configErrors && Object.keys(configErrors).length > 0) {
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
-			this.props.navigate('/settings', {state: this.state});
+			this.props.navigate('/settings', { state: this.state });
 		} else {
-			this.props.navigate('/loading/mods', {state: this.state});
+			this.props.navigate('/loading/mods', { state: this.state });
 		}
 	}
 
@@ -171,9 +166,8 @@ class ConfigLoadingComponent extends Component<{navigate: NavigateFunction, appS
 					if (collection) {
 						updateState({ activeCollection: collection }, this.proceedToNext.bind(this));
 						return;
-					} else {
-						// activeCollection is no longer there: default to first available in ASCII-betical order
 					}
+					// activeCollection is no longer there: default to first available in ASCII-betical order
 				}
 				const collectionName = [...allCollectionNames].sort()[0];
 				config!.activeCollection = collectionName;
@@ -214,4 +208,4 @@ class ConfigLoadingComponent extends Component<{navigate: NavigateFunction, appS
 
 export default (props: any) => {
 	return <ConfigLoadingComponent navigate={useNavigate()} appState={useOutletContext<AppState>()} />;
-}
+};

@@ -120,7 +120,7 @@ class API {
 		const modListStr: string = modList
 			.map((mod: Mod) => {
 				const modID = mod.WorkshopID ? mod.WorkshopID : mod.ID;
-				return mod ? `[${mod.type}:${mod.type === "local" ? modID.toString().replace(" ", ":/%20") : modID}]` : '';
+				return mod ? `[${mod.type}:${mod.type === 'local' ? modID.toString().replace(' ', ':/%20') : modID}]` : '';
 			})
 			.join(',');
 		const args: string[] = ['+ttsmm_mod_list', modListStr];

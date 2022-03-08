@@ -3,7 +3,7 @@ import React, { Component, CSSProperties, ReactNode } from 'react';
 import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
 import { Layout, Button, Popover, Modal, Progress, Spin, Space, notification } from 'antd';
 
-import sizeMe, { SizeMe } from 'react-sizeme';
+import { SizeMe } from 'react-sizeme';
 import { convertToModData, filterRows, Mod, ModData, ModError, ModErrors, ModErrorType } from 'renderer/model/Mod';
 import { AppState } from 'renderer/model/AppState';
 import { api, ValidChannel } from 'renderer/model/Api';
@@ -11,9 +11,8 @@ import { ModCollection, ModCollectionProps } from 'renderer/model/ModCollection'
 import { validateActiveCollection } from 'renderer/util/Validation';
 import { CancellablePromiseManager } from 'renderer/util/Promise';
 import { pause } from 'renderer/util/Sleep';
-import ModCollectionComponent from './MainCollectionComponent';
-import ModCollectionManager from './CollectionManagementToolbar';
 import { AppConfig } from 'renderer/model/AppConfig';
+import ModCollectionManager from './CollectionManagementToolbar';
 
 const { Header, Footer, Content } = Layout;
 
@@ -40,14 +39,14 @@ interface CollectionManagerState {
 	rows: ModData[];
 	filteredRows?: ModData[];
 	madeEdits: boolean;
-	modIdToModDataMap: Map<string, ModData>,
+	modIdToModDataMap: Map<string, ModData>;
 
 	// modal
-	modalType: ModalType,
-	invalidIdsFound?: boolean,
-	missingDependenciesFound?: boolean,
-	incompatibleModsFound?: boolean,
-	missingSubscriptions?: boolean
+	modalType: ModalType;
+	invalidIdsFound?: boolean;
+	missingDependenciesFound?: boolean;
+	incompatibleModsFound?: boolean;
+	missingSubscriptions?: boolean;
 }
 
 interface NotificationProps {
@@ -70,8 +69,8 @@ const openNotification = (props: NotificationProps, type?: 'info' | 'error' | 's
 	notification[type || 'open']({ ...props });
 };
 
-class CollectionManagerComponent extends Component<{appState: AppState, location: Location}, CollectionManagerState> {
-	constructor(props: {appState: AppState, location: Location}) {
+class CollectionManagerComponent extends Component<{ appState: AppState; location: Location }, CollectionManagerState> {
+	constructor(props: { appState: AppState; location: Location }) {
 		super(props);
 		const { appState } = props;
 		const rows: ModData[] = appState.mods ? convertToModData(appState.mods) : [];
@@ -520,12 +519,10 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 								const missingSubscriptions = foundErrorTypes.has(ModErrorType.NOT_SUBSCRIBED);
 								const missingDependenciesFound = foundErrorTypes.has(ModErrorType.MISSING_DEPENDENCY);
 
-
 								rows.forEach((mod: ModData) => {
 									if (modErrors[mod.uid]) {
 										mod.errors = modErrors[mod.uid];
-									}
-									else {
+									} else {
 										mod.errors = undefined;
 									}
 								});
@@ -537,12 +534,11 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 									missingSubscriptions,
 									missingDependenciesFound
 								});
-							}
-							else {
+							} else {
 								rows.forEach((mod: ModData) => {
 									mod.errors = undefined;
 								});
-								this.setState({ modErrors: undefined })
+								this.setState({ modErrors: undefined });
 							}
 						}
 					})
@@ -634,45 +630,55 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 	// We allow you to load multiple mods with the same ID (bundle name), but only the local mod will be used
 	// If multiple workshop mods have the same ID, and you select multiple, then we will force you to choose one to use
 	renderModal() {
-		const { modalType, launchGameWithErrors, validatedMods, modErrors, incompatibleModsFound, invalidIdsFound, missingDependenciesFound, missingSubscriptions } = this.state;
+		const {
+			modalType,
+			launchGameWithErrors,
+			validatedMods,
+			modErrors,
+			incompatibleModsFound,
+			invalidIdsFound,
+			missingDependenciesFound,
+			missingSubscriptions
+		} = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods, updateState } = appState;
-		switch(modalType) {
+		switch (modalType) {
 			case ModalType.NONE:
 				return null;
-			case ModalType.VALIDATING:
-					let progressPercent = 0;
-					let currentMod: Mod | undefined;
-					if (!activeCollection?.mods) {
-						progressPercent = 100;
-					} else {
-						const currentlyValidatedMods = validatedMods || 0;
-						progressPercent = Math.round((100 * currentlyValidatedMods) / activeCollection.mods.length);
-						if (progressPercent < 100) {
-							const collectionMods = [...activeCollection.mods];
-							currentMod = mods?.get(collectionMods[currentlyValidatedMods]);
-						}
+			case ModalType.VALIDATING: {
+				let progressPercent = 0;
+				let currentMod: Mod | undefined;
+				if (!activeCollection?.mods) {
+					progressPercent = 100;
+				} else {
+					const currentlyValidatedMods = validatedMods || 0;
+					progressPercent = Math.round((100 * currentlyValidatedMods) / activeCollection.mods.length);
+					if (progressPercent < 100) {
+						const collectionMods = [...activeCollection.mods];
+						currentMod = mods?.get(collectionMods[currentlyValidatedMods]);
 					}
-					let status: 'active' | 'exception' | 'success' = 'active';
-					if (modErrors) {
-						status = 'exception';
-					} else if (progressPercent >= 100) {
-						status = 'success';
-					}
-					return (
-						<Modal title={`Validating Mod Collection ${activeCollection!.name}`} visible closable={false} footer={null}>
-							<div>
-								<Space direction="vertical" size="large" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
-									<Progress type="circle" percent={progressPercent} status={status} />
-									{currentMod ? (
-										<p>Validating mod {currentMod.config?.name ? currentMod.config!.name : currentMod.ID}</p>
-									) : progressPercent >= 100 ? (
-										<p>Validation complete!</p>
-									) : null}
-								</Space>
-							</div>
-						</Modal>
-					);
+				}
+				let status: 'active' | 'exception' | 'success' = 'active';
+				if (modErrors) {
+					status = 'exception';
+				} else if (progressPercent >= 100) {
+					status = 'success';
+				}
+				return (
+					<Modal title={`Validating Mod Collection ${activeCollection!.name}`} visible closable={false} footer={null}>
+						<div>
+							<Space direction="vertical" size="large" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+								<Progress type="circle" percent={progressPercent} status={status} />
+								{currentMod ? (
+									<p>Validating mod {currentMod.config?.name ? currentMod.config!.name : currentMod.ID}</p>
+								) : progressPercent >= 100 ? (
+									<p>Validation complete!</p>
+								) : null}
+							</Space>
+						</div>
+					</Modal>
+				);
+			}
 			case ModalType.ERRORS_FOUND:
 				return (
 					<Modal
@@ -765,7 +771,7 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 					return (
 						<Content key="collection" style={{ padding: '0px', overflowY: 'clip', overflowX: 'clip' }}>
 							<Spin spinning={appState.launchingGame} tip="Launching Game...">
-								<Outlet context={{...collectionComponentProps}}/>
+								<Outlet context={{ ...collectionComponentProps }} />
 							</Spin>
 						</Content>
 					);
@@ -776,11 +782,16 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 
 	render() {
 		const { madeEdits, filteredRows, gameRunning, overrideGameRunning, modalType, savingCollection, validatingMods } = this.state;
-		const { appState } = this.props;
+		const { appState, location } = this.props;
 		const { allCollections, searchString, launchingGame } = appState;
 
 		const launchGameButton = (
-			<Button type="primary" loading={launchingGame} disabled={overrideGameRunning || gameRunning || (modalType != ModalType.NONE) || launchingGame} onClick={this.launchGame}>
+			<Button
+				type="primary"
+				loading={launchingGame}
+				disabled={overrideGameRunning || gameRunning || modalType !== ModalType.NONE || launchingGame}
+				onClick={this.launchGame}
+			>
 				Launch Game
 			</Button>
 		);
@@ -791,7 +802,7 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 					<ModCollectionManager
 						appState={appState}
 						currentPath={location.pathname}
-						searchString={searchString || ""}
+						searchString={searchString || ''}
 						validatingCollection={validatingMods}
 						savingCollection={savingCollection}
 						onSearchChangeCallback={(search) => {
@@ -846,5 +857,5 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 }
 
 export default (props: any) => {
-	return <CollectionManagerComponent appState={useOutletContext<AppState>()} location={useLocation()}/>;
-}
+	return <CollectionManagerComponent appState={useOutletContext<AppState>()} location={useLocation()} />;
+};

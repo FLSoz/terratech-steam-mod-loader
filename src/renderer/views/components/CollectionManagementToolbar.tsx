@@ -318,8 +318,8 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								icon={<SyncOutlined />}
 								disabled={disabledFeatures}
 								onClick={() => {
-									appState.updateState({ targetPathAfterLoad: "/collections/main" }, () => {
-										appState.navigate("/loading/mods");
+									appState.updateState({ targetPathAfterLoad: '/collections/main' }, () => {
+										appState.navigate('/loading/mods');
 									});
 								}}
 							>

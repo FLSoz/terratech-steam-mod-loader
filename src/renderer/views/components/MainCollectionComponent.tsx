@@ -252,5 +252,5 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 }
 
 export default (props: any) => {
-	return <MainCollectionComponent {...useOutletContext()}/>;
-}
+	return <MainCollectionComponent {...useOutletContext()} />;
+};

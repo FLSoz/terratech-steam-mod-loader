@@ -2,11 +2,11 @@
  * Base webpack config used across other specific configs
  */
 
-import webpack from 'webpack';
+import webpack, { Configuration } from 'webpack';
 import webpackPaths from './webpack.paths';
 import { dependencies as externals } from '../../release/app/package.json';
 
-export default {
+const DEFAULT_CONFIGURATION: Configuration = {
   externals: [...Object.keys(externals || {})],
 
   stats: 'errors-only',
@@ -25,6 +25,7 @@ export default {
 
   output: {
     path: webpackPaths.srcPath,
+		filename: undefined,
     // https://github.com/webpack/webpack/issues/1114
     library: {
       type: 'commonjs2',
@@ -45,3 +46,6 @@ export default {
     }),
   ],
 };
+
+
+export default DEFAULT_CONFIGURATION;

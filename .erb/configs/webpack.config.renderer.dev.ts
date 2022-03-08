@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import webpack from 'webpack';
+import webpack, { Configuration } from 'webpack';
+import webpackDevServer from 'webpack-dev-server';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import chalk from 'chalk';
 import { merge } from 'webpack-merge';
@@ -18,7 +19,8 @@ if (process.env.NODE_ENV === 'production') {
 
 const port = process.env.PORT || 1212;
 const manifest = path.resolve(webpackPaths.dllPath, 'renderer.json');
-const requiredByDLLConfig = module.parent.filename.includes(
+const moduleParents: NodeModule[] = Object.values(require.cache).filter((m) => !!m && m.children.includes(module)) as NodeModule[];
+const requiredByDLLConfig = moduleParents[0].filename.includes(
   'webpack.config.renderer.dev.dll'
 );
 
@@ -37,7 +39,7 @@ if (
   execSync('npm run postinstall');
 }
 
-export default merge(baseConfig, {
+const devConfiguration: Configuration = {
   devtool: 'inline-source-map',
 
   mode: 'development',
@@ -135,14 +137,6 @@ export default merge(baseConfig, {
     ],
   },
   plugins: [
-    requiredByDLLConfig
-      ? null
-      : new webpack.DllReferencePlugin({
-          context: webpackPaths.dllPath,
-          manifest: require(manifest),
-          sourceType: 'var',
-        }),
-
     new webpack.NoEmitOnErrorsPlugin(),
 
     /**
@@ -197,7 +191,7 @@ export default merge(baseConfig, {
     },
     historyApiFallback: {
       verbose: true,
-      disableDotRule: false,
+      disableDotRule: undefined
     },
     onBeforeSetupMiddleware() {
       console.log('Starting Main Process...');
@@ -206,8 +200,18 @@ export default merge(baseConfig, {
         env: process.env,
         stdio: 'inherit',
       })
-        .on('close', (code) => process.exit(code))
+        .on('close', (code: number | undefined) => process.exit(code))
         .on('error', (spawnError) => console.error(spawnError));
     },
   },
-});
+};
+
+if (!requiredByDLLConfig) {
+	devConfiguration.plugins!.push(new webpack.DllReferencePlugin({
+		context: webpackPaths.dllPath,
+		manifest: require(manifest),
+		sourceType: 'var',
+	}));
+}
+
+export default merge<Configuration>(baseConfig, devConfiguration);

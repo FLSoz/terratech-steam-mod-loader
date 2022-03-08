@@ -2,7 +2,7 @@
  * Builds the DLL for development electron renderer process
  */
 
-import webpack from 'webpack';
+import webpack, { Configuration } from 'webpack';
 import path from 'path';
 import { merge } from 'webpack-merge';
 import baseConfig from './webpack.config.base';
@@ -14,7 +14,7 @@ checkNodeEnv('development');
 
 const dist = webpackPaths.dllPath;
 
-export default merge(baseConfig, {
+export default merge<Configuration>(baseConfig, {
   context: webpackPaths.rootPath,
 
   devtool: 'eval',

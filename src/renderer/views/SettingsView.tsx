@@ -10,7 +10,7 @@ import { TT_APP_ID } from 'renderer/Constants';
 const { Content } = Layout;
 const { Search } = Input;
 
-const fileRegexPath = /^(?<path>(.*[\\\/])?)(?<filename>.*)$/;	// taken from: https://stackoverflow.com/questions/423376/how-to-get-the-file-name-from-a-full-path-using-javascript
+const fileRegexPath = /^(?<path>(.*[\\/])?)(?<filename>.*)$/; // taken from: https://stackoverflow.com/questions/423376/how-to-get-the-file-name-from-a-full-path-using-javascript
 
 interface SettingsState {
 	editingConfig?: AppConfig;
@@ -47,7 +47,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 	setSelectedPath(path: string, target: 'steamExec' | 'localDir' | 'workshopDir') {
 		if (path) {
-			console.log("setSelectedPath");
+			console.log('setSelectedPath');
 			console.log(path, target);
 			const { editingConfig } = this.state;
 			editingConfig![target] = path;
@@ -57,43 +57,43 @@ class SettingsView extends Component<AppState, SettingsState> {
 				this.formRef.current!.setFieldsValue(changedFields);
 				this.formRef.current!.validateFields();
 			});
-			this.props.updateState({ madeConfigEdits: true });
-		}
-		else {
+			const { updateState } = this.props;
+			updateState({ madeConfigEdits: true });
+		} else {
 			this.setState({ selectingDirectory: false });
 		}
 	}
 
 	saveChanges() {
 		const { editingConfig } = this.state;
-		const { config } = this.props;
-		this.props.updateState({ savingConfig: true });
+		const { config, updateState } = this.props;
+		updateState({ savingConfig: true });
 		api
 			.updateConfig(editingConfig!)
 			.then(() => {
-				this.props.updateState({ config: { ...(editingConfig as AppConfig) }, madeConfigEdits: false });
+				updateState({ config: { ...(editingConfig as AppConfig) }, madeConfigEdits: false });
 				return true;
 			})
 			.catch((error) => {
 				console.error(error);
-				this.props.updateState({ config });
+				updateState({ config });
 			})
 			.finally(() => {
-				this.props.updateState({ savingConfig: false });
+				updateState({ savingConfig: false });
 			});
 	}
 
 	cancelChanges() {
-		const { config } = this.props;
-		this.setState({editingConfig: { ...(config as AppConfig) }}, (() => {
+		const { config, updateState } = this.props;
+		this.setState({ editingConfig: { ...(config as AppConfig) } }, () => {
 			this.formRef.current!.resetFields();
 			this.formRef.current!.validateFields();
-		}));
-		this.props.updateState({ madeConfigEdits: false });
+		});
+		updateState({ madeConfigEdits: false });
 	}
 
 	validateFile(field: string, value: string) {
-		const { configErrors } = this.props;
+		const { configErrors, updateState } = this.props;
 		console.log(`Validating path ${value} for target ${field}`);
 		if (!!value && value.length > 0) {
 			return api
@@ -101,64 +101,60 @@ class SettingsView extends Component<AppState, SettingsState> {
 				.catch((error) => {
 					console.error(error);
 					configErrors[field] = error.toString();
-					this.props.updateState({});
+					updateState({});
 					throw new Error(`Error while validating path:\n${error.toString()}`);
 				})
 				.then((success) => {
 					if (!success) {
 						configErrors[field] = 'Provided path is invalid';
-						this.props.updateState({});
+						updateState({});
 						throw new Error('Provided path is invalid');
 					}
-					switch(field) {
-						case "steamExec":
+					switch (field) {
+						case 'steamExec': {
 							const matches = fileRegexPath.exec(value);
 							if (!!matches && matches.groups && matches.groups.filename.toLowerCase().includes('steam')) {
 								delete configErrors[field];
-								this.props.updateState({});
+								updateState({});
 								return true;
 							}
-							else {
-								configErrors[field] = "The Steam executable should include 'Steam' in the filename";
-								this.props.updateState({});
-								return false;
-							}
-						case "localDir":
-							if (value.endsWith("LocalMods")) {
+							configErrors[field] = "The Steam executable should include 'Steam' in the filename";
+							updateState({});
+							return false;
+						}
+						case 'localDir':
+							if (value.endsWith('LocalMods')) {
 								delete configErrors[field];
-								this.props.updateState({});
+								updateState({});
 								return true;
 							}
-							else {
-								configErrors[field] = "The local mods directory should end with 'TerraTech/LocalMods'";
-								this.props.updateState({});
-								return false;
-							}
-						case "workshopDir":
+							configErrors[field] = "The local mods directory should end with 'TerraTech/LocalMods'";
+							updateState({});
+							return false;
+
+						case 'workshopDir':
 							if (value.endsWith(TT_APP_ID)) {
 								delete configErrors[field];
-								this.props.updateState({});
+								updateState({});
 								return true;
 							}
-							else {
-								configErrors[field] = `The workshop directory should end with TT app ID 'Steam/steamapps/workshop/content/${TT_APP_ID}'`;
-								this.props.updateState({});
-								return false;
-							}
-						case "logsDir":
-							if (value.toLowerCase().includes("logs")) {
+							configErrors[field] = `The workshop directory should end with TT app ID 'Steam/steamapps/workshop/content/${TT_APP_ID}'`;
+							updateState({});
+							return false;
+
+						case 'logsDir':
+							if (value.toLowerCase().includes('logs')) {
 								delete configErrors[field];
-								this.props.updateState({});
+								updateState({});
 								return true;
 							}
-							else {
-								configErrors[field] = "The logs directory should contain 'Logs'";
-								this.props.updateState({});
-								return false;
-							}
+							configErrors[field] = "The logs directory should contain 'Logs'";
+							updateState({});
+							return false;
+
 						default:
 							delete configErrors[field];
-							this.props.updateState({});
+							updateState({});
 							return true;
 					}
 				});
@@ -168,7 +164,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 	render() {
 		const { editingConfig, selectingDirectory } = this.state;
-		const { madeConfigEdits, savingConfig, configErrors } = this.props;
+		const { madeConfigEdits, savingConfig, configErrors, updateState } = this.props;
 		return (
 			<Layout style={{ width: '100%' }}>
 				<Content className="Settings">
@@ -210,11 +206,11 @@ class SettingsView extends Component<AppState, SettingsState> {
 								enterButton={<FolderOutlined />}
 								onChange={(event) => {
 									editingConfig!.steamExec = event.target.value;
-									this.props.updateState({ madeConfigEdits: true });
+									updateState({ madeConfigEdits: true });
 								}}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'steamExec', false, "Select Steam executable");
+										api.send(ValidChannel.SELECT_PATH, 'steamExec', false, 'Select Steam executable');
 										this.setState({ selectingDirectory: true });
 									}
 								}}
@@ -250,11 +246,11 @@ class SettingsView extends Component<AppState, SettingsState> {
 								enterButton={<FolderOutlined />}
 								onChange={(event) => {
 									editingConfig!.localDir = event.target.value;
-									this.props.updateState({ madeConfigEdits: true });
+									updateState({ madeConfigEdits: true });
 								}}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'localDir', true, "Select TerraTech LocalMods directory");
+										api.send(ValidChannel.SELECT_PATH, 'localDir', true, 'Select TerraTech LocalMods directory');
 										this.setState({ selectingDirectory: true });
 									}
 								}}
@@ -290,13 +286,13 @@ class SettingsView extends Component<AppState, SettingsState> {
 								enterButton={<FolderOutlined />}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'workshopDir', true, "Select TerraTech Steam workshop directory");
+										api.send(ValidChannel.SELECT_PATH, 'workshopDir', true, 'Select TerraTech Steam workshop directory');
 										this.setState({ selectingDirectory: true });
 									}
 								}}
 								onChange={(event) => {
 									editingConfig!.workshopDir = event.target.value;
-									this.props.updateState({ madeConfigEdits: true });
+									updateState({ madeConfigEdits: true });
 									this.formRef.current!.setFieldsValue({ workshopDir: event.target.value });
 								}}
 							/>
@@ -308,7 +304,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 								enterButton={<FolderOutlined />}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'logsDir', true, "Select directory for logs");
+										api.send(ValidChannel.SELECT_PATH, 'logsDir', true, 'Select directory for logs');
 										this.setState({ selectingDirectory: true });
 									}
 								}}
@@ -322,7 +318,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 									/* this.formRef.current!.setFieldsValue({
 										closeOnLaunch: checked
 									}); */
-									this.props.updateState({ madeConfigEdits: true });
+									updateState({ madeConfigEdits: true });
 								}}
 							/>
 						</Form.Item>
@@ -332,7 +328,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 								value={editingConfig!.workshopID}
 								onChange={(value) => {
 									editingConfig!.workshopID = value;
-									this.props.updateState({ madeConfigEdits: true });
+									updateState({ madeConfigEdits: true });
 								}}
 							/>
 						</Form.Item>
@@ -344,7 +340,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 								value={editingConfig!.steamMaxConcurrency}
 								onChange={(value) => {
 									editingConfig!.steamMaxConcurrency = value;
-									this.props.updateState({ madeConfigEdits: true });
+									updateState({ madeConfigEdits: true });
 								}}
 							/>
 						</Form.Item>
@@ -372,4 +368,4 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 export default (props: any) => {
 	return <SettingsView {...useOutletContext<AppState>()} />;
-}
+};

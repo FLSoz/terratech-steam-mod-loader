@@ -16,8 +16,8 @@ export interface AppState {
 	launchingGame?: boolean;
 
 	// General initialization
-	initializedConfigs?: boolean;	// Did we go load configs yet?
-	initializedMods?: boolean;	// Did we go load mods yet?
+	initializedConfigs?: boolean; // Did we go load configs yet?
+	initializedMods?: boolean; // Did we go load mods yet?
 	updateState: (props: any, callback?: () => void) => void;
 	navigate: (path: string) => void;
 
