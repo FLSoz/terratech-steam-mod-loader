@@ -1,20 +1,20 @@
 import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
 import { AppState } from 'renderer/model/AppState';
 import { Layout, Skeleton } from 'antd';
 import MenuBar from './components/MenuBar';
+import { useNavigate, useLocation, Location } from 'react-router-dom';
 
 const { Sider, Content } = Layout;
 
 interface TTQMMBrowserState extends AppState {
 	sidebarCollapsed?: boolean;
 }
-class TTQMMBrowserView extends Component<RouteComponentProps, TTQMMBrowserState> {
+class TTQMMBrowserView extends Component<{location: Location}, TTQMMBrowserState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: RouteComponentProps) {
+	constructor(props: {location: Location}) {
 		super(props);
-		const appState = props.location.state as AppState;
+		const appState = this.props.location.state as AppState;
 		this.state = {
 			...appState
 		};
@@ -28,7 +28,6 @@ class TTQMMBrowserView extends Component<RouteComponentProps, TTQMMBrowserState>
 
 	render() {
 		const { sidebarCollapsed } = this.state;
-		const { history, location, match } = this.props;
 		return (
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<Layout style={{ minHeight: '100vh' }}>
@@ -41,7 +40,7 @@ class TTQMMBrowserView extends Component<RouteComponentProps, TTQMMBrowserState>
 						}}
 					>
 						<div className="logo" />
-						<MenuBar disableNavigation={false} currentTab="ttqmm" history={history} location={location} match={match} appState={this.state} />
+						<MenuBar disableNavigation={false} currentTab="ttqmm" appState={this.state} />
 					</Sider>
 					<Layout style={{ width: '100%' }}>
 						<Content>
@@ -53,4 +52,7 @@ class TTQMMBrowserView extends Component<RouteComponentProps, TTQMMBrowserState>
 		);
 	}
 }
-export default withRouter(TTQMMBrowserView);
+
+export default (props: any) => {
+	return <TTQMMBrowserView {...props} location={useLocation()}/>;
+}

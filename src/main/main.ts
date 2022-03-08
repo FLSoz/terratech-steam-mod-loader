@@ -528,3 +528,7 @@ ipcMain.handle('path-access', async (_event, pathParams: PathParams) => {
 ipcMain.handle('user-data-path', async () => {
 	return app.getPath('userData');
 });
+
+ipcMain.on('select-path', async (event) => {
+	event.reply('select-path-results', null)
+})

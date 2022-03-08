@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
 import { api, ValidChannel } from 'renderer/model/Api';
 import { AppConfig, DEFAULT_CONFIG } from 'renderer/model/AppConfig';
 import { ModCollection } from 'renderer/model/ModCollection';
 import { AppState } from 'renderer/model/AppState';
 import { validateAppConfig } from 'renderer/util/Validation';
 import { Layout, Progress } from 'antd';
+import { useNavigate, NavigateFunction } from 'react-router-dom';
 
 const { Footer, Content } = Layout;
 
@@ -20,10 +20,10 @@ interface ConfigLoadingState extends AppState {
 	updatingSteamMod: boolean;
 }
 
-class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingState> {
+class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: RouteComponentProps) {
+	constructor(props: {navigate: NavigateFunction}) {
 		super(props);
 
 		this.state = {
@@ -150,12 +150,11 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 
 	proceedToNext() {
 		const { configErrors } = this.state;
-		const { history } = this.props;
 		if (configErrors) {
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
-			history.push('/settings', this.state);
+			this.props.navigate('/settings', {state: this.state});
 		} else {
-			history.push('/mods', this.state);
+			this.props.navigate('/mods', {state: this.state});
 		}
 	}
 
@@ -205,4 +204,7 @@ class ConfigLoadingView extends Component<RouteComponentProps, ConfigLoadingStat
 		);
 	}
 }
-export default withRouter(ConfigLoadingView);
+
+export default (props: any) => {
+	return <ConfigLoadingView {...props} navigate={useNavigate()}/>;
+}

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-nested-ternary */
 import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
 import { AppstoreOutlined, FileTextOutlined, SettingOutlined } from '@ant-design/icons';
 import { Layout, Select, Input, Spin, Button, Popover, Menu, Progress, Modal, Form } from 'antd';
+import { useNavigate, useLocation, Location } from 'react-router-dom';
 
 import { AppState } from 'renderer/model/AppState';
 import { Mod } from 'renderer/model/Mod';
@@ -31,12 +31,12 @@ interface RawModlistState extends AppState {
 	modErrors?: ModErrors;
 }
 
-class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
+class RawModlistView extends Component<{location: Location}, RawModlistState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: RouteComponentProps) {
+	constructor(props: {location: Location}) {
 		super(props);
-		const appState: AppState = props.location.state as AppState;
+		const appState: AppState = this.props.location.state as AppState;
 		this.state = { gameRunning: false, validatingMods: false, modErrors: undefined, sidebarCollapsed: true, ...appState, launchingGame: false };
 
 		this.launchGame = this.launchGame.bind(this);
@@ -244,8 +244,6 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 
 	render() {
 		const { sidebarCollapsed, launchingGame, gameRunning, text, modErrors, readingLast } = this.state;
-		const { history, location, match } = this.props;
-
 		const launchGameButton = (
 			<Button loading={launchingGame} disabled={gameRunning || readingLast || launchingGame} onClick={this.launchGame}>
 				Launch Game
@@ -276,9 +274,6 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 						<MenuBar
 							disableNavigation={readingLast || launchingGame}
 							currentTab="raw"
-							history={history}
-							location={location}
-							match={match}
 							appState={this.state}
 						/>
 					</Sider>
@@ -317,4 +312,7 @@ class RawModlistView extends Component<RouteComponentProps, RawModlistState> {
 		);
 	}
 }
-export default withRouter(RawModlistView);
+
+export default (props: any) => {
+	return <RawModlistView {...props} location={useLocation()}/>;
+}

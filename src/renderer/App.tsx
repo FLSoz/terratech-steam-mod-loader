@@ -1,6 +1,6 @@
 // eslint-disable-next-line prettier/prettier
 import React from 'react';
-import { MemoryRouter as Router, Switch, Route } from 'react-router-dom';
+import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 
 import './App.global.less';
 import '@fontsource/roboto/300.css';
@@ -19,15 +19,15 @@ import SteamBrowser from './views/SteamBrowser';
 export default function App() {
 	return (
 		<Router>
-			<Switch>
-				<Route path="/" exact component={ConfigLoadingView} />
-				<Route path="/settings" exact component={SettingsView} />
-				<Route path="/mods" exact component={ModLoadingView} />
-				<Route path="/raw-mods" exact component={RawModlistView} />
-				<Route path="/main" exact component={MainView} />
-				<Route path="/steam" exact component={SteamBrowser} />
-				<Route path="/ttqmm" exact component={TTQMMBrowser} />
-			</Switch>
+			<Routes>
+				<Route path="/" element={<ConfigLoadingView />} />
+				<Route path="/settings" element={<SettingsView />} />
+				<Route path="/mods" element={<ModLoadingView />} />
+				<Route path="/raw-mods" element={<RawModlistView />} />
+				<Route path="/main" element={<MainView />} />
+				<Route path="/steam" element={<SteamBrowser />} />
+				<Route path="/ttqmm" element={<TTQMMBrowser />} />
+			</Routes>
 		</Router>
 	);
 }

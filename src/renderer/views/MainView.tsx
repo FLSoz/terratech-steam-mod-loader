@@ -1,18 +1,19 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
 import { Layout } from 'antd';
 
 import { AppState, CollectionViewState } from 'renderer/model/AppState';
 import MenuBar from './components/MenuBar';
 import CollectionManagerComponent from './components/CollectionManagerComponent';
+import { useNavigate, useLocation, NavigateFunction, Location } from 'react-router-dom';
 
 const { Sider } = Layout;
 
-class MainView extends Component<RouteComponentProps, CollectionViewState> {
-	constructor(props: RouteComponentProps) {
+class MainView extends Component<{navigate: NavigateFunction, location: Location}, CollectionViewState> {
+
+	constructor(props: {navigate: NavigateFunction, location: Location}) {
 		super(props);
-		const appState = props.location.state as AppState;
+		const appState = this.props.location.state as AppState;
 		this.state = {
 			launchingGame: false,
 			...appState
@@ -20,13 +21,11 @@ class MainView extends Component<RouteComponentProps, CollectionViewState> {
 	}
 
 	refreshMods() {
-		const { history } = this.props;
-		history.push('/mods', this.state);
+		this.props.navigate('/mods', {state: this.state});
 	}
 
 	render() {
 		const { launchingGame, sidebarCollapsed } = this.state;
-		const { history, location, match } = this.props;
 
 		return (
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
@@ -40,7 +39,7 @@ class MainView extends Component<RouteComponentProps, CollectionViewState> {
 						}}
 					>
 						<div className="logo" />
-						<MenuBar disableNavigation={launchingGame} currentTab="main" history={history} location={location} match={match} appState={this.state} />
+						<MenuBar disableNavigation={launchingGame} currentTab="main" appState={this.state} />
 					</Sider>
 					<CollectionManagerComponent
 						setLaunchingGame={(launching: boolean) => {
@@ -54,4 +53,7 @@ class MainView extends Component<RouteComponentProps, CollectionViewState> {
 		);
 	}
 }
-export default withRouter(MainView);
+
+export default (props: any) => {
+	return <MainView {...props} navigate={useNavigate()} location={useLocation()}/>;
+}

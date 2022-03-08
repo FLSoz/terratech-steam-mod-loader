@@ -1,20 +1,20 @@
 import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
 import { AppState } from 'renderer/model/AppState';
 import { Layout, Skeleton } from 'antd';
 import MenuBar from './components/MenuBar';
+import { useNavigate, useLocation, Location } from 'react-router-dom';
 
 const { Sider, Content } = Layout;
 
 interface SteamBrowserState extends AppState {
 	sidebarCollapsed?: boolean;
 }
-class SteamBrowserView extends Component<RouteComponentProps, SteamBrowserState> {
+class SteamBrowserView extends Component<{location: Location}, SteamBrowserState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: RouteComponentProps) {
+	constructor(props: {location: Location}) {
 		super(props);
-		const appState = props.location.state as AppState;
+		const appState = this.props.location.state as AppState;
 		this.state = {
 			...appState
 		};
@@ -24,7 +24,6 @@ class SteamBrowserView extends Component<RouteComponentProps, SteamBrowserState>
 
 	render() {
 		const { sidebarCollapsed } = this.state;
-		const { history, location, match } = this.props;
 		return (
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
 				<Layout style={{ minHeight: '100vh' }}>
@@ -37,7 +36,7 @@ class SteamBrowserView extends Component<RouteComponentProps, SteamBrowserState>
 						}}
 					>
 						<div className="logo" />
-						<MenuBar disableNavigation={false} currentTab="steam" history={history} location={location} match={match} appState={this.state} />
+						<MenuBar disableNavigation={false} currentTab="steam" appState={this.state} />
 					</Sider>
 					<Layout style={{ width: '100%' }}>
 						<Content>
@@ -49,4 +48,7 @@ class SteamBrowserView extends Component<RouteComponentProps, SteamBrowserState>
 		);
 	}
 }
-export default withRouter(SteamBrowserView);
+
+export default (props: any) => {
+	return <SteamBrowserView {...props} location={useLocation()}/>;
+}

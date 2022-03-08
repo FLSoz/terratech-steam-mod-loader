@@ -1,20 +1,21 @@
 import React, { Component } from 'react';
-import { RouteComponentProps } from 'react-router';
 import { AppState } from 'renderer/model/AppState';
 import { Menu } from 'antd';
 import { AppstoreOutlined, FileTextOutlined, GithubOutlined, SettingOutlined } from '@ant-design/icons';
+import { useNavigate, useLocation, NavigateFunction } from 'react-router-dom';
 
 interface MenuState {
 	currentTab: string;
 }
 
-interface MenuProps extends RouteComponentProps {
+interface MenuProps {
 	disableNavigation?: boolean;
 	currentTab: string;
 	appState: AppState;
+	navigate: NavigateFunction;
 }
 
-export default class MenuBar extends Component<MenuProps, MenuState> {
+class MenuBar extends Component<MenuProps, MenuState> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: MenuProps) {
@@ -44,37 +45,36 @@ export default class MenuBar extends Component<MenuProps, MenuState> {
 				disabled={disableNavigation}
 				onClick={(e) => {
 					if (e.key !== currentTab) {
-						const { history } = this.props;
 						switch (e.key) {
 							case 'raw':
 								if (loadBeforeNavigation) {
-									history.push('/mods', { ...appState, ...{ targetPathAfterLoad: '/raw-mods', modErrors: undefined } });
+									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/raw-mods', modErrors: undefined } }});
 								} else {
-									history.push('/raw-mods', { ...appState, ...{ modErrors: undefined } });
+									this.props.navigate('/raw-mods', {state: { ...appState, ...{ modErrors: undefined } }});
 								}
 								break;
 							case 'settings':
-								history.push('/settings', appState);
+								this.props.navigate('/settings', {state: appState});
 								break;
 							case 'main':
 								if (loadBeforeNavigation) {
-									history.push('/mods', { ...appState, ...{ targetPathAfterLoad: '/main', modErrors: undefined } });
+									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/main', modErrors: undefined } }});
 								} else {
-									history.push('/main', { ...appState, ...{ modErrors: undefined } });
+									this.props.navigate('/main', {state: { ...appState, ...{ modErrors: undefined } }});
 								}
 								break;
 							case 'steam':
 								if (loadBeforeNavigation) {
-									history.push('/mods', { ...appState, ...{ targetPathAfterLoad: '/steam', modErrors: undefined } });
+									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/steam', modErrors: undefined } }});
 								} else {
-									history.push('/steam', { ...appState, ...{ modErrors: undefined } });
+									this.props.navigate('/steam', {state: { ...appState, ...{ modErrors: undefined } }});
 								}
 								break;
 							case 'ttqmm':
 								if (loadBeforeNavigation) {
-									history.push('/mods', { ...appState, ...{ targetPathAfterLoad: '/ttqmm', modErrors: undefined } });
+									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/ttqmm', modErrors: undefined } }});
 								} else {
-									history.push('/ttqmm', { ...appState, ...{ modErrors: undefined } });
+									this.props.navigate('/ttqmm', {state: { ...appState, ...{ modErrors: undefined } }});
 								}
 								break;
 							default:
@@ -98,4 +98,8 @@ export default class MenuBar extends Component<MenuProps, MenuState> {
 			</Menu>
 		);
 	}
+}
+
+export default (props: any) => {
+	return <MenuBar {...props} navigate={useNavigate()}/>;
 }

@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
 import { Layout, Progress, Spin, Skeleton } from 'antd';
 import ReactLoading from 'react-loading';
 import { SizeMe } from 'react-sizeme';
@@ -8,7 +7,7 @@ import { Mod, ModType } from 'renderer/model/Mod';
 import { ValidChannel, api } from 'renderer/model/Api';
 import { AppState } from 'renderer/model/AppState';
 import { delayForEach, ForEachProps } from 'renderer/util/Sleep';
-import { Props } from 'html-react-parser/lib/attributes-to-props';
+import { useNavigate, useLocation, NavigateFunction, Location } from 'react-router-dom';
 
 const { Footer, Content } = Layout;
 
@@ -26,13 +25,13 @@ interface ModLoadingState {
 	totalMods: number;
 }
 
-class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
+class ModLoadingView extends Component<{navigate: NavigateFunction, location: Location}, ModLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: RouteComponentProps) {
+	constructor(props: {navigate: NavigateFunction, location: Location}) {
 		super(props);
 
-		const appState: AppState = props.location.state as AppState;
+		const appState: AppState = this.props.location.state as AppState;
 		const config: AppConfig = appState.config as AppConfig;
 
 		if (!appState.activeCollection) {
@@ -169,9 +168,8 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 	// TODO: Have an override for duplicate mod IDs - user picks which one is used
 	goToMain() {
 		const { appState } = this.state;
-		const { history } = this.props;
 		appState.firstModLoad = true;
-		history.push('/main', appState);
+		this.props.navigate('/main', {state: appState});
 	}
 
 	render() {
@@ -210,4 +208,7 @@ class ModLoadingView extends Component<RouteComponentProps, ModLoadingState> {
 		);
 	}
 }
-export default withRouter(ModLoadingView);
+
+export default (props: any) => {
+	return <ModLoadingView {...props} navigate={useNavigate()} location={useLocation()}/>;
+}

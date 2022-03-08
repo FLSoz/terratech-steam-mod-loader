@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
 import { AppState } from 'renderer/model/AppState';
 import { AppConfig } from 'renderer/model/AppConfig';
 import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader } from 'antd';
+import { useNavigate, useLocation, Location } from 'react-router-dom';
 import { api, ValidChannel } from 'renderer/model/Api';
 import { FolderOutlined } from '@ant-design/icons';
 import MenuBar from './components/MenuBar';
@@ -16,13 +16,13 @@ interface SettingsState extends AppState {
 	configErrors: { [field: string]: string };
 	madeEdits?: boolean;
 }
-class SettingsView extends Component<RouteComponentProps, SettingsState> {
+class SettingsView extends Component<{location: Location}, SettingsState> {
 	formRef = React.createRef<FormInstance>();
 
-	constructor(props: RouteComponentProps) {
+	constructor(props: {location: Location}) {
 		super(props);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const passedState: any = props.location.state;
+		const passedState: any = this.props.location.state;
 		const appState = passedState as AppState;
 		const configErrors = passedState.configErrors ? passedState.configErrors : {};
 		this.state = {
@@ -37,10 +37,21 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 	}
 
 	componentDidMount() {
+		api.on(ValidChannel.SELECT_PATH_RESULT, this.setSelectedPath);
 		this.formRef.current!.validateFields();
 	}
 
 	componentDidUpdate() {}
+
+	componentWillUnmount() {
+		api.removeAllListeners(ValidChannel.SELECT_PATH_RESULT);
+	}
+
+	setSelectedPath(path: string, target: 'steamExec' | 'localDir' | 'workshopDir') {
+		const { config } = this.state;
+		config[target] = path;
+		this.setState({});
+	}
 
 	saveChanges() {
 		const { editingConfig, config } = this.state;
@@ -64,6 +75,7 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 		const { config } = this.state;
 		this.setState({ editingConfig: { ...config }, madeEdits: false }, () => {
 			this.formRef.current!.resetFields();
+			this.formRef.current!.validateFields();
 		});
 	}
 
@@ -94,7 +106,6 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 
 	render() {
 		const { sidebarCollapsed, editingConfig, madeEdits, savingConfig, configErrors } = this.state;
-		const { history, location, match } = this.props;
 		api.logger.info(editingConfig);
 		api.logger.info(configErrors);
 		return (
@@ -112,9 +123,6 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 						<MenuBar
 							disableNavigation={savingConfig || madeEdits || (!!configErrors && Object.keys(configErrors).length > 0)}
 							currentTab="settings"
-							history={history}
-							location={location}
-							match={match}
 							appState={this.state}
 						/>
 					</Sider>
@@ -304,4 +312,7 @@ class SettingsView extends Component<RouteComponentProps, SettingsState> {
 		);
 	}
 }
-export default withRouter(SettingsView);
+
+export default (props: any) => {
+	return <SettingsView {...props} location={useLocation()}/>;
+}
