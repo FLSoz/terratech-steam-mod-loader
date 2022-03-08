@@ -2,7 +2,7 @@
   "name": "terratech-steam-mod-loader",
   "productName": "ttsm",
   "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
     "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",
@@ -207,7 +207,9 @@
     "webpack-bundle-analyzer": "^4.5.0",
     "webpack-cli": "^4.9.1",
     "webpack-dev-server": "^4.7.1",
-    "webpack-merge": "^5.8.0"
+    "webpack-merge": "^5.8.0",
+
+		"follow-redirects": ">=1.14.8"
   },
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
@@ -235,7 +237,9 @@
     "react-router-dom": "^6.2.1",
     "react-sizeme": "^3.0.2",
     "react-virtualized-auto-sizer": "^1.0.6",
-    "regenerator-runtime": "^0.13.9"
+    "regenerator-runtime": "^0.13.9",
+
+		"follow-redirects": ">=1.14.8"
   },
   "devEngines": {
     "node": ">=14.x",

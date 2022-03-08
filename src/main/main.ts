@@ -535,20 +535,21 @@ ipcMain.handle('user-data-path', async () => {
 ipcMain.on('select-path', async (event, target: string, directory: boolean, title: string) => {
 	log.info(`Selecting path: ${target}`);
 
-	dialog.showOpenDialog({
-		title: title,
-		properties: ["showHiddenFiles", directory ? "openDirectory" : "openFile", "promptToCreate", "createDirectory"]
-	})
+	dialog
+		.showOpenDialog({
+			title,
+			properties: ['showHiddenFiles', directory ? 'openDirectory' : 'openFile', 'promptToCreate', 'createDirectory']
+		})
 		.then((result) => {
 			if (result.canceled) {
 				event.reply('select-path-result', null, target);
-			}
-			else {
+			} else {
 				event.reply('select-path-result', result.filePaths[0], target);
 			}
+			return null;
 		})
 		.catch((error) => {
 			log.error(error);
 			event.reply('select-path-result', null, target);
 		});
-})
+});
