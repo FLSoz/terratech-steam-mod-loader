@@ -783,6 +783,17 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 									updateState({ launchingGame: false });
 								}}
 							>
+								Add without subscribing
+							</Button>,
+							<Button
+								key="auto-fix-subscribe"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									this.setState({ missingDependenciesFound: false, madeEdits: true }, this.checkNextErrorModal);
+									updateState({ launchingGame: false });
+								}}
+							>
 								Subscribe
 							</Button>
 						]}
@@ -823,7 +834,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</Button>
 						]}
 					>
-						<p>One or more mods are selected that you are not subscribed to. Steam will not update them properly unless you subscribe to them.</p>
+						<p>One or more mods are selected that you are not subscribed to. Steam may not update them properly unless you subscribe to them.</p>
 						<p>Do you want to subscribe to them?</p>
 					</Modal>
 				);
