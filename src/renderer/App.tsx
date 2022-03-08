@@ -1,33 +1,90 @@
-// eslint-disable-next-line prettier/prettier
-import React from 'react';
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
+/* eslint-disable no-nested-ternary */
+import React, { Component } from 'react';
+import { Layout } from 'antd';
 
-import './App.global.less';
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
+import { AppState } from 'renderer/model/AppState';
+import MenuBar from './views/components/MenuBar';
+import { Outlet, useLocation, Location, useNavigate, NavigateFunction } from 'react-router-dom';
+import { Mod } from './model/Mod';
+import { ModCollection } from './model/ModCollection';
+import { DEFAULT_CONFIG } from './model/AppConfig';
 
-import ConfigLoadingView from './views/ConfigLoadingView';
-import MainView from './views/MainView';
-import ModLoadingView from './views/ModLoadingView';
-import RawModlistView from './views/RawModlistView';
-import SettingsView from './views/SettingsView';
-import TTQMMBrowser from './views/TTQMMBrowser';
-import SteamBrowser from './views/SteamBrowser';
+const { Sider } = Layout;
 
-export default function App() {
-	return (
-		<Router>
-			<Routes>
-				<Route path="/" element={<ConfigLoadingView />} />
-				<Route path="/settings" element={<SettingsView />} />
-				<Route path="/mods" element={<ModLoadingView />} />
-				<Route path="/raw-mods" element={<RawModlistView />} />
-				<Route path="/main" element={<MainView />} />
-				<Route path="/steam" element={<SteamBrowser />} />
-				<Route path="/ttqmm" element={<TTQMMBrowser />} />
-			</Routes>
-		</Router>
-	);
+class App extends Component<{location: Location, navigate: NavigateFunction}, AppState> {
+	constructor(props: {location: Location, navigate: NavigateFunction}) {
+		super(props);
+		this.state = {
+			config: DEFAULT_CONFIG,
+			userDataPath: '',
+			targetPathAfterLoad: '/collections/main',
+			mods: new Map<string, Mod>(),
+			allCollections: new Map<string, ModCollection>(),
+			allCollectionNames: new Set<string>(),
+			activeCollection: undefined,
+			firstModLoad: false,
+			sidebarCollapsed: true,
+			searchString: '',
+			launchingGame: false,
+			initializedConfigs: false,
+			savingConfig: false,
+			configErrors: {},
+			updateState: this.updateState.bind(this),
+			navigate: this.navigate.bind(this)
+		};
+	}
+
+	componentDidMount() {
+		const { initializedConfigs: initialized } = this.state;
+		if (!initialized) {
+			this.setState({initializedConfigs: true}, () => {
+				this.props.navigate('/loading/config');
+			});
+		}
+	}
+
+	updateState(props: any, callback?: () => void) {
+		this.setState({...props}, () => {
+			if (callback) {
+				callback();
+			}
+		});
+	}
+
+	navigate(path: string) {
+		this.props.navigate(path);
+	}
+
+	render() {
+		const { launchingGame, sidebarCollapsed, savingConfig, madeConfigEdits, configErrors } = this.state;
+		const { location } = this.props;
+		return (
+			<div style={{ display: 'flex', width: '100%', height: '100%' }}>
+				<Layout style={{ minHeight: '100vh' }}>
+					<Sider
+						className="MenuBar"
+						collapsible
+						collapsed={sidebarCollapsed}
+						onCollapse={(collapsed) => {
+							this.setState({ sidebarCollapsed: collapsed });
+						}}
+					>
+						<div className="logo" />
+						<MenuBar
+							disableNavigation={
+								launchingGame || location.pathname.includes("loading") || savingConfig || madeConfigEdits || (!!configErrors && Object.keys(configErrors).length > 0)
+							}
+							currentTab="main"
+							appState={this.state}
+						/>
+					</Sider>
+					<Outlet context={this.state} />
+				</Layout>
+			</div>
+		);
+	}
+}
+
+export default (props: any) => {
+	return <App {...props} location={useLocation()} navigate={useNavigate()} />;
 }

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Layout, Table, Tag, Space, Button, Modal, Tooltip, Image } from 'antd';
+import { useOutletContext, Outlet } from 'react-router-dom';
 import React, { Component, ReactNode } from 'react';
 import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined, ZoomInOutlined, CloseOutlined } from '@ant-design/icons';
 import parse from 'html-react-parser';
@@ -44,7 +45,7 @@ function getImageSrcFromType(type: ModType) {
 	}
 }
 
-export default class MainCollectionComponent extends Component<ModCollectionProps, never> {
+class MainCollectionComponent extends Component<ModCollectionProps, never> {
 	componentDidMount() {
 		this.setState({});
 	}
@@ -68,28 +69,28 @@ export default class MainCollectionComponent extends Component<ModCollectionProp
 			selectedRowKeys: collection.mods,
 			onChange: (selectedRowKeys: React.Key[]) => {
 				api.logger.info(`changing selecton: ${selectedRowKeys}`);
-				const currentVisible = new Set(filteredRows.map((modData) => modData.id));
+				const currentVisible = new Set(filteredRows.map((modData) => modData.uid));
 				const newSelection = rows
-					.map((modData) => modData.id)
+					.map((modData) => modData.uid)
 					.filter((mod) => {
 						return !currentVisible.has(mod) || selectedRowKeys.includes(mod);
 					});
 				setEnabledModsCallback(new Set(newSelection));
 			},
 			onSelect: (record: ModData, selected: boolean) => {
-				api.logger.info(`selecting ${record.id}: ${selected}`);
+				api.logger.info(`selecting ${record.uid}: ${selected}`);
 				if (selected) {
-					if (!collection.mods.includes(record.id)) {
-						collection.mods.push(record.id);
+					if (!collection.mods.includes(record.uid)) {
+						collection.mods.push(record.uid);
 					}
-					setEnabledCallback(record.id);
+					setEnabledCallback(record.uid);
 				} else {
-					setDisabledCallback(record.id);
+					setDisabledCallback(record.uid);
 				}
 			},
 			onSelectAll: (selected: boolean) => {
 				api.logger.info(`selecting all: ${selected}`);
-				const currentVisible = filteredRows.map((modData) => modData.id);
+				const currentVisible = filteredRows.map((modData) => modData.uid);
 				const selectedMods = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
 					if (selected) {
@@ -102,7 +103,7 @@ export default class MainCollectionComponent extends Component<ModCollectionProp
 			},
 			onSelectInvert: () => {
 				api.logger.info(`inverting selection`);
-				const currentVisible = filteredRows.map((modData) => modData.id);
+				const currentVisible = filteredRows.map((modData) => modData.uid);
 				const selected = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
 					if (!selected.has(mod)) {
@@ -115,7 +116,7 @@ export default class MainCollectionComponent extends Component<ModCollectionProp
 			},
 			onSelectNone: () => {
 				api.logger.info(`clearing selection`);
-				const currentVisible = filteredRows.map((modData) => modData.id);
+				const currentVisible = filteredRows.map((modData) => modData.uid);
 				const selected = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
 					selected.delete(mod);
@@ -248,4 +249,8 @@ export default class MainCollectionComponent extends Component<ModCollectionProp
 			</Layout>
 		);
 	}
+}
+
+export default (props: any) => {
+	return <MainCollectionComponent {...useOutletContext()}/>;
 }

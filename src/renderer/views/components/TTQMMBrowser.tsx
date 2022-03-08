@@ -1,26 +1,23 @@
 import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
 import { Layout, Skeleton } from 'antd';
-import MenuBar from './components/MenuBar';
+import MenuBar from './MenuBar';
 import { useNavigate, useLocation, Location } from 'react-router-dom';
 
 const { Sider, Content } = Layout;
 
-interface SteamBrowserState extends AppState {
-	sidebarCollapsed?: boolean;
-}
-class SteamBrowserView extends Component<{location: Location}, SteamBrowserState> {
+class TTQMMBrowserView extends Component<{location: Location}, AppState> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: {location: Location}) {
 		super(props);
-		const appState = this.props.location.state as AppState;
-		this.state = {
-			...appState
-		};
 	}
 
 	componentDidMount() {}
+
+	setStateCallback(update: AppState) {
+		this.setState(update);
+	}
 
 	render() {
 		const { sidebarCollapsed } = this.state;
@@ -36,7 +33,7 @@ class SteamBrowserView extends Component<{location: Location}, SteamBrowserState
 						}}
 					>
 						<div className="logo" />
-						<MenuBar disableNavigation={false} currentTab="steam" appState={this.state} />
+						<MenuBar disableNavigation={false} currentTab="ttqmm" appState={this.state} />
 					</Sider>
 					<Layout style={{ width: '100%' }}>
 						<Content>
@@ -50,5 +47,5 @@ class SteamBrowserView extends Component<{location: Location}, SteamBrowserState
 }
 
 export default (props: any) => {
-	return <SteamBrowserView {...props} location={useLocation()}/>;
+	return <TTQMMBrowserView {...props} location={useLocation()}/>;
 }

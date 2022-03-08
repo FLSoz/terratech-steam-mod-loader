@@ -21,6 +21,7 @@ export interface Mod {
 	UID: string;
 	WorkshopID: BigInt | null;
 	config?: ModConfig;
+	subscribed?: boolean;
 }
 
 export interface ModCollection {

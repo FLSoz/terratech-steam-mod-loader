@@ -1,7 +1,6 @@
 import { api } from 'renderer/model/Api';
-import { ModError, ModErrors, ModErrorType } from 'renderer/model/ModCollection';
 import { AppConfig } from '../model/AppConfig';
-import { Mod } from '../model/Mod';
+import { Mod, ModError, ModErrors, ModErrorType } from '../model/Mod';
 import { delayForEach, ForEachProps, sleep } from './Sleep';
 
 async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
@@ -52,6 +51,12 @@ function validateMod(
 		api.logger.info(`validating ${mod}`);
 		const modData = allMods.get(mod);
 		if (modData) {
+			const thisModErrors = [];
+			if (modData.WorkshopID && !modData.subscribed) {
+				thisModErrors.push({
+					errorType: ModErrorType.NOT_SUBSCRIBED
+				})
+			}
 			if (modData.config) {
 				const dependencies = modData.config!.dependsOn;
 				if (dependencies) {
@@ -62,15 +67,18 @@ function validateMod(
 						}
 					});
 					if (missingDependencies.length > 0) {
-						errors[mod] = {
+						thisModErrors.push({
 							errorType: ModErrorType.MISSING_DEPENDENCY,
 							values: missingDependencies
-						};
+						});
 					}
 				}
 			}
+			if (thisModErrors.length > 0) {
+				errors[mod] = thisModErrors;
+			}
 		} else {
-			errors[mod] = { errorType: ModErrorType.INVALID_ID };
+			errors[mod] = [{ errorType: ModErrorType.INVALID_ID }];
 		}
 	}
 	if (updateValidatedModsCallback) {
@@ -80,7 +88,7 @@ function validateMod(
 
 function validateFunctionAsync(validationProps: ModCollectionValidationProps) {
 	const { modList, allMods, updateValidatedModsCallback, setModErrorsCallback } = validationProps;
-	const errors: { [id: string]: ModError } = {};
+	const errors: { [id: string]: ModError[] } = {};
 	return new Promise((resolve) => {
 		delayForEach(modList, 10, validateMod, modList, allMods, errors, updateValidatedModsCallback)
 			.then(() => {

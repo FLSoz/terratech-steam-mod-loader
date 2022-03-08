@@ -25,7 +25,7 @@ enum CollectionManagementToolbarModalType {
 	RENAME_COLLECTION = 'rename-collection'
 }
 
-interface CollectionManagementToolbarState extends AppState {
+interface CollectionManagementToolbarState {
 	modalType?: CollectionManagementToolbarModalType;
 	modalText: string;
 }
@@ -78,16 +78,11 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 			}
 		};
 		this.state = {
-			...appState,
 			modalText: ''
 		};
 	}
 
 	componentDidMount() {}
-
-	setStateCallback(update: AppState) {
-		this.setState(update);
-	}
 
 	disabledFeatures() {
 		const { modalType } = this.state;
@@ -101,7 +96,9 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 	}
 
 	renderModal() {
-		const { modalType, modalText, allCollectionNames } = this.state;
+		const { appState } = this.props;
+		const { allCollectionNames } = appState;
+		const { modalType, modalText } = this.state;
 		if (!modalType) {
 			return null;
 		}
@@ -158,7 +155,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 				<Row key="row1" justify="space-between" gutter={16}>
 					<Col span={20}>
 						<Row gutter={16}>
-							<Col span={16} key="collections">
+							<Col span={8} key="collections">
 								<Select
 									style={{ width: '100%' }}
 									value={appState.activeCollection!.name}
@@ -184,7 +181,9 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 											this.setState({ modalType: CollectionManagementToolbarModalType.RENAME_COLLECTION });
 										}}
 										disabled={disabledFeatures}
-									/>
+									>
+										Rename
+									</Button>
 									<Dropdown.Button
 										key="new"
 										overlay={
@@ -214,23 +213,27 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 					<Col span={4} style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
 						<Space align="center">
 							<Button
-								shape="circle"
-								key="save"
+								shape="round"
+								key="import"
 								type="primary"
 								icon={<ImportOutlined />}
 								onClick={saveCollectionCallback}
 								disabled={disabledFeatures || !madeEdits}
 								loading={savingCollection}
-							/>
+							>
+								Import
+							</Button>
 							<Button
-								shape="circle"
-								key="save"
+								shape="round"
+								key="export"
 								type="primary"
 								icon={<ExportOutlined />}
 								onClick={saveCollectionCallback}
 								disabled={disabledFeatures || !madeEdits}
 								loading={savingCollection}
-							/>
+							>
+								Export
+							</Button>
 							<Button
 								shape="circle"
 								key="save"
@@ -262,7 +265,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 					</Col>
 				</Row>
 				<Row key="row2" justify="space-between" align="top" gutter={16} style={{ lineHeight: '32px' }}>
-					<Col span={18}>
+					<Col span={14}>
 						<Row gutter={24}>
 							<Col span={numResults !== undefined ? 18 : 24} key="search">
 								<div style={{ lineHeight: '32px' }}>
@@ -282,7 +285,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								</div>
 							</Col>
 							{numResults !== undefined ? (
-								<Col span={4} key="right">
+								<Col span={6} key="right">
 									<div style={{ lineHeight: '32px' }}>
 										<span>{numResults} mods found</span>
 									</div>
@@ -290,20 +293,24 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 							) : null}
 						</Row>
 					</Col>
-					<Col span={4} key="tools" style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
+					<Col key="tools" style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
 						<Space align="center" style={{ lineHeight: '32px' }}>
 							<Button key="undo" shape="circle" icon={<UndoOutlined />} disabled={disabledFeatures || true} />
 							<Button key="redo" shape="circle" icon={<RedoOutlined />} disabled={disabledFeatures || true} />
 							<Button
-								shape="circle"
+								shape="round"
 								key="validate"
 								type="primary"
 								icon={<CheckCircleOutlined />}
 								disabled={disabledFeatures}
 								loading={validatingCollection}
 								onClick={validateCollectionCallback}
-							/>
-							<Button danger type="primary" key="refresh" shape="circle" icon={<SyncOutlined />} disabled={disabledFeatures} />
+							>
+								Validate
+							</Button>
+							<Button danger type="primary" key="refresh" shape="round" icon={<SyncOutlined />} disabled={disabledFeatures}>
+								Refresh
+							</Button>
 						</Space>
 					</Col>
 				</Row>

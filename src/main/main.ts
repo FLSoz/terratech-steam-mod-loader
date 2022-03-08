@@ -171,6 +171,7 @@ interface PathParams {
 // Read raw app metadata from the given paths
 ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, workshopID: BigInt | null) => {
 	const modPath = path.join(...pathParams.prefixes, pathParams.path);
+	log.info(`Reading mod metadata for ${modPath}`);
 	fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
 		if (err) {
 			log.error(err);
@@ -233,6 +234,7 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 			// augment workshop mod with data
 			let workshopMod: Mod | null = null;
 			if (workshopID) {
+				potentialMod.subscribed = true;
 				try {
 					workshopMod = await querySteam(workshopID);
 					const steamConfig = workshopMod?.config;
@@ -250,6 +252,7 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 				}
 			}
 
+			log.info(JSON.stringify(potentialMod, null, 2));
 			event.reply('mod-metadata-results', validMod ? potentialMod : null);
 		}
 	});

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Layout, Table, Tag, Space, Button, Modal, Tooltip, Image, Skeleton } from 'antd';
+import { useOutletContext, Outlet } from 'react-router-dom';
 import React, { Component, ReactNode } from 'react';
 import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined, ZoomInOutlined, CloseOutlined } from '@ant-design/icons';
 import parse from 'html-react-parser';
@@ -12,7 +13,7 @@ import { ModCollection, ModCollectionProps } from 'renderer/model/ModCollection'
 
 const { Content } = Layout;
 
-export default class RawCollectionComponent extends Component<ModCollectionProps, never> {
+class RawCollectionComponent extends Component<ModCollectionProps, never> {
 	componentDidMount() {
 		this.setState({});
 	}
@@ -38,4 +39,8 @@ export default class RawCollectionComponent extends Component<ModCollectionProps
 			</Layout>
 		);
 	}
+}
+
+export default (props: any) => {
+	return <RawCollectionComponent {...useOutletContext<ModCollectionProps>()}/>;
 }

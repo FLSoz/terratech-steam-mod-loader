@@ -7,13 +7,12 @@ import { Mod, ModType } from 'renderer/model/Mod';
 import { ValidChannel, api } from 'renderer/model/Api';
 import { AppState } from 'renderer/model/AppState';
 import { delayForEach, ForEachProps } from 'renderer/util/Sleep';
-import { useNavigate, useLocation, NavigateFunction, Location } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 
 const { Footer, Content } = Layout;
 
 interface ModLoadingState {
 	config: AppConfig;
-	appState: AppState;
 	loadingMods: boolean;
 	countedWorkshopMods: boolean;
 	countedLocalMods: boolean;
@@ -25,21 +24,14 @@ interface ModLoadingState {
 	totalMods: number;
 }
 
-class ModLoadingView extends Component<{navigate: NavigateFunction, location: Location}, ModLoadingState> {
+class ModLoadingComponent extends Component<{appState: AppState}, ModLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: {navigate: NavigateFunction, location: Location}) {
+	constructor(props: {appState: AppState}) {
 		super(props);
 
-		const appState: AppState = this.props.location.state as AppState;
+		const { appState} = this.props;
 		const config: AppConfig = appState.config as AppConfig;
-
-		if (!appState.activeCollection) {
-			appState.activeCollection = {
-				mods: [],
-				name: 'default'
-			};
-		}
 
 		this.state = {
 			config,
@@ -51,8 +43,7 @@ class ModLoadingView extends Component<{navigate: NavigateFunction, location: Lo
 			localModPaths: [],
 			ttqmmModPaths: [],
 			loadedMods: 0,
-			totalMods: 0,
-			appState
+			totalMods: 0
 		};
 
 		this.addModPathsCallback = this.addModPathsCallback.bind(this);
@@ -91,15 +82,14 @@ class ModLoadingView extends Component<{navigate: NavigateFunction, location: Lo
 	}
 
 	setStateCallback(update: AppState) {
-		const { appState } = this.state;
-		this.setState({
-			appState: Object.assign(appState, update)
-		});
+		const { appState } = this.props;
+		appState.updateState(update);
 	}
 
 	// Add to current mod list, Go to main view when all mods loaded
 	loadModCallback(mod: Mod | null) {
-		const { appState, loadedMods } = this.state;
+		const { loadedMods } = this.state;
+		const { appState } = this.props;
 		if (mod) {
 			const modsMap: Map<string, Mod> = appState.mods;
 			api.logger.info(`Loaded mod: ${mod.ID}`);
@@ -114,7 +104,7 @@ class ModLoadingView extends Component<{navigate: NavigateFunction, location: Lo
 			() => {
 				const { totalMods } = this.state;
 				if (loadedMods + 1 >= totalMods) {
-					this.goToMain();
+					appState.navigate(appState.targetPathAfterLoad)
 				}
 			}
 		);
@@ -165,13 +155,6 @@ class ModLoadingView extends Component<{navigate: NavigateFunction, location: Lo
 		delayForEach(workshopModPaths, 10, sendRequest, config.workshopDir, ModType.WORKSHOP);
 	}
 
-	// TODO: Have an override for duplicate mod IDs - user picks which one is used
-	goToMain() {
-		const { appState } = this.state;
-		appState.firstModLoad = true;
-		this.props.navigate('/main', {state: appState});
-	}
-
 	render() {
 		const { loadedMods, totalMods } = this.state;
 		const percent = totalMods > 0 ? Math.round((100 * loadedMods) / totalMods) : 100;
@@ -210,5 +193,5 @@ class ModLoadingView extends Component<{navigate: NavigateFunction, location: Lo
 }
 
 export default (props: any) => {
-	return <ModLoadingView {...props} navigate={useNavigate()} location={useLocation()}/>;
+	return <ModLoadingComponent {...props} appState={useOutletContext<AppState>()} />;
 }

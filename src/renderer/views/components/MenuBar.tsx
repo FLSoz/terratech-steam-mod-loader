@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
 import { Menu } from 'antd';
 import { AppstoreOutlined, FileTextOutlined, GithubOutlined, SettingOutlined } from '@ant-design/icons';
-import { useNavigate, useLocation, NavigateFunction } from 'react-router-dom';
+import { useNavigate, NavigateFunction } from 'react-router-dom';
 
 interface MenuState {
 	currentTab: string;
@@ -48,33 +48,34 @@ class MenuBar extends Component<MenuProps, MenuState> {
 						switch (e.key) {
 							case 'raw':
 								if (loadBeforeNavigation) {
-									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/raw-mods', modErrors: undefined } }});
+									appState.updateState({ targetPathAfterLoad: '/collections/raw-mods' }, () => { appState.navigate('/loading/mods') });
 								} else {
-									this.props.navigate('/raw-mods', {state: { ...appState, ...{ modErrors: undefined } }});
+									appState.navigate('/collections/raw-mods');
 								}
 								break;
 							case 'settings':
-								this.props.navigate('/settings', {state: appState});
+								appState.navigate('/settings');
 								break;
 							case 'main':
 								if (loadBeforeNavigation) {
-									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/main', modErrors: undefined } }});
+									appState.updateState({ targetPathAfterLoad: '/colections/main' }, () => { appState.navigate('/loading/mods') });
 								} else {
-									this.props.navigate('/main', {state: { ...appState, ...{ modErrors: undefined } }});
+									appState.navigate('/collections/main');
 								}
 								break;
 							case 'steam':
 								if (loadBeforeNavigation) {
-									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/steam', modErrors: undefined } }});
+									appState.updateState({ targetPathAfterLoad: '/browse/steam' }, () => { appState.navigate('/loading/mods') });
 								} else {
-									this.props.navigate('/steam', {state: { ...appState, ...{ modErrors: undefined } }});
+									appState.navigate('/browse/steam');
 								}
 								break;
 							case 'ttqmm':
 								if (loadBeforeNavigation) {
-									this.props.navigate('/mods', {state: { ...appState, ...{ targetPathAfterLoad: '/ttqmm', modErrors: undefined } }});
+									appState.updateState({ targetPathAfterLoad: '/browse/ttqmm' }, () => { appState.navigate('/loading/mods') });
+									appState.navigate('/loading/mods');
 								} else {
-									this.props.navigate('/ttqmm', {state: { ...appState, ...{ modErrors: undefined } }});
+									appState.navigate('/browse/ttqmm');
 								}
 								break;
 							default:
@@ -89,7 +90,7 @@ class MenuBar extends Component<MenuProps, MenuState> {
 				<Menu.Item key="raw" style={MenuItemStyle} icon={<FileTextOutlined style={MenuIconStyle} />}>
 					Raw Modlist
 				</Menu.Item>
-				<Menu.Item key="ttqmm" style={MenuItemStyle} icon={<GithubOutlined style={MenuIconStyle} />}>
+				<Menu.Item key="ttqmm" style={MenuItemStyle} icon={<GithubOutlined style={MenuIconStyle} disabled />}>
 					TTQMM Browser
 				</Menu.Item>
 				<Menu.Item key="settings" style={MenuItemStyle} icon={<SettingOutlined style={MenuIconStyle} />}>

@@ -22,6 +22,23 @@ export interface Mod {
 	UID: string;
 	WorkshopID?: BigInt | null;
 	config?: ModConfig;
+	subscribed?: boolean;
+}
+
+export enum ModErrorType {
+	MISSING_DEPENDENCY = 'missing_dependency',
+	INVALID_ID = 'invalid_id',
+	INCOMPATIBLE_MODS = 'incompatible_mods',
+	NOT_SUBSCRIBED = 'not_subscribed'
+}
+
+export interface ModError {
+	errorType: ModErrorType;
+	values?: string[];
+}
+
+export interface ModErrors {
+	[id: string]: ModError[];
 }
 
 export interface ModData {
@@ -37,6 +54,7 @@ export interface ModData {
 	hasCode?: boolean;
 	isDependencyFor?: string[];
 	tags?: string[];
+	errors?: ModError[];
 }
 
 export function convertToModData(input: Map<string, Mod>): ModData[] {

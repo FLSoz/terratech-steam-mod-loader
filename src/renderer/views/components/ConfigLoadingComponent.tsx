@@ -5,13 +5,13 @@ import { ModCollection } from 'renderer/model/ModCollection';
 import { AppState } from 'renderer/model/AppState';
 import { validateAppConfig } from 'renderer/util/Validation';
 import { Layout, Progress } from 'antd';
-import { useNavigate, NavigateFunction } from 'react-router-dom';
+import { useNavigate, NavigateFunction, useOutletContext } from 'react-router-dom';
+import { apps } from 'open';
 
 const { Footer, Content } = Layout;
 
-interface ConfigLoadingState extends AppState {
+interface ConfigLoadingState {
 	loadingConfig?: boolean;
-	savingConfig?: boolean;
 	userDataPathError?: string;
 	configLoadError?: string;
 	configErrors?: { [field: string]: string };
@@ -20,31 +20,20 @@ interface ConfigLoadingState extends AppState {
 	updatingSteamMod: boolean;
 }
 
-class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLoadingState> {
+class ConfigLoadingComponent extends Component<{navigate: NavigateFunction, appState: AppState}, ConfigLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: {navigate: NavigateFunction}) {
+	constructor(props: {navigate: NavigateFunction, appState: AppState}) {
 		super(props);
 
+		const { appState } = props;
+
 		this.state = {
-			config: DEFAULT_CONFIG,
 			loadingConfig: true,
-			userDataPath: '',
-			savingConfig: false,
-			targetPathAfterLoad: '/main',
 			totalCollections: -1,
 			loadedCollections: 0,
-			allCollections: new Map(),
-			allCollectionNames: new Set(),
-			mods: new Map(),
-			updatingSteamMod: true,
-			activeCollection: {
-				name: 'default',
-				mods: []
-			},
-			searchString: '',
-			sidebarCollapsed: true
-		};
+			updatingSteamMod: true
+		}
 		this.loadCollectionCallback = this.loadCollectionCallback.bind(this);
 	}
 
@@ -61,17 +50,21 @@ class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLo
 	}
 
 	setStateCallback(update: AppState) {
-		this.setState(update);
+		const { appState } = this.props;
+		const { updateState } = appState;
+		updateState(update);
 	}
 
 	readConfig() {
+		const { appState } = this.props;
+		const { updateState } = appState;
 		// Attempt to load config. We allow app to proceed if it fails, but we show a warning
 		api
 			.readConfig()
 			.then((response) => {
 				if (response) {
 					const config = response as AppConfig;
-					this.setState({ config });
+					updateState({ config });
 					this.validateConfig(config);
 				} else {
 					api.logger.info('No config present - using default config');
@@ -87,11 +80,13 @@ class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLo
 	}
 
 	readUserDataPath() {
+		const { appState } = this.props;
+		const { updateState } = appState;
 		// Get user data path or die trying
 		api
 			.getUserDataPath()
 			.then((path) => {
-				this.setState({ userDataPath: path });
+				updateState({ userDataPath: path });
 				return path;
 			})
 			.catch((error) => {
@@ -124,7 +119,9 @@ class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLo
 	}
 
 	loadCollectionCallback(collection: ModCollection | null) {
-		const { allCollections, allCollectionNames, loadedCollections } = this.state;
+		const { appState } = this.props;
+		const { allCollections, allCollectionNames } = appState;
+		const { loadedCollections } = this.state;
 		if (collection) {
 			allCollections!.set(collection.name, collection);
 			allCollectionNames.add(collection.name);
@@ -133,15 +130,17 @@ class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLo
 	}
 
 	validateConfig(config: AppConfig) {
+		const { appState } = this.props;
+		const { updateState } = appState;
 		this.setState({ configErrors: undefined });
 		validateAppConfig(config)
 			.then((result) => {
-				this.setState({ configErrors: result });
+				updateState({ configErrors: result });
 				return result;
 			})
 			.catch((error) => {
 				console.error(error);
-				this.setState({ configErrors: { undefined: `Internal exception while validating AppConfig:\n${error.toString()}` } });
+				updateState({ configErrors: { undefined: `Internal exception while validating AppConfig:\n${error.toString()}` } });
 			})
 			.finally(() => {
 				this.setState({ loadingConfig: false }, this.checkCanProceed);
@@ -154,12 +153,14 @@ class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLo
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
 			this.props.navigate('/settings', {state: this.state});
 		} else {
-			this.props.navigate('/mods', {state: this.state});
+			this.props.navigate('/loading/mods', {state: this.state});
 		}
 	}
 
 	checkCanProceed() {
-		const { activeCollection, loadedCollections, loadingConfig, totalCollections, updatingSteamMod, config, allCollections, allCollectionNames } = this.state;
+		const { appState } = this.props;
+		const { config, allCollections, allCollectionNames, updateState } = appState;
+		const { loadedCollections, loadingConfig, totalCollections, updatingSteamMod } = this.state;
 		if (!updatingSteamMod && totalCollections >= 0 && loadedCollections >= totalCollections && !loadingConfig) {
 			console.log('hello world');
 			if (allCollectionNames.size > 0) {
@@ -167,19 +168,24 @@ class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLo
 				if (config && config.activeCollection) {
 					const collection = allCollections.get(config.activeCollection);
 					if (collection) {
-						this.setState({ activeCollection: collection }, this.proceedToNext);
+						updateState({ activeCollection: collection }, this.proceedToNext.bind(this));
+						return;
 					} else {
 						// activeCollection is no longer there: default to first available in ASCII-betical order
 					}
 				}
 				const collectionName = [...allCollectionNames].sort()[0];
-				config.activeCollection = collectionName;
-				this.setState({ activeCollection: allCollections.get(collectionName)! }, this.proceedToNext);
+				config!.activeCollection = collectionName;
+				updateState({ activeCollection: allCollections.get(collectionName)! }, this.proceedToNext.bind(this));
 			} else {
-				// activeCollection has already been set to default. Add to maps
-				config.activeCollection = 'default';
+				// there are no collections - create a new defaultCollection
+				config!.activeCollection = 'default';
+				const defaultCollection: ModCollection = {
+					mods: [],
+					name: 'default'
+				};
 				allCollectionNames.add('default');
-				allCollections.set('default', activeCollection);
+				allCollections.set('default', defaultCollection);
 				this.setState({}, this.proceedToNext);
 			}
 		}
@@ -206,5 +212,5 @@ class ConfigLoadingView extends Component<{navigate: NavigateFunction}, ConfigLo
 }
 
 export default (props: any) => {
-	return <ConfigLoadingView {...props} navigate={useNavigate()}/>;
+	return <ConfigLoadingComponent navigate={useNavigate()} appState={useOutletContext<AppState>()} />;
 }

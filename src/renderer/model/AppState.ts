@@ -8,13 +8,23 @@ export interface AppState {
 	mods: Map<string, Mod>;
 	allCollections: Map<string, ModCollection>;
 	allCollectionNames: Set<string>;
-	activeCollection: ModCollection;
+	activeCollection?: ModCollection;
 	firstModLoad?: boolean;
 	targetPathAfterLoad: string;
-	sidebarCollapsed?: boolean;
+	sidebarCollapsed: boolean;
 	searchString: string;
-}
-
-export interface CollectionViewState extends AppState {
 	launchingGame?: boolean;
+
+	// General initialization
+	initializedConfigs?: boolean;	// Did we go load configs yet?
+	initializedMods?: boolean;	// Did we go load mods yet?
+	updateState: (props: any, callback?: () => void) => void;
+	navigate: (path: string) => void;
+
+	// Settings
+	savingConfig: boolean;
+	madeConfigEdits?: boolean;
+	configErrors: { [field: string]: string };
+
+	// Config loading
 }
