@@ -15,6 +15,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "greenworks": "github:greenheartgames/greenworks"
+    "greenworks": "file:./greenworks"
   }
 }

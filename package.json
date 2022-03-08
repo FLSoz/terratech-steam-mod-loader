@@ -39,7 +39,6 @@
     "files": [
       "dist",
       "node_modules",
-      "!node_modules/greenworks/deps/**/*",
       "package.json"
     ],
     "afterSign": ".erb/scripts/notarize.js",
@@ -72,7 +71,7 @@
       ],
 			"publish": ["github"],
 			"certificateSubjectName": "FLSoz",
-			"certificateFile": "E:\\Documents\\FLSoz.pfx",
+			"certificateFile": "~/Documents/FLSoz.pfx",
 			"publisherName": "FLSoz"
     },
     "linux": {
