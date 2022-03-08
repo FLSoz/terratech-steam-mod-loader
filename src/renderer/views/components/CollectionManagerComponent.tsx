@@ -108,7 +108,6 @@ class CollectionManagerComponent extends Component<{appState: AppState, location
 	componentDidMount() {
 		api.on(ValidChannel.GAME_RUNNING, this.setGameRunningCallback);
 		this.pollGameRunning();
-		this.validateActiveCollection(false);
 	}
 
 	componentWillUnmount() {
