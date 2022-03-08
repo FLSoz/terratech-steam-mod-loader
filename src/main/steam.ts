@@ -245,7 +245,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // get the result from steam
 export default async function querySteam(id: BigInt): Promise<Mod | null> {
 	const response = await axios.get(`https://steamcommunity.com/sharedfiles/filedetails/?id=${id.toString()}`);
-	await delay(10);
+	await delay(0.5);
 	log.info(`Got steam results for ${id}`);
 	const mod: HTMLElement = parse(response.data.toString());
 	return parsePage(mod, id);

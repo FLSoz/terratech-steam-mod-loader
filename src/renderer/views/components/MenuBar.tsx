@@ -45,6 +45,7 @@ class MenuBar extends Component<MenuProps, MenuState> {
 				disabled={disableNavigation}
 				onClick={(e) => {
 					if (e.key !== currentTab) {
+						this.setState({ currentTab: e.key });
 						switch (e.key) {
 							case 'raw':
 								if (loadBeforeNavigation) {

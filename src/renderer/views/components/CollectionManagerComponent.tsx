@@ -1,6 +1,6 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component, CSSProperties, ReactNode } from 'react';
-import { useOutletContext, Outlet } from 'react-router-dom';
+import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
 import { Layout, Button, Popover, Modal, Progress, Spin, Space, notification } from 'antd';
 
 import sizeMe, { SizeMe } from 'react-sizeme';
@@ -70,8 +70,8 @@ const openNotification = (props: NotificationProps, type?: 'info' | 'error' | 's
 	notification[type || 'open']({ ...props });
 };
 
-class CollectionManagerComponent extends Component<{appState: AppState}, CollectionManagerState> {
-	constructor(props: {appState: AppState}) {
+class CollectionManagerComponent extends Component<{appState: AppState, location: Location}, CollectionManagerState> {
+	constructor(props: {appState: AppState, location: Location}) {
 		super(props);
 		const { appState } = props;
 		const rows: ModData[] = appState.mods ? convertToModData(appState.mods) : [];
@@ -791,6 +791,7 @@ class CollectionManagerComponent extends Component<{appState: AppState}, Collect
 				<Header style={{ height: 120 }}>
 					<ModCollectionManager
 						appState={appState}
+						currentPath={location.pathname}
 						searchString={searchString || ""}
 						validatingCollection={validatingMods}
 						savingCollection={savingCollection}
@@ -799,7 +800,7 @@ class CollectionManagerComponent extends Component<{appState: AppState}, Collect
 							this.setState({});
 						}}
 						validateCollectionCallback={() => {
-							this.setState({ validatingMods: true }, () => {
+							this.setState({ modErrors: undefined, validatingMods: true }, () => {
 								this.validateActiveCollection(false);
 							});
 						}}
@@ -846,5 +847,5 @@ class CollectionManagerComponent extends Component<{appState: AppState}, Collect
 }
 
 export default (props: any) => {
-	return <CollectionManagerComponent appState={useOutletContext<AppState>()}/>;
+	return <CollectionManagerComponent appState={useOutletContext<AppState>()} location={useLocation()}/>;
 }

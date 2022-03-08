@@ -119,10 +119,11 @@ class API {
 	launchGame(steamExec: string, workshopID: string, closeOnLaunch: boolean, modList: Mod[]): Promise<any> {
 		const modListStr: string = modList
 			.map((mod: Mod) => {
-				return `${mod.type}:${mod.WorkshopID ? mod.WorkshopID : mod.ID}`;
+				const modID = mod.WorkshopID ? mod.WorkshopID : mod.ID;
+				return mod ? `[${mod.type}:${mod.type === "local" ? modID.toString().replace(" ", ":/%20") : modID}]` : '';
 			})
 			.join(',');
-		const args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
+		const args: string[] = ['+ttsmm_mod_list', modListStr];
 		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, steamExec, workshopID, closeOnLaunch, args);
 	}
 

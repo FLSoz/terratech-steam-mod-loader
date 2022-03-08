@@ -14,7 +14,6 @@ interface ConfigLoadingState {
 	loadingConfig?: boolean;
 	userDataPathError?: string;
 	configLoadError?: string;
-	configErrors?: { [field: string]: string };
 	loadedCollections: number;
 	totalCollections: number;
 	updatingSteamMod: boolean;
@@ -132,24 +131,26 @@ class ConfigLoadingComponent extends Component<{navigate: NavigateFunction, appS
 	validateConfig(config: AppConfig) {
 		const { appState } = this.props;
 		const { updateState } = appState;
-		this.setState({ configErrors: undefined });
-		validateAppConfig(config)
-			.then((result) => {
-				updateState({ configErrors: result });
-				return result;
-			})
-			.catch((error) => {
-				console.error(error);
-				updateState({ configErrors: { undefined: `Internal exception while validating AppConfig:\n${error.toString()}` } });
-			})
-			.finally(() => {
-				this.setState({ loadingConfig: false }, this.checkCanProceed);
-			});
+		updateState({ configErrors: {} }, () => {
+			validateAppConfig(config)
+				.then((result) => {
+					updateState({ configErrors: result });
+					return result;
+				})
+				.catch((error) => {
+					console.error(error);
+					updateState({ configErrors: { undefined: `Internal exception while validating AppConfig:\n${error.toString()}` } });
+				})
+				.finally(() => {
+					this.setState({ loadingConfig: false }, this.checkCanProceed);
+				});
+			}
+		);
 	}
 
 	proceedToNext() {
-		const { configErrors } = this.state;
-		if (configErrors) {
+		const { configErrors } = this.props.appState;
+		if ((!!configErrors && Object.keys(configErrors).length > 0)) {
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
 			this.props.navigate('/settings', {state: this.state});
 		} else {

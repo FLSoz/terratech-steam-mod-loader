@@ -5,12 +5,16 @@ import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, 
 import { useOutletContext } from 'react-router-dom';
 import { api, ValidChannel } from 'renderer/model/Api';
 import { FolderOutlined } from '@ant-design/icons';
+import { TT_APP_ID } from 'renderer/Constants';
 
 const { Content } = Layout;
 const { Search } = Input;
 
+const fileRegexPath = /^(?<path>(.*[\\\/])?)(?<filename>.*)$/;	// taken from: https://stackoverflow.com/questions/423376/how-to-get-the-file-name-from-a-full-path-using-javascript
+
 interface SettingsState {
 	editingConfig?: AppConfig;
+	selectingDirectory: boolean;
 }
 
 class SettingsView extends Component<AppState, SettingsState> {
@@ -21,7 +25,8 @@ class SettingsView extends Component<AppState, SettingsState> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const appState = props as AppState;
 		this.state = {
-			editingConfig: { ...(appState.config as AppConfig) }
+			editingConfig: { ...(appState.config as AppConfig) },
+			selectingDirectory: false
 		};
 
 		this.saveChanges = this.saveChanges.bind(this);
@@ -29,7 +34,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 	}
 
 	componentDidMount() {
-		api.on(ValidChannel.SELECT_PATH_RESULT, this.setSelectedPath);
+		api.on(ValidChannel.SELECT_PATH_RESULT, this.setSelectedPath.bind(this));
 		this.formRef.current!.resetFields();
 		this.formRef.current!.validateFields();
 	}
@@ -41,9 +46,22 @@ class SettingsView extends Component<AppState, SettingsState> {
 	}
 
 	setSelectedPath(path: string, target: 'steamExec' | 'localDir' | 'workshopDir') {
-		const { config } = this.props;
-		config![target] = path;
-		this.setState({});
+		if (path) {
+			console.log("setSelectedPath");
+			console.log(path, target);
+			const { editingConfig } = this.state;
+			editingConfig![target] = path;
+			this.setState({ selectingDirectory: false }, () => {
+				const changedFields: any = {};
+				changedFields[target] = path;
+				this.formRef.current!.setFieldsValue(changedFields);
+				this.formRef.current!.validateFields();
+			});
+			this.props.updateState({ madeConfigEdits: true });
+		}
+		else {
+			this.setState({ selectingDirectory: false });
+		}
 	}
 
 	saveChanges() {
@@ -67,37 +85,89 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 	cancelChanges() {
 		const { config } = this.props;
-		this.setState({editingConfig: { ...(config as AppConfig) }});
+		this.setState({editingConfig: { ...(config as AppConfig) }}, (() => {
+			this.formRef.current!.resetFields();
+			this.formRef.current!.validateFields();
+		}));
 		this.props.updateState({ madeConfigEdits: false });
 	}
 
 	validateFile(field: string, value: string) {
 		const { configErrors } = this.props;
+		console.log(`Validating path ${value} for target ${field}`);
 		if (!!value && value.length > 0) {
 			return api
 				.pathExists(value)
 				.catch((error) => {
 					console.error(error);
-					configErrors![field] = error.toString();
-					this.setState({});
+					configErrors[field] = error.toString();
+					this.props.updateState({});
 					throw new Error(`Error while validating path:\n${error.toString()}`);
 				})
 				.then((success) => {
 					if (!success) {
-						configErrors![field] = 'Provided path is invalid';
-						this.setState({});
+						configErrors[field] = 'Provided path is invalid';
+						this.props.updateState({});
 						throw new Error('Provided path is invalid');
 					}
-					delete configErrors![field];
-					this.setState({});
-					return true;
+					switch(field) {
+						case "steamExec":
+							const matches = fileRegexPath.exec(value);
+							if (!!matches && matches.groups && matches.groups.filename.toLowerCase().includes('steam')) {
+								delete configErrors[field];
+								this.props.updateState({});
+								return true;
+							}
+							else {
+								configErrors[field] = "The Steam executable should include 'Steam' in the filename";
+								this.props.updateState({});
+								return false;
+							}
+						case "localDir":
+							if (value.endsWith("LocalMods")) {
+								delete configErrors[field];
+								this.props.updateState({});
+								return true;
+							}
+							else {
+								configErrors[field] = "The local mods directory should end with 'TerraTech/LocalMods'";
+								this.props.updateState({});
+								return false;
+							}
+						case "workshopDir":
+							if (value.endsWith(TT_APP_ID)) {
+								delete configErrors[field];
+								this.props.updateState({});
+								return true;
+							}
+							else {
+								configErrors[field] = `The workshop directory should end with TT app ID 'Steam/steamapps/workshop/content/${TT_APP_ID}'`;
+								this.props.updateState({});
+								return false;
+							}
+						case "logsDir":
+							if (value.toLowerCase().includes("logs")) {
+								delete configErrors[field];
+								this.props.updateState({});
+								return true;
+							}
+							else {
+								configErrors[field] = "The logs directory should contain 'Logs'";
+								this.props.updateState({});
+								return false;
+							}
+						default:
+							delete configErrors[field];
+							this.props.updateState({});
+							return true;
+					}
 				});
 		}
 		return Promise.reject(new Error('Steam Executable Path is required'));
 	}
 
 	render() {
-		const { editingConfig } = this.state;
+		const { editingConfig, selectingDirectory } = this.state;
 		const { madeConfigEdits, savingConfig, configErrors } = this.props;
 		return (
 			<Layout style={{ width: '100%' }}>
@@ -131,10 +201,11 @@ class SettingsView extends Component<AppState, SettingsState> {
 								}
 							]}
 							tooltip="Path to Steam executable"
-							help={configErrors!.steamExec && configErrors!.steamExec.startsWith('OVERRIDE:') ? configErrors!.steamExec.substring(9) : undefined}
-							validateStatus={configErrors!.steamExec ? 'error' : undefined}
+							help={configErrors && configErrors.steamExec ? configErrors.steamExec : undefined}
+							validateStatus={configErrors && configErrors.steamExec ? 'error' : undefined}
 						>
 							<Search
+								disabled={selectingDirectory}
 								value={editingConfig!.steamExec}
 								enterButton={<FolderOutlined />}
 								onChange={(event) => {
@@ -142,7 +213,10 @@ class SettingsView extends Component<AppState, SettingsState> {
 									this.props.updateState({ madeConfigEdits: true });
 								}}
 								onSearch={() => {
-									api.send(ValidChannel.SELECT_PATH, 'steamExec');
+									if (!selectingDirectory) {
+										api.send(ValidChannel.SELECT_PATH, 'steamExec', false, "Select Steam executable");
+										this.setState({ selectingDirectory: true });
+									}
 								}}
 							/>
 						</Form.Item>
@@ -167,10 +241,11 @@ class SettingsView extends Component<AppState, SettingsState> {
 									}
 								}
 							]}
-							help={configErrors!.localDir && configErrors!.localDir.startsWith('OVERRIDE:') ? configErrors!.localDir.substring(9) : undefined}
-							validateStatus={configErrors!.localDir ? 'error' : undefined}
+							help={configErrors && configErrors.localDir ? configErrors.localDir : undefined}
+							validateStatus={configErrors && configErrors.localDir ? 'error' : undefined}
 						>
 							<Search
+								disabled={selectingDirectory}
 								value={editingConfig!.localDir}
 								enterButton={<FolderOutlined />}
 								onChange={(event) => {
@@ -178,7 +253,10 @@ class SettingsView extends Component<AppState, SettingsState> {
 									this.props.updateState({ madeConfigEdits: true });
 								}}
 								onSearch={() => {
-									api.send(ValidChannel.SELECT_PATH, 'localDir');
+									if (!selectingDirectory) {
+										api.send(ValidChannel.SELECT_PATH, 'localDir', true, "Select TerraTech LocalMods directory");
+										this.setState({ selectingDirectory: true });
+									}
 								}}
 							/>
 						</Form.Item>
@@ -203,14 +281,18 @@ class SettingsView extends Component<AppState, SettingsState> {
 									}
 								}
 							]}
-							help={configErrors!.workshopDir && configErrors!.workshopDir.startsWith('OVERRIDE:') ? configErrors!.workshopDir.substring(9) : undefined}
-							validateStatus={configErrors!.workshopDir ? 'error' : undefined}
+							help={configErrors && configErrors.workshopDir ? configErrors.workshopDir : undefined}
+							validateStatus={configErrors && configErrors.workshopDir ? 'error' : undefined}
 						>
 							<Search
+								disabled={selectingDirectory}
 								value={editingConfig!.workshopDir}
 								enterButton={<FolderOutlined />}
 								onSearch={() => {
-									api.send(ValidChannel.SELECT_PATH, 'workshopDir');
+									if (!selectingDirectory) {
+										api.send(ValidChannel.SELECT_PATH, 'workshopDir', true, "Select TerraTech Steam workshop directory");
+										this.setState({ selectingDirectory: true });
+									}
 								}}
 								onChange={(event) => {
 									editingConfig!.workshopDir = event.target.value;
@@ -225,7 +307,10 @@ class SettingsView extends Component<AppState, SettingsState> {
 								value={editingConfig!.logsDir}
 								enterButton={<FolderOutlined />}
 								onSearch={() => {
-									api.send(ValidChannel.SELECT_PATH, 'logsDir');
+									if (!selectingDirectory) {
+										api.send(ValidChannel.SELECT_PATH, 'logsDir', true, "Select directory for logs");
+										this.setState({ selectingDirectory: true });
+									}
 								}}
 							/>
 						</Form.Item>

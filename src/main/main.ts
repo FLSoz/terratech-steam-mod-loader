@@ -12,7 +12,7 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, protocol, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
@@ -377,7 +377,7 @@ ipcMain.on('game-running', async (event) => {
 ipcMain.handle('launch-game', async (_event, steamExec, workshopID, closeOnLaunch, args) => {
 	log.info('Launching game with custom args:');
 	log.info(args);
-	await child_process.spawn(steamExec, ['-applaunch', '285920', '+custom_mod_list', `:${workshopID}]`, ...args], {
+	await child_process.spawn(steamExec, ['-applaunch', '285920', '+custom_mod_list', `[workshop:${workshopID}]`, ...args], {
 		detached: true
 	});
 	if (closeOnLaunch) {
@@ -532,6 +532,23 @@ ipcMain.handle('user-data-path', async () => {
 	return app.getPath('userData');
 });
 
-ipcMain.on('select-path', async (event) => {
-	event.reply('select-path-results', null)
+ipcMain.on('select-path', async (event, target: string, directory: boolean, title: string) => {
+	log.info(`Selecting path: ${target}`);
+
+	dialog.showOpenDialog({
+		title: title,
+		properties: ["showHiddenFiles", directory ? "openDirectory" : "openFile", "promptToCreate", "createDirectory"]
+	})
+		.then((result) => {
+			if (result.canceled) {
+				event.reply('select-path-result', null, target);
+			}
+			else {
+				event.reply('select-path-result', result.filePaths[0], target);
+			}
+		})
+		.catch((error) => {
+			log.error(error);
+			event.reply('select-path-result', null, target);
+		});
 })

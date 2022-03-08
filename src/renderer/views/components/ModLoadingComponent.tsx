@@ -104,6 +104,7 @@ class ModLoadingComponent extends Component<{appState: AppState}, ModLoadingStat
 			() => {
 				const { totalMods } = this.state;
 				if (loadedMods + 1 >= totalMods) {
+					appState.firstModLoad = true;
 					appState.navigate(appState.targetPathAfterLoad)
 				}
 			}
@@ -151,8 +152,8 @@ class ModLoadingComponent extends Component<{appState: AppState}, ModLoadingStat
 			const path: string = props.value;
 			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [prefix], path }, type, type === ModType.WORKSHOP ? parseInt(path, 10) : undefined);
 		};
-		delayForEach(localModPaths, 10, sendRequest, config.localDir, ModType.LOCAL);
-		delayForEach(workshopModPaths, 10, sendRequest, config.workshopDir, ModType.WORKSHOP);
+		delayForEach(localModPaths, 100, sendRequest, config.localDir, ModType.LOCAL);
+		delayForEach(workshopModPaths, 100, sendRequest, config.workshopDir, ModType.WORKSHOP);
 	}
 
 	render() {

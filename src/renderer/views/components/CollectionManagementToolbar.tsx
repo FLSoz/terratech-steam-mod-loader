@@ -33,6 +33,7 @@ interface CollectionManagementToolbarState {
 interface CollectionManagementToolbarProps {
 	madeEdits: boolean;
 	searchString: string;
+	currentPath: string;
 	appState: AppState;
 	savingCollection?: boolean;
 	validatingCollection?: boolean;
@@ -146,7 +147,8 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 			onSearchCallback,
 			onSearchChangeCallback,
 			searchString,
-			madeEdits
+			madeEdits,
+			currentPath
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
 		return (
@@ -308,7 +310,19 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 							>
 								Validate
 							</Button>
-							<Button danger type="primary" key="refresh" shape="round" icon={<SyncOutlined />} disabled={disabledFeatures}>
+							<Button
+								danger
+								shape="round"
+								key="refresh"
+								type="primary"
+								icon={<SyncOutlined />}
+								disabled={disabledFeatures}
+								onClick={() => {
+									appState.updateState({ targetPathAfterLoad: "/collections/main" }, () => {
+										appState.navigate("/loading/mods");
+									});
+								}}
+							>
 								Refresh
 							</Button>
 						</Space>

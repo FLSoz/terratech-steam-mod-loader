@@ -15,10 +15,10 @@ async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: 
 	).then((results) => {
 		results.forEach((result, index) => {
 			if (result.status !== 'fulfilled') {
-				errors[fields[index]] = `OVERRIDE:Unexpected error checking ${fields[index]} path (${paths[index]})`;
+				errors[fields[index]] = `Unexpected error checking ${fields[index]} path (${paths[index]})`;
 				failed = true;
 			} else if (!result.value) {
-				errors[fields[index]] = `OVERRIDE:Path to ${fields[index]} (${paths[index]}) was invalid`;
+				errors[fields[index]] = `Path to ${fields[index]} (${paths[index]}) was invalid`;
 				failed = true;
 			}
 		});
@@ -28,7 +28,7 @@ async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: 
 	if (failed) {
 		return errors;
 	}
-	return undefined;
+	return {};
 }
 
 interface ModCollectionValidationProps {
@@ -90,7 +90,7 @@ function validateFunctionAsync(validationProps: ModCollectionValidationProps) {
 	const { modList, allMods, updateValidatedModsCallback, setModErrorsCallback } = validationProps;
 	const errors: { [id: string]: ModError[] } = {};
 	return new Promise((resolve) => {
-		delayForEach(modList, 10, validateMod, modList, allMods, errors, updateValidatedModsCallback)
+		delayForEach(modList, 1, validateMod, modList, allMods, errors, updateValidatedModsCallback)
 			.then(() => {
 				// eslint-disable-next-line promise/always-return
 				if (Object.keys(errors).length > 0) {
