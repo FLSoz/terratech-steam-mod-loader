@@ -69,10 +69,11 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 			selectedRowKeys: collection.mods,
 			onChange: (selectedRowKeys: React.Key[]) => {
 				const currentVisible = new Set(filteredRows.map((modData) => modData.uid));
+				const currentSelection = collection.mods;
 				const newSelection = rows
 					.map((modData) => modData.uid)
 					.filter((mod) => {
-						return !currentVisible.has(mod) || selectedRowKeys.includes(mod);
+						return (!currentVisible.has(mod) && currentSelection.includes(mod)) || selectedRowKeys.includes(mod);
 					});
 				setEnabledModsCallback(new Set(newSelection));
 			},

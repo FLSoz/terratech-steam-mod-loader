@@ -145,7 +145,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			} else {
 				activeCollection.mods = activeCollection.mods.filter((mod) => mod !== id);
 			}
-			this.setState({ madeEdits: true });
+			this.setState({ madeEdits: true }, () => appState.updateState({}));
 		}
 	}
 
@@ -974,6 +974,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						width: size.width as number,
 						collection: appState.activeCollection as ModCollection,
 						setEnabledModsCallback: (enabledMods: Set<string>) => {
+							api.logger.info(`Setting active mods: ${[...enabledMods]}`)
 							if (appState.activeCollection) {
 								appState.activeCollection.mods = [...enabledMods].sort();
 								this.setState({ madeEdits: true });
