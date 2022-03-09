@@ -59,8 +59,6 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 	setSelectedPath(path: string, target: 'steamExec' | 'localDir' | 'workshopDir') {
 		if (path) {
-			console.log('setSelectedPath');
-			console.log(path, target);
 			const { editingConfig } = this.state;
 			editingConfig![target] = path;
 			this.setState({ selectingDirectory: false }, () => {
@@ -106,7 +104,6 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 	validateFile(field: string, value: string) {
 		const { configErrors, updateState } = this.props;
-		console.log(`Validating path ${value} for target ${field}`);
 		if (!!value && value.length > 0) {
 			return api
 				.pathExists(value)

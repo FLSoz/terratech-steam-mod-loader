@@ -82,7 +82,6 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 								madeConfigEdits ||
 								(!!configErrors && Object.keys(configErrors).length > 0)
 							}
-							currentTab="main"
 							appState={this.state}
 						/>
 					</Sider>

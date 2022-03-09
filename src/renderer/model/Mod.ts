@@ -1,3 +1,5 @@
+import { api } from "./Api";
+
 export enum ModType {
 	WORKSHOP = 'workshop',
 	LOCAL = 'local',
@@ -108,7 +110,7 @@ export function filterRows(rows: ModData[], searchString: string | undefined): M
 	if (searchString && searchString.length > 0) {
 		const lowerSearchString = searchString.toLowerCase();
 		return rows.filter((modData) => {
-			console.log(`Checking if ${lowerSearchString} matches mod ${JSON.stringify(modData, null, 2)}`);
+			api.logger.info(`Checking if ${lowerSearchString} matches mod ${JSON.stringify(modData, null, 2)}`);
 			if (modData.name.toLowerCase().includes(lowerSearchString)) {
 				return true;
 			}

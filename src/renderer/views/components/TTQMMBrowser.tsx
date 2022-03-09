@@ -34,7 +34,7 @@ class TTQMMBrowserView extends Component<{ location: Location }, AppState> {
 						}}
 					>
 						<div className="logo" />
-						<MenuBar disableNavigation={false} currentTab="ttqmm" appState={this.state} />
+						<MenuBar disableNavigation={false} appState={this.state} />
 					</Sider>
 					<Layout style={{ width: '100%' }}>
 						<Content>

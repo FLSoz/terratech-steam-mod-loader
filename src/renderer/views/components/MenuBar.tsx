@@ -4,33 +4,23 @@ import { Menu } from 'antd';
 import { AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate, NavigateFunction } from 'react-router-dom';
 
-interface MenuState {
-	currentTab: string;
-}
 
 interface MenuProps {
 	disableNavigation?: boolean;
-	currentTab: string;
 	appState: AppState;
 	navigate: NavigateFunction;
 }
 
-class MenuBar extends Component<MenuProps, MenuState> {
+class MenuBar extends Component<MenuProps, {}> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: MenuProps) {
 		super(props);
-
-		const { currentTab } = props;
-
-		this.state = {
-			currentTab
-		};
 	}
 
 	render() {
 		const { disableNavigation, appState } = this.props;
-		const { currentTab } = this.state;
+		const { config, navigate, updateState } = appState;
 		const loadBeforeNavigation = !appState.firstModLoad;
 		const MenuIconStyle = { fontSize: 28, lineHeight: 0, marginLeft: -4 };
 		const MenuItemStyle = { display: 'flex', alignItems: 'center' };
@@ -40,51 +30,52 @@ class MenuBar extends Component<MenuProps, MenuState> {
 				id="MenuBar"
 				theme="dark"
 				className="MenuBar"
-				selectedKeys={[currentTab]}
+				selectedKeys={[config.currentTab]}
 				mode="inline"
 				disabled={disableNavigation}
 				onClick={(e) => {
-					if (e.key !== currentTab) {
-						this.setState({ currentTab: e.key });
+					if (e.key !== config.currentTab) {
+						config.currentTab = e.key;
+						updateState({});
 						switch (e.key) {
 							case 'raw':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/collections/raw-mods' }, () => {
-										appState.navigate('/loading/mods');
+									updateState({ targetPathAfterLoad: '/collections/raw-mods' }, () => {
+										navigate('/loading/mods');
 									});
 								} else {
-									appState.navigate('/collections/raw-mods');
+									navigate('/collections/raw-mods');
 								}
 								break;
 							case 'settings':
-								appState.navigate('/settings');
+								navigate('/settings');
 								break;
 							case 'main':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/colections/main' }, () => {
-										appState.navigate('/loading/mods');
+									updateState({ targetPathAfterLoad: '/collections/main' }, () => {
+										navigate('/loading/mods');
 									});
 								} else {
-									appState.navigate('/collections/main');
+									navigate('/collections/main');
 								}
 								break;
 							case 'steam':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/browse/steam' }, () => {
-										appState.navigate('/loading/mods');
+									updateState({ targetPathAfterLoad: '/browse/steam' }, () => {
+										navigate('/loading/mods');
 									});
 								} else {
-									appState.navigate('/browse/steam');
+									navigate('/browse/steam');
 								}
 								break;
 							case 'ttqmm':
 								if (loadBeforeNavigation) {
-									appState.updateState({ targetPathAfterLoad: '/browse/ttqmm' }, () => {
-										appState.navigate('/loading/mods');
+									updateState({ targetPathAfterLoad: '/browse/ttqmm' }, () => {
+										navigate('/loading/mods');
 									});
-									appState.navigate('/loading/mods');
+									navigate('/loading/mods');
 								} else {
-									appState.navigate('/browse/ttqmm');
+									navigate('/browse/ttqmm');
 								}
 								break;
 							default:
@@ -104,6 +95,6 @@ class MenuBar extends Component<MenuProps, MenuState> {
 	}
 }
 
-export default (props: { disableNavigation: boolean; currentTab: string; appState: AppState }) => {
+export default (props: { disableNavigation: boolean; appState: AppState }) => {
 	return <MenuBar {...props} navigate={useNavigate()} />;
 };

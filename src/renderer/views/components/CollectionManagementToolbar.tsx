@@ -239,7 +239,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 							</Button>
 							<Button
 								shape="circle"
-								key="save"
+								key="copy"
 								type="primary"
 								icon={<CopyOutlined />}
 								onClick={saveCollectionCallback}

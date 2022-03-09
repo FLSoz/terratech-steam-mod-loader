@@ -484,7 +484,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	launchGame() {
-		console.log('launching game');
+		api.logger.info('launching game');
 		const { appState } = this.props;
 		const { activeCollection, mods, updateState } = appState;
 		const { madeEdits, lastValidationStatus } = this.state;

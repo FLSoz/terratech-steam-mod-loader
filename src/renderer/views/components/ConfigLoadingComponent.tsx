@@ -144,13 +144,15 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 	}
 
 	proceedToNext() {
-		const { appState, navigate } = this.props;
-		const { configErrors } = appState;
+		const { appState } = this.props;
+		const { config, configErrors, updateState, navigate } = appState;
 		if (!!configErrors && Object.keys(configErrors).length > 0) {
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
-			navigate('/settings', { state: this.state });
+			config.currentTab = "settings";
+			updateState({}, () => navigate('/settings'));
 		} else {
-			navigate('/loading/mods', { state: this.state });
+			config.currentTab = "main";
+			updateState({}, () => navigate('/loading/mods'));
 		}
 	}
 
@@ -159,7 +161,6 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 		const { config, allCollections, allCollectionNames, updateState } = appState;
 		const { loadedCollections, loadingConfig, totalCollections, updatingSteamMod } = this.state;
 		if (!updatingSteamMod && totalCollections >= 0 && loadedCollections >= totalCollections && !loadingConfig) {
-			console.log('hello world');
 			if (allCollectionNames.size > 0) {
 				// We always override activeCollection with something
 				if (config && config.activeCollection) {

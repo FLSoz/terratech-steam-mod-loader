@@ -102,8 +102,12 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 			() => {
 				const { totalMods } = this.state;
 				if (loadedMods + 1 >= totalMods) {
+					api.logger.info(`Loading complete: moving to ${appState.targetPathAfterLoad}`)
 					appState.firstModLoad = true;
 					appState.navigate(appState.targetPathAfterLoad);
+				}
+				else {
+					api.logger.info(`Loaded ${loadedMods} out of ${totalMods}`)
 				}
 			}
 		);
