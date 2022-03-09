@@ -125,7 +125,7 @@ const createWindow = async () => {
 		log.info(`App Version: ${app.getVersion()}`);
 		log.info(`App Name: ${app.getName()}`);
 		const version = app.getVersion();
-		mainWindow?.setTitle(`${name} ${version}`);
+		mainWindow?.setTitle(`${name} v${version}`);
 	});
 
 	// Remove this if your app does not use auto updates
