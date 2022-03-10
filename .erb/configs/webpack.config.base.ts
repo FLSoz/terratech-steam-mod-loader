@@ -7,45 +7,44 @@ import webpackPaths from './webpack.paths';
 import { dependencies as externals } from '../../release/app/package.json';
 
 const DEFAULT_CONFIGURATION: Configuration = {
-  externals: [...Object.keys(externals || {})],
+	externals: [...Object.keys(externals || {})],
 
-  stats: 'errors-only',
+	stats: 'errors-only',
 
-  module: {
-    rules: [
-      {
-        test: /\.[jt]sx?$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'ts-loader',
-        },
-      },
-    ],
-  },
+	module: {
+		rules: [
+			{
+				test: /\.[jt]sx?$/,
+				exclude: /node_modules/,
+				use: {
+					loader: 'ts-loader',
+				},
+			},
+		],
+	},
 
-  output: {
-    path: webpackPaths.srcPath,
+	output: {
+		path: webpackPaths.srcPath,
 		filename: undefined,
-    // https://github.com/webpack/webpack/issues/1114
-    library: {
-      type: 'commonjs2',
-    },
-  },
+		// https://github.com/webpack/webpack/issues/1114
+		library: {
+			type: 'commonjs2',
+		},
+	},
 
-  /**
-   * Determine the array of extensions that should be used to resolve modules.
-   */
-  resolve: {
-    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
-    modules: [webpackPaths.srcPath, 'node_modules'],
-  },
+	/**
+	 * Determine the array of extensions that should be used to resolve modules.
+	 */
+	resolve: {
+		extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
+		modules: [webpackPaths.srcPath, 'node_modules'],
+	},
 
-  plugins: [
-    new webpack.EnvironmentPlugin({
-      NODE_ENV: 'production',
-    }),
-  ],
+	plugins: [
+		new webpack.EnvironmentPlugin({
+			NODE_ENV: 'production',
+		}),
+	],
 };
-
 
 export default DEFAULT_CONFIGURATION;
