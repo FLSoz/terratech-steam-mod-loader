@@ -18,6 +18,7 @@ node_modules
 # OSX
 .DS_Store
 
+release/greenworks
 release/app/greenworks
 release/app/dist
 release/build

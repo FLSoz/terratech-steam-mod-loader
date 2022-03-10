@@ -2,7 +2,7 @@
   "name": "terratech-steam-mod-loader",
   "productName": "ttsm",
   "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "main": "./dist/main/main.js",
   "author": {
     "name": "FLSoz",
@@ -15,6 +15,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "greenworks": "file:./greenworks"
+    "greenworks": "github:greenheartgames/greenworks"
   }
 }

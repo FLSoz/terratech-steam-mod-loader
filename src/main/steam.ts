@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Url } from 'url';
 import log from 'electron-log';
 import { ModType, ModConfig, Mod } from './model';
+import Steamworks from './steamworks';
 
 interface Author {
 	id: string;

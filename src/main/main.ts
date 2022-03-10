@@ -17,6 +17,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 import child_process from 'child_process';
+const greenworks = require('greenworks');
 
 import querySteam from './steam';
 import MenuBuilder from './menu';
@@ -25,9 +26,11 @@ import { ModConfig, Mod, ModCollection } from './model';
 
 const psList = require('ps-list');
 
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+
 export default class AppUpdater {
 	constructor() {
-		log.transports.file.level = 'info';
+		log.transports.file.level = isDevelopment ? 'info' : 'warn';
 		autoUpdater.logger = log;
 		autoUpdater.checkForUpdatesAndNotify();
 	}
@@ -40,8 +43,6 @@ if (process.env.NODE_ENV === 'production') {
 	const sourceMapSupport = require('source-map-support');
 	sourceMapSupport.install();
 }
-
-const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 if (isDevelopment) {
 	require('electron-debug')();
@@ -59,6 +60,66 @@ const installExtensions = async () => {
 		)
 		.catch(log.info);
 };
+
+
+var message = '';
+
+function testSteamAPI() {
+  var os = require('os');
+  var greenworks;
+  try {
+    // if greenworks is installed in a node_modules folder, this will work
+    greenworks = require('greenworks');
+  } catch(e) {
+    greenworks = require('../node_modules/greenworks');
+  }
+  if (!greenworks) {
+    log.info('Greenworks not support for ' + os.platform() + ' platform');
+  } else {
+    if (!greenworks.init()) {
+      log.info('Error on initializing steam API.');
+    } else {
+      log.info('Steam API initialized successfully.');
+      log.info('Cloud enabled: ' + greenworks.isCloudEnabled());
+      log.info('Cloud enabled for user: ' + greenworks.isCloudEnabledForUser());
+
+      greenworks.on('steam-servers-connected', function() { log.info('connected'); });
+      greenworks.on('steam-servers-disconnected', function() { log.info('disconnected'); });
+      greenworks.on('steam-server-connect-failure', function() { log.info('connected failure'); });
+      greenworks.on('steam-shutdown', function() { log.info('shutdown'); });
+
+      greenworks.saveTextToFile('test_file.txt', 'test_content',
+				function() { log.info('Save text to file successfully'); },
+				function(err: Error) { log.error('Failed on saving text to file', err);
+			});
+      greenworks.readTextFromFile('test_file.txt', function(message: string) {
+				log.info('Read text from file successfully: ', message); },
+				function(err: Error) { log.error('Failed on reading text from file', err);
+			});
+      greenworks.getCloudQuota(
+				function() { log.info('Getting cloud quota successfully.') },
+				function(err: Error) { log.error('Failed on getting cloud quota.', err)
+			});
+      // The ACH_WIN_ONE_GAME achievement is available for the sample (id:480) game
+      /* greenworks.activateAchievement('ACH_WIN_ONE_GAME',
+				function() { log.info('Activating achievement successfully'); },
+				function(err: Error) { log.error('Failed on activating achievement.', err);
+			}); */
+      greenworks.getNumberOfPlayers(
+				function(a: number) { log.info("Number of players " + a) },
+				function(err: Error) { log.error('Failed on getting number of players', err);
+			});
+
+      log.info("Numer of friends: " +
+          greenworks.getFriendCount(greenworks.FriendFlags.Immediate));
+      var friends = greenworks.getFriends(greenworks.FriendFlags.Immediate);
+      var friends_names = [];
+      for (var i = 0; i < friends.length; ++i)
+        friends_names.push(friends[i].getPersonaName());
+      log.info("Friends: [" + friends_names.join(',') + "]");
+    }
+  }
+}
 
 const createWindow = async () => {
 	if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
@@ -126,6 +187,8 @@ const createWindow = async () => {
 		log.info(`App Name: ${app.getName()}`);
 		const version = app.getVersion();
 		mainWindow?.setTitle(`${name} v${version}`);
+
+		testSteamAPI();
 	});
 
 	// Remove this if your app does not use auto updates
