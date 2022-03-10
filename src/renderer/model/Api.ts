@@ -119,7 +119,6 @@ class API {
 	}
 
 	launchGame(
-		steamExec: string,
 		workshopID: string,
 		closeOnLaunch: boolean,
 		modList: Mod[]
@@ -139,7 +138,6 @@ class API {
 		const args: string[] = ['+ttsmm_mod_list', modListStr];
 		return ipcRenderer.invoke(
 			ValidChannel.LAUNCH_GAME,
-			steamExec,
 			workshopID,
 			closeOnLaunch,
 			args

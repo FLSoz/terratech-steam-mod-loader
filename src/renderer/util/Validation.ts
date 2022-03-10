@@ -14,8 +14,7 @@ async function validateAppConfig(
 	config: AppConfig
 ): Promise<{ [field: string]: string } | undefined> {
 	const errors: { [field: string]: string } = {};
-	const fields: ('steamExec' | 'workshopDir' | 'localDir')[] = [
-		'steamExec',
+	const fields: ('workshopDir' | 'localDir')[] = [
 		'workshopDir',
 		'localDir',
 	];

@@ -512,7 +512,6 @@ class CollectionManagerComponent extends Component<
 				pause(
 					1000,
 					api.launchGame,
-					config!.steamExec,
 					config!.workshopID,
 					config!.closeOnLaunch,
 					mods

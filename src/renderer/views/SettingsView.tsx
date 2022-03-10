@@ -28,7 +28,6 @@ interface SettingsState {
 }
 
 interface SettingsFields {
-	steamExec?: string;
 	localDir?: string;
 	workshopDir?: string;
 	logsDir?: string;
@@ -69,7 +68,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 	setSelectedPath(
 		path: string,
-		target: 'steamExec' | 'localDir' | 'workshopDir'
+		target: 'localDir' | 'workshopDir'
 	) {
 		if (path) {
 			const { editingConfig } = this.state;
@@ -136,22 +135,6 @@ class SettingsView extends Component<AppState, SettingsState> {
 						throw new Error('Provided path is invalid');
 					}
 					switch (field) {
-						case 'steamExec': {
-							const matches = fileRegexPath.exec(value);
-							if (
-								!!matches &&
-								matches.groups &&
-								matches.groups.filename.toLowerCase().includes('steam')
-							) {
-								delete configErrors[field];
-								updateState({});
-								return true;
-							}
-							configErrors[field] =
-								"The Steam executable should include 'Steam' in the filename";
-							updateState({});
-							return false;
-						}
 						case 'localDir':
 							if (value.endsWith('LocalMods')) {
 								delete configErrors[field];
@@ -218,49 +201,6 @@ class SettingsView extends Component<AppState, SettingsState> {
 						}}
 						name="control-ref"
 					>
-						<Form.Item
-							name="steamExec"
-							label="Steam Executable"
-							initialValue={editingConfig!.steamExec}
-							rules={[
-								{
-									required: true,
-									validator: (_, value) => {
-										return this.validateFile('steamExec', value);
-									},
-								},
-							]}
-							tooltip="Path to Steam executable"
-							help={
-								configErrors && configErrors.steamExec
-									? configErrors.steamExec
-									: undefined
-							}
-							validateStatus={
-								configErrors && configErrors.steamExec ? 'error' : undefined
-							}
-						>
-							<Search
-								disabled={selectingDirectory}
-								value={editingConfig!.steamExec}
-								enterButton={<FolderOutlined />}
-								onChange={(event) => {
-									editingConfig!.steamExec = event.target.value;
-									updateState({ madeConfigEdits: true });
-								}}
-								onSearch={() => {
-									if (!selectingDirectory) {
-										api.send(
-											ValidChannel.SELECT_PATH,
-											'steamExec',
-											false,
-											'Select Steam executable'
-										);
-										this.setState({ selectingDirectory: true });
-									}
-								}}
-							/>
-						</Form.Item>
 						<Form.Item
 							name="localDir"
 							label="Local Mods Directory"

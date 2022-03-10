@@ -21,6 +21,9 @@ import {
 	UpdatePublishedWorkshopFileProps,
 	ItemInstallInfo,
 	UGCItemState,
+
+	// IFriends
+	SteamID,
 } from './types';
 
 class SteamworksAPI {
@@ -49,6 +52,9 @@ class SteamworksAPI {
 	getMediumFriendAvatar(raw_steam_id: string): number {
 		return greenworks.getMediumFriendAvatar(raw_steam_id);
 	}
+	/**
+	 * Gets the large (128*128) avatar. Returns an integer handle which is used in getImageRGBA();
+	 * returns 0 if none set; returns -1 if this image has yet to be loaded, in this case you should wait for avatar-image-loaded event. */
 	getLargeFriendAvatar(raw_steam_id: string): number {
 		return greenworks.getLargeFriendAvatar(raw_steam_id);
 	}
@@ -68,6 +74,21 @@ class SteamworksAPI {
 	}
 	getAppBuildId(): number {
 		return greenworks.getAppBuildId();
+	}
+	getAppId(): number {
+		return greenworks.getAppId();
+	}
+	getSteamId(): SteamID {
+		return greenworks.getSteamId();
+	}
+	isAppInstalled(appId: number): boolean {
+		return greenworks.isAppInstalled();
+	}
+	isSubscribedApp(appId: number): boolean {
+		return greenworks.isSubscribedApp();
+	}
+	getLaunchCommandLine(): string {
+		return greenworks.getLaunchCommandLine();
 	}
 
 	// Utils

@@ -83,6 +83,8 @@ function testSteamAPI() {
 			log.info('Cloud enabled: ' + greenworks.isCloudEnabled());
 			log.info('Cloud enabled for user: ' + greenworks.isCloudEnabledForUser());
 
+			log.info(`Steam Command Line: ${greenworks.getLaunchCommandLine()}`);
+
 			greenworks.on('steam-servers-connected', function () {
 				log.info('connected');
 			});
@@ -540,19 +542,15 @@ ipcMain.on('game-running', async (event) => {
 // Launch steam as separate process
 ipcMain.handle(
 	'launch-game',
-	async (_event, steamExec, workshopID, closeOnLaunch, args) => {
+	async (_event, workshopID, closeOnLaunch, args) => {
 		log.info('Launching game with custom args:');
 		const allArgs = [
-			'-applaunch',
-			'285920',
 			'+custom_mod_list',
 			`[workshop:${workshopID}]`,
 			...args,
 		];
 		log.info(allArgs);
-		await child_process.spawn(steamExec, allArgs, {
-			detached: true,
-		});
+		shell.openExternal(`steam://run/285920//${allArgs.join(' ')}/`);
 		if (closeOnLaunch) {
 			app.quit();
 		}

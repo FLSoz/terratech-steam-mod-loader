@@ -2,20 +2,6 @@ export const { platform } = window.electron;
 export const DEFAULT_WORKSHOP_ID = '2655051786';
 export const TT_APP_ID = '285920';
 
-function getDefaultSteamExec(): string {
-	switch (platform) {
-		case 'win32':
-			return 'C:\\Program Files(x86)\\Steam\\steam.exe';
-			break;
-		case 'darwin':
-			return '/Applications/Steam.app';
-			break;
-		default:
-			return '~/.steam/steam/Steam';
-	}
-}
-export const DEFAULT_STEAM_EXEC = getDefaultSteamExec();
-
 function getDefaultLocalDir(): string {
 	switch (platform) {
 		case 'win32':
