@@ -1,4 +1,9 @@
-import { DEFAULT_WORKSHOP_ID, DEFAULT_LOCAL_DIR, DEFAULT_STEAM_EXEC, DEFAULT_WORKSHOP_DIR } from '../Constants';
+import {
+	DEFAULT_WORKSHOP_ID,
+	DEFAULT_LOCAL_DIR,
+	DEFAULT_STEAM_EXEC,
+	DEFAULT_WORKSHOP_DIR,
+} from '../Constants';
 
 export interface AppConfig {
 	closeOnLaunch: boolean;
@@ -45,5 +50,5 @@ export const DEFAULT_CONFIG: AppConfig = {
 	activeCollection: undefined,
 	steamMaxConcurrency: 5,
 
-	currentTab: 'main'
+	currentTab: 'main',
 };

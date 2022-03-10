@@ -1,7 +1,17 @@
 import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
 import { AppConfig } from 'renderer/model/AppConfig';
-import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader } from 'antd';
+import {
+	Layout,
+	Form,
+	Input,
+	InputNumber,
+	Switch,
+	Button,
+	FormInstance,
+	Space,
+	PageHeader,
+} from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import { api, ValidChannel } from 'renderer/model/Api';
 import { FolderOutlined } from '@ant-design/icons';
@@ -38,7 +48,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 		const appState = props as AppState;
 		this.state = {
 			editingConfig: { ...(appState.config as AppConfig) },
-			selectingDirectory: false
+			selectingDirectory: false,
 		};
 
 		this.saveChanges = this.saveChanges.bind(this);
@@ -57,7 +67,10 @@ class SettingsView extends Component<AppState, SettingsState> {
 		api.removeAllListeners(ValidChannel.SELECT_PATH_RESULT);
 	}
 
-	setSelectedPath(path: string, target: 'steamExec' | 'localDir' | 'workshopDir') {
+	setSelectedPath(
+		path: string,
+		target: 'steamExec' | 'localDir' | 'workshopDir'
+	) {
 		if (path) {
 			const { editingConfig } = this.state;
 			editingConfig![target] = path;
@@ -81,7 +94,10 @@ class SettingsView extends Component<AppState, SettingsState> {
 		api
 			.updateConfig(editingConfig!)
 			.then(() => {
-				updateState({ config: { ...(editingConfig as AppConfig) }, madeConfigEdits: false });
+				updateState({
+					config: { ...(editingConfig as AppConfig) },
+					madeConfigEdits: false,
+				});
 				return true;
 			})
 			.catch((error) => {
@@ -122,12 +138,17 @@ class SettingsView extends Component<AppState, SettingsState> {
 					switch (field) {
 						case 'steamExec': {
 							const matches = fileRegexPath.exec(value);
-							if (!!matches && matches.groups && matches.groups.filename.toLowerCase().includes('steam')) {
+							if (
+								!!matches &&
+								matches.groups &&
+								matches.groups.filename.toLowerCase().includes('steam')
+							) {
 								delete configErrors[field];
 								updateState({});
 								return true;
 							}
-							configErrors[field] = "The Steam executable should include 'Steam' in the filename";
+							configErrors[field] =
+								"The Steam executable should include 'Steam' in the filename";
 							updateState({});
 							return false;
 						}
@@ -137,7 +158,8 @@ class SettingsView extends Component<AppState, SettingsState> {
 								updateState({});
 								return true;
 							}
-							configErrors[field] = "The local mods directory should end with 'TerraTech/LocalMods'";
+							configErrors[field] =
+								"The local mods directory should end with 'TerraTech/LocalMods'";
 							updateState({});
 							return false;
 
@@ -147,7 +169,9 @@ class SettingsView extends Component<AppState, SettingsState> {
 								updateState({});
 								return true;
 							}
-							configErrors[field] = `The workshop directory should end with TT app ID 'Steam/steamapps/workshop/content/${TT_APP_ID}'`;
+							configErrors[
+								field
+							] = `The workshop directory should end with TT app ID 'Steam/steamapps/workshop/content/${TT_APP_ID}'`;
 							updateState({});
 							return false;
 
@@ -173,7 +197,8 @@ class SettingsView extends Component<AppState, SettingsState> {
 
 	render() {
 		const { editingConfig, selectingDirectory } = this.state;
-		const { madeConfigEdits, savingConfig, configErrors, updateState } = this.props;
+		const { madeConfigEdits, savingConfig, configErrors, updateState } =
+			this.props;
 		return (
 			<Layout style={{ width: '100%' }}>
 				<Content className="Settings">
@@ -189,7 +214,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 						style={{
 							margin: 40,
 							alignContent: 'center',
-							justifyContent: 'center'
+							justifyContent: 'center',
 						}}
 						name="control-ref"
 					>
@@ -202,12 +227,18 @@ class SettingsView extends Component<AppState, SettingsState> {
 									required: true,
 									validator: (_, value) => {
 										return this.validateFile('steamExec', value);
-									}
-								}
+									},
+								},
 							]}
 							tooltip="Path to Steam executable"
-							help={configErrors && configErrors.steamExec ? configErrors.steamExec : undefined}
-							validateStatus={configErrors && configErrors.steamExec ? 'error' : undefined}
+							help={
+								configErrors && configErrors.steamExec
+									? configErrors.steamExec
+									: undefined
+							}
+							validateStatus={
+								configErrors && configErrors.steamExec ? 'error' : undefined
+							}
 						>
 							<Search
 								disabled={selectingDirectory}
@@ -219,7 +250,12 @@ class SettingsView extends Component<AppState, SettingsState> {
 								}}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'steamExec', false, 'Select Steam executable');
+										api.send(
+											ValidChannel.SELECT_PATH,
+											'steamExec',
+											false,
+											'Select Steam executable'
+										);
 										this.setState({ selectingDirectory: true });
 									}
 								}}
@@ -233,9 +269,12 @@ class SettingsView extends Component<AppState, SettingsState> {
 								title: (
 									<div>
 										<p>Path to TT Local Mods directory</p>
-										<p>It will be called &quot;LocalMods&quot;, and be under Steam/steamapps/common/TerraTech</p>
+										<p>
+											It will be called &quot;LocalMods&quot;, and be under
+											Steam/steamapps/common/TerraTech
+										</p>
 									</div>
-								)
+								),
 							}}
 							initialValue={editingConfig!.localDir}
 							rules={[
@@ -243,11 +282,17 @@ class SettingsView extends Component<AppState, SettingsState> {
 									required: true,
 									validator: (_, value) => {
 										return this.validateFile('localDir', value);
-									}
-								}
+									},
+								},
 							]}
-							help={configErrors && configErrors.localDir ? configErrors.localDir : undefined}
-							validateStatus={configErrors && configErrors.localDir ? 'error' : undefined}
+							help={
+								configErrors && configErrors.localDir
+									? configErrors.localDir
+									: undefined
+							}
+							validateStatus={
+								configErrors && configErrors.localDir ? 'error' : undefined
+							}
 						>
 							<Search
 								disabled={selectingDirectory}
@@ -259,7 +304,12 @@ class SettingsView extends Component<AppState, SettingsState> {
 								}}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'localDir', true, 'Select TerraTech LocalMods directory');
+										api.send(
+											ValidChannel.SELECT_PATH,
+											'localDir',
+											true,
+											'Select TerraTech LocalMods directory'
+										);
 										this.setState({ selectingDirectory: true });
 									}
 								}}
@@ -273,9 +323,11 @@ class SettingsView extends Component<AppState, SettingsState> {
 								title: (
 									<div>
 										<p>Path to Steam Workshop directory</p>
-										<p>It will be under Steam/steamapps/workshop/content/285920</p>
+										<p>
+											It will be under Steam/steamapps/workshop/content/285920
+										</p>
 									</div>
-								)
+								),
 							}}
 							initialValue={editingConfig!.workshopDir}
 							rules={[
@@ -283,11 +335,17 @@ class SettingsView extends Component<AppState, SettingsState> {
 									required: true,
 									validator: (_, value) => {
 										return this.validateFile('workshopDir', value);
-									}
-								}
+									},
+								},
 							]}
-							help={configErrors && configErrors.workshopDir ? configErrors.workshopDir : undefined}
-							validateStatus={configErrors && configErrors.workshopDir ? 'error' : undefined}
+							help={
+								configErrors && configErrors.workshopDir
+									? configErrors.workshopDir
+									: undefined
+							}
+							validateStatus={
+								configErrors && configErrors.workshopDir ? 'error' : undefined
+							}
 						>
 							<Search
 								disabled={selectingDirectory}
@@ -295,31 +353,51 @@ class SettingsView extends Component<AppState, SettingsState> {
 								enterButton={<FolderOutlined />}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'workshopDir', true, 'Select TerraTech Steam workshop directory');
+										api.send(
+											ValidChannel.SELECT_PATH,
+											'workshopDir',
+											true,
+											'Select TerraTech Steam workshop directory'
+										);
 										this.setState({ selectingDirectory: true });
 									}
 								}}
 								onChange={(event) => {
 									editingConfig!.workshopDir = event.target.value;
 									updateState({ madeConfigEdits: true });
-									this.formRef.current!.setFieldsValue({ workshopDir: event.target.value });
+									this.formRef.current!.setFieldsValue({
+										workshopDir: event.target.value,
+									});
 								}}
 							/>
 						</Form.Item>
-						<Form.Item name="logsDir" label="Logs Directory" initialValue={editingConfig!.logsDir}>
+						<Form.Item
+							name="logsDir"
+							label="Logs Directory"
+							initialValue={editingConfig!.logsDir}
+						>
 							<Search
 								disabled
 								value={editingConfig!.logsDir}
 								enterButton={<FolderOutlined />}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'logsDir', true, 'Select directory for logs');
+										api.send(
+											ValidChannel.SELECT_PATH,
+											'logsDir',
+											true,
+											'Select directory for logs'
+										);
 										this.setState({ selectingDirectory: true });
 									}
 								}}
 							/>
 						</Form.Item>
-						<Form.Item name="closeOnLaunch" label="Close on Game Launch" initialValue={editingConfig!.closeOnLaunch}>
+						<Form.Item
+							name="closeOnLaunch"
+							label="Close on Game Launch"
+							initialValue={editingConfig!.closeOnLaunch}
+						>
 							<Switch
 								checked={editingConfig!.closeOnLaunch}
 								onChange={(checked) => {
@@ -331,7 +409,12 @@ class SettingsView extends Component<AppState, SettingsState> {
 								}}
 							/>
 						</Form.Item>
-						<Form.Item name="workshopID" label="Workshop ID" rules={[{ required: true }]} initialValue={editingConfig!.workshopID}>
+						<Form.Item
+							name="workshopID"
+							label="Workshop ID"
+							rules={[{ required: true }]}
+							initialValue={editingConfig!.workshopID}
+						>
 							<InputNumber
 								disabled
 								value={editingConfig!.workshopID}
@@ -341,7 +424,12 @@ class SettingsView extends Component<AppState, SettingsState> {
 								}}
 							/>
 						</Form.Item>
-						<Form.Item name="steamMaxConcurrency" label="Steam API Limit" rules={[{ required: true }]} initialValue={editingConfig!.steamMaxConcurrency}>
+						<Form.Item
+							name="steamMaxConcurrency"
+							label="Steam API Limit"
+							rules={[{ required: true }]}
+							initialValue={editingConfig!.steamMaxConcurrency}
+						>
 							<InputNumber
 								disabled
 								min={0}
@@ -357,13 +445,20 @@ class SettingsView extends Component<AppState, SettingsState> {
 							<Space size="large" align="center">
 								<Button
 									loading={savingConfig}
-									disabled={!madeConfigEdits || (!!configErrors && Object.keys(configErrors).length > 0)}
+									disabled={
+										!madeConfigEdits ||
+										(!!configErrors && Object.keys(configErrors).length > 0)
+									}
 									type="primary"
 									htmlType="submit"
 								>
 									Save Changes
 								</Button>
-								<Button disabled={!madeConfigEdits} htmlType="button" onClick={this.cancelChanges}>
+								<Button
+									disabled={!madeConfigEdits}
+									htmlType="button"
+									onClick={this.cancelChanges}
+								>
 									Reset Changes
 								</Button>
 							</Space>

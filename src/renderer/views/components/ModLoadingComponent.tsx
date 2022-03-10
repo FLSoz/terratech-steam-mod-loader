@@ -24,7 +24,10 @@ interface ModLoadingState {
 	totalMods: number;
 }
 
-class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingState> {
+class ModLoadingComponent extends Component<
+	{ appState: AppState },
+	ModLoadingState
+> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: { appState: AppState }) {
@@ -41,7 +44,7 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 			workshopModPaths: [],
 			localModPaths: [],
 			loadedMods: 0,
-			totalMods: 0
+			totalMods: 0,
 		};
 
 		this.addModPathsCallback = this.addModPathsCallback.bind(this);
@@ -97,17 +100,18 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 		}
 		this.setState(
 			{
-				loadedMods: loadedMods + 1
+				loadedMods: loadedMods + 1,
 			},
 			() => {
 				const { totalMods } = this.state;
 				if (loadedMods + 1 >= totalMods) {
-					api.logger.info(`Loading complete: moving to ${appState.targetPathAfterLoad}`)
+					api.logger.info(
+						`Loading complete: moving to ${appState.targetPathAfterLoad}`
+					);
 					appState.firstModLoad = true;
 					appState.navigate(appState.targetPathAfterLoad);
-				}
-				else {
-					api.logger.info(`Loaded ${loadedMods} out of ${totalMods}`)
+				} else {
+					api.logger.info(`Loaded ${loadedMods} out of ${totalMods}`);
 				}
 			}
 		);
@@ -117,13 +121,13 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 		const count = paths.length;
 		const { totalMods } = this.state;
 		this.setState({
-			totalMods: totalMods + count
+			totalMods: totalMods + count,
 		});
 		if (type === ModType.WORKSHOP) {
 			this.setState(
 				{
 					countedWorkshopMods: true,
-					workshopModPaths: paths
+					workshopModPaths: paths,
 				},
 				this.conditionalLoadMods
 			);
@@ -131,7 +135,7 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 			this.setState(
 				{
 					countedLocalMods: true,
-					localModPaths: paths
+					localModPaths: paths,
 				},
 				this.conditionalLoadMods
 			);
@@ -139,10 +143,16 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 	}
 
 	conditionalLoadMods() {
-		const { countedLocalMods, countedWorkshopMods, totalMods, loadingMods } = this.state;
-		if (countedLocalMods && countedWorkshopMods && totalMods > 0 && !loadingMods) {
+		const { countedLocalMods, countedWorkshopMods, totalMods, loadingMods } =
+			this.state;
+		if (
+			countedLocalMods &&
+			countedWorkshopMods &&
+			totalMods > 0 &&
+			!loadingMods
+		) {
 			this.setState({
-				loadingMods: true
+				loadingMods: true,
 			});
 			this.loadMods();
 		}
@@ -150,17 +160,39 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 
 	loadMods() {
 		const { localModPaths, workshopModPaths, config } = this.state;
-		const sendRequest = (props: ForEachProps<string>, prefix: string, type: ModType) => {
+		const sendRequest = (
+			props: ForEachProps<string>,
+			prefix: string,
+			type: ModType
+		) => {
 			const path: string = props.value;
-			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [prefix], path }, type, type === ModType.WORKSHOP ? parseInt(path, 10) : undefined);
+			api.send(
+				ValidChannel.READ_MOD_METADATA,
+				{ prefixes: [prefix], path },
+				type,
+				type === ModType.WORKSHOP ? parseInt(path, 10) : undefined
+			);
 		};
-		delayForEach(localModPaths, 100, sendRequest, config.localDir, ModType.LOCAL);
-		delayForEach(workshopModPaths, 100, sendRequest, config.workshopDir, ModType.WORKSHOP);
+		delayForEach(
+			localModPaths,
+			100,
+			sendRequest,
+			config.localDir,
+			ModType.LOCAL
+		);
+		delayForEach(
+			workshopModPaths,
+			100,
+			sendRequest,
+			config.workshopDir,
+			ModType.WORKSHOP
+		);
 	}
 
 	render() {
 		const { loadedMods, totalMods } = this.state;
-		const percent = totalMods > 0 ? Math.round((100 * loadedMods) / totalMods) : 100;
+		const percent =
+			totalMods > 0 ? Math.round((100 * loadedMods) / totalMods) : 100;
 		return (
 			<Layout style={{ minHeight: '100vh', minWidth: '100vw' }}>
 				<SizeMe monitorHeight monitorWidth refreshMode="debounce">
@@ -172,10 +204,14 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 										position: 'absolute',
 										left: '50%',
 										top: '30%',
-										transform: 'translate(-50%, -50%)'
+										transform: 'translate(-50%, -50%)',
 									}}
 								>
-									<ReactLoading type="bars" color="#DDD" width={(size.width as number) / 4} />
+									<ReactLoading
+										type="bars"
+										color="#DDD"
+										width={(size.width as number) / 4}
+									/>
 								</div>
 							</Content>
 						);
@@ -185,7 +221,7 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 					<Progress
 						strokeColor={{
 							from: '#108ee9',
-							to: '#87d068'
+							to: '#87d068',
 						}}
 						percent={percent}
 					/>

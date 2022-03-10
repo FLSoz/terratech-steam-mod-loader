@@ -1,7 +1,7 @@
 export enum ModType {
 	WORKSHOP = 'workshop',
 	LOCAL = 'local',
-	TTQMM = 'ttqmm'
+	TTQMM = 'ttqmm',
 }
 
 export interface ModConfig {

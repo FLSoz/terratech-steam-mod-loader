@@ -18,7 +18,7 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 			UID: `workshop:${workshopID}`,
 			ID: workshopID.toString(),
 			WorkshopID: workshopID,
-			type: ModType.WORKSHOP
+			type: ModType.WORKSHOP,
 		};
 		const modConfig: ModConfig = {};
 		resultMod.config = modConfig;
@@ -62,10 +62,17 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 					tagsMap[sanitizedCategory] = tags;
 				}
 			});
-			if (tagsMap.type && (tagsMap.type.includes('mods') || tagsMap.type.includes('Mods'))) {
+			if (
+				tagsMap.type &&
+				(tagsMap.type.includes('mods') || tagsMap.type.includes('Mods'))
+			) {
 				const modTags = tagsMap.mods;
 				if (modTags && modTags.length > 0) {
-					modConfig.hasCode = modTags.includes('code') || modTags.includes('C#') || modTags.includes('Code') || modTags.includes('c#');
+					modConfig.hasCode =
+						modTags.includes('code') ||
+						modTags.includes('C#') ||
+						modTags.includes('Code') ||
+						modTags.includes('c#');
 				} else {
 					modConfig.hasCode = true;
 				}
@@ -90,7 +97,9 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 			// Title should not be fooled, but just in case, take what's displayed later
 			const modNameSearch2 = mod.querySelector('.game_area_purchase_game');
 			if (modNameSearch2 && modNameSearch2.rawText) {
-				const matches = modNameSearch2.rawText.match(/Subscribe to download(.*)\n/);
+				const matches = modNameSearch2.rawText.match(
+					/Subscribe to download(.*)\n/
+				);
 				if (matches && matches.length >= 2) {
 					const validation = matches[1];
 					if (validation !== modConfig.name) {
@@ -100,14 +109,17 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 			}
 
 			// description?: string;
-			const description: string = mod.querySelector('#highlightContent').toString();
+			const description: string = mod
+				.querySelector('#highlightContent')
+				.toString();
 			modConfig.description = description;
 
 			// dependsOn?: string[];
 			// loadAfter?: string[];
 			const requiredItemsBox = mod.querySelector('#RequiredItems');
 			if (requiredItemsBox) {
-				const requiredNodes: HTMLElement[] = requiredItemsBox.childNodes as HTMLElement[];
+				const requiredNodes: HTMLElement[] =
+					requiredItemsBox.childNodes as HTMLElement[];
 				const requiredIds: string[] = requiredNodes
 					.filter((node) => {
 						return !!node.attributes;
@@ -115,7 +127,9 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 					.map((node) => {
 						const { href } = node.attributes;
 						if (href) {
-							const matches = href.match(/^https:\/\/steamcommunity.com\/workshop\/filedetails\/\?id=([0-9]+)$/);
+							const matches = href.match(
+								/^https:\/\/steamcommunity.com\/workshop\/filedetails\/\?id=([0-9]+)$/
+							);
 							if (matches && matches.length > 1) {
 								return matches[1];
 							}
@@ -131,7 +145,9 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 			}
 
 			// author?: string;
-			const createdByNodeSearch = mod.querySelectorAll('.rightSectionTopTitle').filter((node) => node.text === 'Created by');
+			const createdByNodeSearch = mod
+				.querySelectorAll('.rightSectionTopTitle')
+				.filter((node) => node.text === 'Created by');
 			if (createdByNodeSearch && createdByNodeSearch.length > 0) {
 				let authorsNode: HTMLElement | null = null;
 				let visitedCreatedBy = false;
@@ -245,7 +261,9 @@ function updateRate(rate: number) {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // get the result from steam
 export default async function querySteam(id: BigInt): Promise<Mod | null> {
-	const response = await axios.get(`https://steamcommunity.com/sharedfiles/filedetails/?id=${id.toString()}`);
+	const response = await axios.get(
+		`https://steamcommunity.com/sharedfiles/filedetails/?id=${id.toString()}`
+	);
 	await delay(0.5);
 	log.info(`Got steam results for ${id}`);
 	const mod: HTMLElement = parse(response.data.toString());

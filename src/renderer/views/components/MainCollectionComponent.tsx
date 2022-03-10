@@ -2,7 +2,12 @@
 import { Layout, Table, Tag, Space, Tooltip, Image } from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
-import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined } from '@ant-design/icons';
+import {
+	DeploymentUnitOutlined,
+	FileImageOutlined,
+	ShareAltOutlined,
+	CodeOutlined,
+} from '@ant-design/icons';
 import parse from 'html-react-parser';
 
 import { ColumnType } from 'antd/lib/table';
@@ -61,19 +66,25 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 			? ttmm
 			: local}
 			*/
-		const { setEnabledModsCallback, setEnabledCallback, setDisabledCallback } = this.props;
+		const { setEnabledModsCallback, setEnabledCallback, setDisabledCallback } =
+			this.props;
 
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		const rowSelection: TableRowSelection<ModData> = {
 			selections: [Table.SELECTION_INVERT],
 			selectedRowKeys: collection.mods,
 			onChange: (selectedRowKeys: React.Key[]) => {
-				const currentVisible = new Set(filteredRows.map((modData) => modData.uid));
+				const currentVisible = new Set(
+					filteredRows.map((modData) => modData.uid)
+				);
 				const currentSelection = collection.mods;
 				const newSelection = rows
 					.map((modData) => modData.uid)
 					.filter((mod) => {
-						return (!currentVisible.has(mod) && currentSelection.includes(mod)) || selectedRowKeys.includes(mod);
+						return (
+							(!currentVisible.has(mod) && currentSelection.includes(mod)) ||
+							selectedRowKeys.includes(mod)
+						);
 					});
 				setEnabledModsCallback(new Set(newSelection));
 			},
@@ -122,17 +133,18 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 					selected.delete(mod);
 				});
 				setEnabledModsCallback(selected);
-			}
+			},
 		};
 
 		const expandable = {
 			// eslint-disable-next-line @typescript-eslint/ban-types
-			expandedRowRender: (record: ModData) => parse(record.description as string),
+			expandedRowRender: (record: ModData) =>
+				parse(record.description as string),
 			// eslint-disable-next-line @typescript-eslint/ban-types
 			rowExpandable: (record: ModData) => {
 				const { description } = record;
 				return !!description && description.length > 0;
-			}
+			},
 		};
 
 		// eslint-disable-next-line @typescript-eslint/ban-types
@@ -142,7 +154,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				dataIndex: 'type',
 				render: (type: ModType) => getImageSrcFromType(type),
 				width: 65,
-				align: 'center'
+				align: 'center',
 			},
 			{
 				title: 'Preview',
@@ -151,10 +163,12 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 					if (imgPath) {
 						return <Image width={60} src={imgPath} key="preview" />;
 					}
-					return <FileImageOutlined style={{ fontSize: '40px', color: '#08c' }} />;
+					return (
+						<FileImageOutlined style={{ fontSize: '40px', color: '#08c' }} />
+					);
 				},
 				width: 85,
-				align: 'center'
+				align: 'center',
 			},
 			{
 				key: 'dependency',
@@ -190,13 +204,13 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 						</Space>
 					);
 				},
-				width: 75
+				width: 75,
 			},
 			{
 				title: 'Name',
 				dataIndex: 'name',
 				defaultSortOrder: 'ascend',
-				sorter: (a, b) => (a.name > b.name ? 1 : -1)
+				sorter: (a, b) => (a.name > b.name ? 1 : -1),
 			},
 			{
 				title: 'Tags',
@@ -210,7 +224,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 							</Tag>
 						);
 					});
-				}
+				},
 			},
 			{
 				title: 'Authors',
@@ -255,14 +269,17 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 							</Tag>
 						);
 					});
-				}
-			}
+				},
+			},
 		];
 
 		return (
 			// eslint-disable-next-line react/destructuring-assignment
 			<Layout style={{ width: this.props.width, height: this.props.height }}>
-				<Content key="main table" style={{ padding: '0px', overflowY: 'auto', scrollbarWidth: 'none' }}>
+				<Content
+					key="main table"
+					style={{ padding: '0px', overflowY: 'auto', scrollbarWidth: 'none' }}
+				>
 					<Table
 						dataSource={filteredRows}
 						pagination={false}

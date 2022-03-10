@@ -4,7 +4,9 @@ export interface CancellablePromise<Type> {
 	cancel: () => void;
 }
 
-export function cancellablePromise<Type>(promise: Promise<Type>): CancellablePromise<Type> {
+export function cancellablePromise<Type>(
+	promise: Promise<Type>
+): CancellablePromise<Type> {
 	const isCancelled = { value: false };
 	const wrappedPromise: Promise<Type> = new Promise((resolve, reject) => {
 		promise
@@ -20,7 +22,7 @@ export function cancellablePromise<Type>(promise: Promise<Type>): CancellablePro
 		promise: wrappedPromise,
 		cancel: () => {
 			isCancelled.value = true;
-		}
+		},
 	};
 }
 

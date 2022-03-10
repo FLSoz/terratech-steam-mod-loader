@@ -1,6 +1,16 @@
 import React, { Component } from 'react';
 import { AppState } from 'renderer/model/AppState';
-import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
+import {
+	Button,
+	Col,
+	Dropdown,
+	Menu,
+	Row,
+	Select,
+	Space,
+	Input,
+	Modal,
+} from 'antd';
 import {
 	EditOutlined,
 	PlusOutlined,
@@ -12,7 +22,7 @@ import {
 	CheckCircleOutlined,
 	CopyOutlined,
 	ImportOutlined,
-	ExportOutlined
+	ExportOutlined,
 } from '@ant-design/icons';
 import { api } from 'renderer/model/Api';
 
@@ -22,7 +32,7 @@ const { Search } = Input;
 enum CollectionManagementToolbarModalType {
 	NEW_COLLECTION = 'new-collection',
 	DUPLICATE_COLLECTION = 'duplicate-collection',
-	RENAME_COLLECTION = 'rename-collection'
+	RENAME_COLLECTION = 'rename-collection',
 }
 
 interface CollectionManagementToolbarState {
@@ -56,31 +66,41 @@ interface CollectionManagementToolbarModalProps {
 	callback: (name: string) => void;
 }
 
-export default class CollectionManagementToolbarComponent extends Component<CollectionManagementToolbarProps, CollectionManagementToolbarState> {
-	modalProps: Record<CollectionManagementToolbarModalType, CollectionManagementToolbarModalProps>;
+export default class CollectionManagementToolbarComponent extends Component<
+	CollectionManagementToolbarProps,
+	CollectionManagementToolbarState
+> {
+	modalProps: Record<
+		CollectionManagementToolbarModalType,
+		CollectionManagementToolbarModalProps
+	>;
 
 	constructor(props: CollectionManagementToolbarProps) {
 		super(props);
-		const { renameCollectionCallback, newCollectionCallback, duplicateCollectionCallback } = this.props;
+		const {
+			renameCollectionCallback,
+			newCollectionCallback,
+			duplicateCollectionCallback,
+		} = this.props;
 		this.modalProps = {
 			[CollectionManagementToolbarModalType.NEW_COLLECTION]: {
 				title: 'New Collection',
 				okText: 'Create New Collection',
-				callback: newCollectionCallback
+				callback: newCollectionCallback,
 			},
 			[CollectionManagementToolbarModalType.DUPLICATE_COLLECTION]: {
 				title: 'Duplicate Collection',
 				okText: 'Duplicate Collection',
-				callback: duplicateCollectionCallback
+				callback: duplicateCollectionCallback,
 			},
 			[CollectionManagementToolbarModalType.RENAME_COLLECTION]: {
 				title: 'Rename Collection',
 				okText: 'Rename Collection',
-				callback: renameCollectionCallback
-			}
+				callback: renameCollectionCallback,
+			},
 		};
 		this.state = {
-			modalText: ''
+			modalText: '',
 		};
 	}
 
@@ -105,7 +125,8 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 			return null;
 		}
 
-		const modalProps: CollectionManagementToolbarModalProps = this.modalProps[modalType];
+		const modalProps: CollectionManagementToolbarModalProps =
+			this.modalProps[modalType];
 
 		return (
 			<Modal
@@ -118,7 +139,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 				}}
 				okButtonProps={{
 					disabled: modalText.length === 0 || allCollectionNames.has(modalText),
-					loading: this.opInProgress()
+					loading: this.opInProgress(),
 				}}
 				onOk={() => {
 					this.setState({ modalText: '', modalType: undefined }, () => {
@@ -149,7 +170,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 			onSearchChangeCallback,
 			searchString,
 			madeEdits,
-			lastValidationStatus
+			lastValidationStatus,
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
 		return (
@@ -166,13 +187,15 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 										changeActiveCollectionCallback(value);
 									}}
 								>
-									{[...appState.allCollectionNames].sort().map((name: string) => {
-										return (
-											<Option key={name} value={name}>
-												{name}
-											</Option>
-										);
-									})}
+									{[...appState.allCollectionNames]
+										.sort()
+										.map((name: string) => {
+											return (
+												<Option key={name} value={name}>
+													{name}
+												</Option>
+											);
+										})}
 								</Select>
 							</Col>
 							<Col>
@@ -181,7 +204,10 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 										key="rename"
 										icon={<EditOutlined />}
 										onClick={() => {
-											this.setState({ modalType: CollectionManagementToolbarModalType.RENAME_COLLECTION });
+											this.setState({
+												modalType:
+													CollectionManagementToolbarModalType.RENAME_COLLECTION,
+											});
 										}}
 										disabled={disabledFeatures}
 									>
@@ -194,7 +220,10 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 												selectedKeys={[]}
 												onClick={(e) => {
 													if (e.key === 'duplicate') {
-														this.setState({ modalType: CollectionManagementToolbarModalType.DUPLICATE_COLLECTION });
+														this.setState({
+															modalType:
+																CollectionManagementToolbarModalType.DUPLICATE_COLLECTION,
+														});
 													}
 												}}
 											>
@@ -203,7 +232,10 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 										}
 										disabled={disabledFeatures}
 										onClick={() => {
-											this.setState({ modalType: CollectionManagementToolbarModalType.NEW_COLLECTION });
+											this.setState({
+												modalType:
+													CollectionManagementToolbarModalType.NEW_COLLECTION,
+											});
 										}}
 									>
 										<PlusOutlined />
@@ -213,7 +245,10 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 							</Col>
 						</Row>
 					</Col>
-					<Col span={4} style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
+					<Col
+						span={4}
+						style={{ display: 'inline-flex', justifyContent: 'flex-end' }}
+					>
 						<Space align="center">
 							<Button
 								shape="round"
@@ -267,7 +302,13 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 						</Space>
 					</Col>
 				</Row>
-				<Row key="row2" justify="space-between" align="top" gutter={16} style={{ lineHeight: '32px' }}>
+				<Row
+					key="row2"
+					justify="space-between"
+					align="top"
+					gutter={16}
+					style={{ lineHeight: '32px' }}
+				>
 					<Col span={14}>
 						<Row gutter={24}>
 							<Col span={numResults !== undefined ? 18 : 24} key="search">
@@ -296,10 +337,23 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 							) : null}
 						</Row>
 					</Col>
-					<Col key="tools" style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
+					<Col
+						key="tools"
+						style={{ display: 'inline-flex', justifyContent: 'flex-end' }}
+					>
 						<Space align="center" style={{ lineHeight: '32px' }}>
-							<Button key="undo" shape="circle" icon={<UndoOutlined />} disabled={disabledFeatures || true} />
-							<Button key="redo" shape="circle" icon={<RedoOutlined />} disabled={disabledFeatures || true} />
+							<Button
+								key="undo"
+								shape="circle"
+								icon={<UndoOutlined />}
+								disabled={disabledFeatures || true}
+							/>
+							<Button
+								key="redo"
+								shape="circle"
+								icon={<RedoOutlined />}
+								disabled={disabledFeatures || true}
+							/>
 							<Button
 								shape="round"
 								key="validate"
@@ -320,9 +374,12 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								icon={<SyncOutlined />}
 								disabled={disabledFeatures}
 								onClick={() => {
-									appState.updateState({ targetPathAfterLoad: '/collections/main' }, () => {
-										appState.navigate('/loading/mods');
-									});
+									appState.updateState(
+										{ targetPathAfterLoad: '/collections/main' },
+										() => {
+											appState.navigate('/loading/mods');
+										}
+									);
 								}}
 							>
 								Refresh

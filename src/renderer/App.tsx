@@ -4,7 +4,13 @@ import React, { Component } from 'react';
 import { Layout } from 'antd';
 
 import { AppState } from 'renderer/model/AppState';
-import { Outlet, useLocation, Location, useNavigate, NavigateFunction } from 'react-router-dom';
+import {
+	Outlet,
+	useLocation,
+	Location,
+	useNavigate,
+	NavigateFunction,
+} from 'react-router-dom';
 import MenuBar from './views/components/MenuBar';
 import { Mod } from './model/Mod';
 import { ModCollection } from './model/ModCollection';
@@ -12,7 +18,10 @@ import { DEFAULT_CONFIG } from './model/AppConfig';
 
 const { Sider } = Layout;
 
-class App extends Component<{ location: Location; navigate: NavigateFunction }, AppState> {
+class App extends Component<
+	{ location: Location; navigate: NavigateFunction },
+	AppState
+> {
 	constructor(props: { location: Location; navigate: NavigateFunction }) {
 		super(props);
 		this.state = {
@@ -31,7 +40,7 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 			savingConfig: false,
 			configErrors: {},
 			updateState: this.updateState.bind(this),
-			navigate: this.navigate.bind(this)
+			navigate: this.navigate.bind(this),
 		};
 	}
 
@@ -60,7 +69,13 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 	}
 
 	render() {
-		const { launchingGame, sidebarCollapsed, savingConfig, madeConfigEdits, configErrors } = this.state;
+		const {
+			launchingGame,
+			sidebarCollapsed,
+			savingConfig,
+			madeConfigEdits,
+			configErrors,
+		} = this.state;
 		const { location } = this.props;
 		return (
 			<div style={{ display: 'flex', width: '100%', height: '100%' }}>

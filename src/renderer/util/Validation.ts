@@ -1,12 +1,29 @@
 import { api } from 'renderer/model/Api';
 import { AppConfig } from '../model/AppConfig';
-import { Mod, ModError, ModErrors, ModErrorType, ModData, ModType } from '../model/Mod';
+import {
+	Mod,
+	ModError,
+	ModErrors,
+	ModErrorType,
+	ModData,
+	ModType,
+} from '../model/Mod';
 import { delayForEach, ForEachProps } from './Sleep';
 
-async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
+async function validateAppConfig(
+	config: AppConfig
+): Promise<{ [field: string]: string } | undefined> {
 	const errors: { [field: string]: string } = {};
-	const fields: ('steamExec' | 'workshopDir' | 'localDir')[] = ['steamExec', 'workshopDir', 'localDir'];
-	const paths = ['Steam executable', 'TerraTech Steam Workshop directory', 'TerraTech Local Mods directory'];
+	const fields: ('steamExec' | 'workshopDir' | 'localDir')[] = [
+		'steamExec',
+		'workshopDir',
+		'localDir',
+	];
+	const paths = [
+		'Steam executable',
+		'TerraTech Steam Workshop directory',
+		'TerraTech Local Mods directory',
+	];
 	let failed = false;
 	await Promise.allSettled(
 		fields.map((field) => {
@@ -15,10 +32,14 @@ async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: 
 	).then((results) => {
 		results.forEach((result, index) => {
 			if (result.status !== 'fulfilled') {
-				errors[fields[index]] = `Unexpected error checking ${fields[index]} path (${paths[index]})`;
+				errors[
+					fields[index]
+				] = `Unexpected error checking ${fields[index]} path (${paths[index]})`;
 				failed = true;
 			} else if (!result.value) {
-				errors[fields[index]] = `Path to ${fields[index]} (${paths[index]}) was invalid`;
+				errors[
+					fields[index]
+				] = `Path to ${fields[index]} (${paths[index]}) was invalid`;
 				failed = true;
 			}
 		});
@@ -51,7 +72,7 @@ function validateMod(
 	const thisModErrors = [];
 	if (modData.type === ModType.WORKSHOP && !modData.subscribed) {
 		thisModErrors.push({
-			errorType: ModErrorType.NOT_SUBSCRIBED
+			errorType: ModErrorType.NOT_SUBSCRIBED,
 		});
 	}
 	const dependencies = modData.dependsOn;
@@ -64,7 +85,7 @@ function validateMod(
 		if (missingDependencies.size > 0) {
 			thisModErrors.push({
 				errorType: ModErrorType.MISSING_DEPENDENCY,
-				values: [...missingDependencies]
+				values: [...missingDependencies],
 			});
 		}
 	}
@@ -77,10 +98,23 @@ function validateMod(
 }
 
 function validateFunctionAsync(validationProps: ModCollectionValidationProps) {
-	const { modList, allMods, updateValidatedModsCallback, setModErrorsCallback } = validationProps;
+	const {
+		modList,
+		allMods,
+		updateValidatedModsCallback,
+		setModErrorsCallback,
+	} = validationProps;
 	const errors: { [id: string]: ModError[] } = {};
 	return new Promise((resolve) => {
-		delayForEach(modList, 1, validateMod, modList, allMods, errors, updateValidatedModsCallback)
+		delayForEach(
+			modList,
+			1,
+			validateMod,
+			modList,
+			allMods,
+			errors,
+			updateValidatedModsCallback
+		)
 			.then(() => {
 				// eslint-disable-next-line promise/always-return
 				if (Object.keys(errors).length > 0) {
@@ -102,7 +136,9 @@ function validateFunctionAsync(validationProps: ModCollectionValidationProps) {
 	});
 }
 
-function validateActiveCollection(validationProps: ModCollectionValidationProps) {
+function validateActiveCollection(
+	validationProps: ModCollectionValidationProps
+) {
 	const { modList } = validationProps;
 
 	api.logger.info('Selected mods:');
