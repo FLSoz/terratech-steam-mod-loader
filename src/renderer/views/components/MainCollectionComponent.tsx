@@ -78,7 +78,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				setEnabledModsCallback(new Set(newSelection));
 			},
 			onSelect: (record: ModData, selected: boolean) => {
-				api.logger.info(`selecting ${record.uid}: ${selected}`);
+				api.logger.debug(`selecting ${record.uid}: ${selected}`);
 				if (selected) {
 					if (!collection.mods.includes(record.uid)) {
 						collection.mods.push(record.uid);
@@ -89,7 +89,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				}
 			},
 			onSelectAll: (selected: boolean) => {
-				api.logger.info(`selecting all: ${selected}`);
+				api.logger.debug(`selecting all: ${selected}`);
 				const currentVisible = filteredRows.map((modData) => modData.uid);
 				const selectedMods = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
@@ -102,7 +102,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				setEnabledModsCallback(selectedMods);
 			},
 			onSelectInvert: () => {
-				api.logger.info(`inverting selection`);
+				api.logger.debug(`inverting selection`);
 				const currentVisible = filteredRows.map((modData) => modData.uid);
 				const selected = new Set(collection.mods);
 				currentVisible.forEach((mod) => {
@@ -115,7 +115,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				setEnabledModsCallback(selected);
 			},
 			onSelectNone: () => {
-				api.logger.info(`clearing selection`);
+				api.logger.debug(`clearing selection`);
 				const currentVisible = filteredRows.map((modData) => modData.uid);
 				const selected = new Set(collection.mods);
 				currentVisible.forEach((mod) => {

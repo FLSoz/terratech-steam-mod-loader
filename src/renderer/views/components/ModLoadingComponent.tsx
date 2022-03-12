@@ -90,7 +90,7 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 		const { appState } = this.props;
 		if (mod) {
 			const modsMap: Map<string, Mod> = appState.mods;
-			api.logger.debug(`Loaded mod: ${mod.ID}`);
+			api.logger.debug(`Loaded mod: ${mod.ID} (${mod.UID})`);
 			// api.logger.debug(JSON.stringify(mod, null, 2));
 			modsMap.set(mod.UID, mod);
 			appState.mods = modsMap;
@@ -102,11 +102,21 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 			() => {
 				const { totalMods } = this.state;
 				if (loadedMods + 1 >= totalMods) {
+					// Update all Workshop dependencies to work off of Mod IDs
+					const { mods, workshopToModID } = appState;
+					mods.forEach((currMod: Mod) => {
+						if (currMod.WorkshopID) {
+							workshopToModID.set(currMod.WorkshopID, currMod.ID);
+							api.logger.debug(`Discovered workshop mod ${currMod.UID} has ID of ${currMod.ID}`);
+						}
+					});
+
+					// We are done
 					api.logger.info(`Loading complete: moving to ${appState.targetPathAfterLoad}`);
 					appState.firstModLoad = true;
 					appState.navigate(appState.targetPathAfterLoad);
 				} else {
-					api.logger.info(`Loaded ${loadedMods} out of ${totalMods}`);
+					api.logger.debug(`Loaded ${loadedMods} out of ${totalMods}`);
 				}
 			}
 		);
@@ -151,7 +161,7 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 		const { localModPaths, workshopModPaths, config } = this.state;
 		const sendRequest = (props: ForEachProps<string>, prefix: string, type: ModType) => {
 			const path: string = props.value;
-			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [prefix], path }, type, type === ModType.WORKSHOP ? parseInt(path, 10) : undefined);
+			api.send(ValidChannel.READ_MOD_METADATA, { prefixes: [prefix], path }, type, type === ModType.WORKSHOP ? path : undefined);
 		};
 		delayForEach(localModPaths, 100, sendRequest, config.localDir, ModType.LOCAL);
 		delayForEach(workshopModPaths, 100, sendRequest, config.workshopDir, ModType.WORKSHOP);

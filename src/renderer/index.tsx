@@ -21,7 +21,7 @@ import CollectionManagerComponent from './views/components/CollectionManagerComp
 import MainCollectionComponent from './views/components/MainCollectionComponent';
 import RawCollectionComponent from './views/components/RawCollectionComponent';
 
-const rootElement = document.getElementById("root");
+const rootElement = document.getElementById('root');
 render(
 	<Router>
 		<Routes>

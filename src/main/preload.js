@@ -4,7 +4,7 @@ const log = require('electron-log');
 
 const validChannels = [
 	'game-running',
-	'query-steam',
+	'query-steam-subscribed',
 	'launch-game',
 	'read-file',
 	'write-file',
@@ -27,7 +27,9 @@ const validChannels = [
 	'read-collections-list',
 	'update-collection',
 	'select-path',
-	'select-path-result'
+	'select-path-result',
+	'open-mod-browser',
+	'open-mod-steam'
 ];
 
 contextBridge.exposeInMainWorld('electron', {

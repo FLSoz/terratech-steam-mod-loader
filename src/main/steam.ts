@@ -3,7 +3,6 @@ import axios from 'axios';
 import { Url } from 'url';
 import log from 'electron-log';
 import { ModType, ModConfig, Mod } from './model';
-import Steamworks from './steamworks';
 
 interface Author {
 	id: string;
@@ -11,9 +10,9 @@ interface Author {
 }
 
 // Parse Steam Workshop page into relevant details
-function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
+function parseModPage(mod: HTMLElement, workshopID: string): Mod | null {
 	const ttModSearch = mod.querySelector('.apphub_AppName');
-	if (ttModSearch && ttModSearch.text === 'TerraTech') {
+	if (ttModSearch && ttModSearch.text.toLowerCase().includes('terratech')) {
 		const resultMod: Mod = {
 			UID: `workshop:${workshopID}`,
 			ID: workshopID.toString(),
@@ -69,6 +68,7 @@ function parsePage(mod: HTMLElement, workshopID: BigInt): Mod | null {
 				} else {
 					modConfig.hasCode = true;
 				}
+				// log.debug(`Declaring workshop item ${workshopID} a mod since it has tags: ${JSON.stringify(tagsMap, null, 2)}`);
 			} else {
 				isMod = false;
 			}
@@ -244,12 +244,10 @@ function updateRate(rate: number) {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // get the result from steam
-export default async function querySteam(id: BigInt): Promise<Mod | null> {
+export default async function getWorkshopModDetails(id: string): Promise<Mod | null> {
 	const response = await axios.get(`https://steamcommunity.com/sharedfiles/filedetails/?id=${id.toString()}`);
 	await delay(0.5);
 	log.debug(`Got steam results for ${id}`);
 	const mod: HTMLElement = parse(response.data.toString());
-	return parsePage(mod, id);
+	return parseModPage(mod, id);
 }
-
-// https://steamcommunity.com/id/flsoz/myworkshopfiles?browsefilter=mysubscriptions&sortmethod=subscriptiondate&section=items&appid=285920&requiredtags%5B0%5D=Mods&p=1&numperpage=30

@@ -20,7 +20,7 @@ export interface Mod {
 	type: ModType;
 	ID: string;
 	UID: string;
-	WorkshopID?: BigInt | null;
+	WorkshopID?: string;
 	config?: ModConfig;
 	subscribed?: boolean;
 }
@@ -45,6 +45,7 @@ export interface ModData {
 	key: string;
 	uid: string;
 	id: string;
+	workshopId?: string;
 	type: ModType;
 	preview?: string;
 	name: string;
@@ -60,13 +61,15 @@ export interface ModData {
 
 export function convertToModData(input: Map<string, Mod>): ModData[] {
 	const dependenciesMap: Map<string, Set<string>> = new Map();
-	const tempMap: Map<string, ModData> = new Map();
+	const tempMap: Map<string, ModData[]> = new Map();
 	const workshopMap: Map<string, string> = new Map();
+
 	[...input.values()].forEach((mod: Mod) => {
 		const modData: ModData = {
 			key: mod.ID,
 			uid: mod.UID,
-			id: mod.WorkshopID ? `${mod.WorkshopID}` : mod.ID,
+			id: mod.ID,
+			workshopId: mod.WorkshopID,
 			type: mod.type,
 			preview: mod.config?.preview,
 			name: mod.config && mod.config.name ? mod.config.name : mod.ID,
@@ -77,9 +80,14 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 			tags: mod.config?.tags,
 			subscribed: mod.subscribed
 		};
-		tempMap.set(mod.ID, modData);
+		const duplicateMods = tempMap.get(mod.ID);
+		if (duplicateMods) {
+			duplicateMods.push(modData);
+		} else {
+			tempMap.set(mod.ID, [modData]);
+		}
 		if (mod.WorkshopID) {
-			workshopMap.set(mod.WorkshopID.toString(), mod.ID);
+			workshopMap.set(mod.WorkshopID, mod.ID);
 		}
 		if (modData.dependsOn) {
 			modData.dependsOn.forEach((dependency) => {
@@ -94,14 +102,19 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 	});
 	const missingMods = [];
 	dependenciesMap.forEach((reliers, dependency) => {
-		const modData = tempMap.get(dependency);
-		if (modData) {
-			modData.isDependencyFor = [...reliers];
-		} else {
-			missingMods.push(dependency);
+		const modID = workshopMap.get(dependency);
+		if (modID) {
+			const duplicateMods = tempMap.get(modID);
+			if (duplicateMods) {
+				duplicateMods.forEach((modData: ModData) => {
+					modData.isDependencyFor = [...reliers];
+				});
+			} else {
+				missingMods.push(dependency);
+			}
 		}
 	});
-	return [...tempMap.values()];
+	return [...tempMap.values()].flat();
 }
 
 export function filterRows(rows: ModData[], searchString: string | undefined): ModData[] {

@@ -17,7 +17,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 
-import querySteam from './steam';
+import getWorkshopModDetails from './steam';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ModConfig, Mod, ModCollection } from './model';
@@ -28,7 +28,7 @@ const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBU
 
 export default class AppUpdater {
 	constructor() {
-		log.transports.file.level = isDevelopment ? 'info' : 'warn';
+		log.transports.file.level = isDevelopment ? 'debug' : 'warn';
 		autoUpdater.logger = log;
 		autoUpdater.checkForUpdatesAndNotify();
 	}
@@ -175,8 +175,16 @@ interface PathParams {
 	path: string;
 }
 
+ipcMain.on('open-mod-steam', async (event, workshopID: string) => {
+	shell.openExternal(`steam://url/CommunityFilePage/${workshopID}`);
+});
+
+ipcMain.on('open-mod-browser', async (event, workshopID: string) => {
+	shell.openExternal(`https://steamcommunity.com/sharedfiles/filedetails/?id=${workshopID}`);
+});
+
 // Read raw app metadata from the given paths
-ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, workshopID: BigInt | null) => {
+ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, workshopID: string | null) => {
 	const modPath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Reading mod metadata for ${modPath}`);
 	fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
@@ -232,6 +240,7 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 								// eslint-disable-next-line prefer-destructuring
 								config.name = matches[1];
 							}
+							log.debug(`Found file: ${file.name} under mod path ${modPath}`);
 							validMod = true;
 						}
 					}
@@ -240,10 +249,10 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 
 			// augment workshop mod with data
 			let workshopMod: Mod | null = null;
-			if (workshopID) {
+			if (validMod && workshopID) {
 				potentialMod.subscribed = true;
 				try {
-					workshopMod = await querySteam(workshopID);
+					workshopMod = await getWorkshopModDetails(workshopID);
 					const steamConfig = workshopMod?.config;
 					if (steamConfig && config) {
 						const { name } = steamConfig;
@@ -259,7 +268,9 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 				}
 			}
 
-			// log.debug(JSON.stringify(potentialMod, null, 2));
+			if (validMod) {
+				log.debug(JSON.stringify(potentialMod, null, 2));
+			}
 			event.reply('mod-metadata-results', validMod ? potentialMod : null);
 		}
 	});
@@ -401,9 +412,8 @@ ipcMain.handle('launch-game', async (_event, workshopID, closeOnLaunch, args) =>
 });
 
 // Handle querying steam and parsing the result for a mod page
-ipcMain.handle('query-steam', async (_event, workshopID) => {
-	const mod = await querySteam(workshopID);
-	return mod;
+ipcMain.handle('query-steam-subscribed', async (_event, steamID) => {
+	return [];
 });
 
 // Write a json file to a certain location

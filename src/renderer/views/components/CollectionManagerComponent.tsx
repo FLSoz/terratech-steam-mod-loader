@@ -488,7 +488,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	launchGame() {
-		api.logger.info('launching game');
+		api.logger.info('validating and launching game');
 		const { appState } = this.props;
 		const { activeCollection, mods, updateState } = appState;
 		const { madeEdits, lastValidationStatus } = this.state;
@@ -509,7 +509,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	validateActiveCollection(launchIfValid: boolean) {
 		const { promiseManager, rows, modIdToModDataMap } = this.state;
 		const { appState } = this.props;
-		const { activeCollection, mods } = appState;
+		const { activeCollection, mods, workshopToModID } = appState;
 		this.setState({
 			modalType: ModalType.VALIDATING,
 			invalidIdsFound: false,
@@ -519,15 +519,15 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		});
 		if (activeCollection) {
 			const collectionMods = [...activeCollection!.mods];
-			api.logger.info('Selected mods:');
-			api.logger.info(collectionMods);
+			api.logger.debug(`Selected mods: ${collectionMods}`);
 			promiseManager
 				.execute(
 					validateActiveCollection({
 						modList: collectionMods.map((uid: string) => modIdToModDataMap.get(uid) as ModData),
 						allMods: mods,
+						workshopToModID,
 						updateValidatedModsCallback: (validatedMods: number) => {
-							api.logger.info(`We have validated ${validatedMods} mods`);
+							api.logger.debug(`We have validated ${validatedMods} mods`);
 							this.setState({ validatedMods });
 						},
 						setModErrorsCallback: (modErrors: ModErrors) => {
@@ -569,7 +569,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				.then((success) => {
 					if (success) {
 						this.setState({ lastValidationStatus: true });
-						api.logger.info(`To launch game?: ${launchIfValid}`);
+						api.logger.debug(`To launch game?: ${launchIfValid}`);
 						if (success && launchIfValid) {
 							const modDataList = collectionMods.map((modUID: string) => {
 								return mods.get(modUID) as Mod;
@@ -990,7 +990,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						width: size.width as number,
 						collection: appState.activeCollection as ModCollection,
 						setEnabledModsCallback: (enabledMods: Set<string>) => {
-							api.logger.info(`Setting active mods: ${[...enabledMods]}`);
+							api.logger.debug(`Setting active mods: ${[...enabledMods]}`);
 							if (appState.activeCollection) {
 								appState.activeCollection.mods = [...enabledMods].sort();
 								this.setState({ madeEdits: true });
@@ -1038,7 +1038,6 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				<Header style={{ height: 120 }}>
 					<ModCollectionManager
 						appState={appState}
-						currentPath={location.pathname}
 						searchString={searchString || ''}
 						validatingCollection={validatingMods}
 						savingCollection={savingCollection}

@@ -19,7 +19,7 @@ export interface Mod {
 	type: ModType;
 	ID: string;
 	UID: string;
-	WorkshopID: BigInt | null;
+	WorkshopID: string | null;
 	config?: ModConfig;
 	subscribed?: boolean;
 }

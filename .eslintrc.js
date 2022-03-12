@@ -39,7 +39,8 @@ module.exports = {
 		'no-console': "off",
 		'@typescript-eslint/no-non-null-assertion': 'off',
 		'class-methods-use-this': 'warn',
-		'prefer-destructuring': 'warn'
+		'prefer-destructuring': 'warn',
+    'react/require-default-props': 'off'
   },
   parserOptions: {
     ecmaVersion: 2020,

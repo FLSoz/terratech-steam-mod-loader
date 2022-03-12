@@ -6,6 +6,7 @@ export interface AppState {
 	config: AppConfig;
 	userDataPath: string;
 	mods: Map<string, Mod>;
+	workshopToModID: Map<string, string>;
 	allCollections: Map<string, ModCollection>;
 	allCollectionNames: Set<string>;
 	activeCollection?: ModCollection;

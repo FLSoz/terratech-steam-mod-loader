@@ -34,7 +34,6 @@ interface CollectionManagementToolbarState {
 interface CollectionManagementToolbarProps {
 	madeEdits: boolean;
 	searchString: string;
-	currentPath: string;
 	appState: AppState;
 	savingCollection?: boolean;
 	validatingCollection?: boolean;
@@ -286,7 +285,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 										}}
 										value={searchString}
 										onSearch={(search) => {
-											api.logger.info(`Searching for: ${search}`);
+											api.logger.debug(`Searching for: ${search}`);
 											onSearchCallback(search);
 										}}
 										enterButton

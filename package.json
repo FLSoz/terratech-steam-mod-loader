@@ -2,7 +2,7 @@
   "name": "terratech-steam-mod-loader",
   "productName": "ttsm",
   "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
     "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",

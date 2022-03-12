@@ -10,12 +10,8 @@ interface MenuProps {
 	navigate: NavigateFunction;
 }
 
-class MenuBar extends Component<MenuProps, {}> {
+class MenuBar extends Component<MenuProps, never> {
 	CONFIG_PATH: string | undefined = undefined;
-
-	constructor(props: MenuProps) {
-		super(props);
-	}
 
 	render() {
 		const { disableNavigation, appState } = this.props;

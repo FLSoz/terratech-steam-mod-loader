@@ -7,7 +7,7 @@ import { Mod } from './Mod';
 /* eslint-disable @typescript-eslint/ban-types */
 export enum ValidChannel {
 	GAME_RUNNING = 'game-running',
-	QUERY_STEAM = 'query-steam',
+	QUERY_STEAM_SUBSCRIBED = 'query-steam-subscribed',
 	LAUNCH_GAME = 'launch-game',
 	WRITE_FILE = 'write-file',
 	READ_FILE = 'read-file',
@@ -30,7 +30,9 @@ export enum ValidChannel {
 	READ_COLLECTIONS = 'read-collections-list',
 	UPDATE_COLLECTION = 'update-collection',
 	SELECT_PATH = 'select-path',
-	SELECT_PATH_RESULT = 'select-path-result'
+	SELECT_PATH_RESULT = 'select-path-result',
+	OPEN_MOD_BROWSER = 'open-mod-browser',
+	OPEN_MOD_STEAM = 'open-mod-steam'
 }
 
 interface ElectronInterface {
@@ -232,6 +234,14 @@ class API {
 
 	renameCollection(collection: ModCollection, newName: string): Promise<boolean> {
 		return ipcRenderer.invoke(ValidChannel.RENAME_COLLECTION, collection, newName);
+	}
+
+	openModBrowser(workshopID: string) {
+		ipcRenderer.send(ValidChannel.OPEN_MOD_BROWSER, workshopID);
+	}
+
+	openModSteam(workshopID: string) {
+		ipcRenderer.send(ValidChannel.OPEN_MOD_STEAM, workshopID);
 	}
 }
 export const api = new API(window);
