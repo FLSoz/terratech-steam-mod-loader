@@ -621,6 +621,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 								}, 500);
 							});
 					} else {
+						this.setState({ lastValidationStatus: false });
 						api.logger.error('Failed to validate active collection');
 					}
 					return success;
@@ -675,7 +676,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	renderModal() {
 		const { modalType, launchGameWithErrors, validatedMods, modErrors } = this.state;
 		const { appState } = this.props;
-		const { activeCollection, mods, updateState } = appState;
+		const { activeCollection, mods, workshopToModID, updateState } = appState;
 
 		const launchAnyway = () => {
 			this.setState({ launchGameWithErrors: true });
@@ -730,6 +731,13 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				);
 			}
 			case ModalType.REMOVE_INVALID: {
+				const badMods: string[] = [];
+				Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
+					const isThisError = errors.filter((error: ModError) => error.errorType === ModErrorType.INVALID_ID).length > 0;
+					if (isThisError) {
+						badMods.push(mod);
+					}
+				});
 				return (
 					<Modal
 						title="Invalid Mods Found"
@@ -737,42 +745,64 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						closable={false}
 						footer={[
 							<Button
-								key="cancel"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ invalidIdsFound: false }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Keep invalid mods
-							</Button>,
-							<Button
 								key="auto-fix"
+								danger
 								type="primary"
 								disabled={launchGameWithErrors}
 								onClick={() => {
 									const currentMods: Set<string> = new Set(activeCollection!.mods);
-									Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
-										const canAutoResolve = errors.filter((error: ModError) => error.errorType === ModErrorType.INVALID_ID).length > 0;
-										if (canAutoResolve) {
-											currentMods.delete(mod);
-										}
+									badMods.forEach((mod: string) => {
+										delete modErrors![mod];
+										currentMods.delete(mod);
 									});
 									activeCollection!.mods = [...currentMods].sort();
 									this.setState({ invalidIdsFound: false, madeEdits: true }, this.checkNextErrorModal);
 									updateState({ launchingGame: false });
 								}}
 							>
-								Remove invalid mods
+								Remove
+							</Button>,
+							<Button
+								key="cancel"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									this.setState({ invalidIdsFound: false }, this.checkNextErrorModal);
+									updateState({ launchingGame: false });
+								}}
+							>
+								Keep
 							</Button>
 						]}
 					>
 						<p>One or more mods are marked as invalid. This means that we are unable to locate the mods either locally, or on the workshop.</p>
 						<p>Do you want to remove them from the collection?</p>
+						<table key="invalid_mods">
+							<thead>Invalid Mods:</thead>
+							<tbody>
+								{badMods.map((modUID: string) => {
+									return <tr key={modUID}>{modUID}</tr>;
+								})}
+							</tbody>
+						</table>
+						<p>
+							NOTE: Invalid local mods will do nothing, but invalid workshop mods will still be loaded by 0ModManager, even though you haven&apos;t subscribed
+							to them.
+						</p>
 					</Modal>
 				);
 			}
 			case ModalType.SUBSCRIBE_DEPENDENCIES: {
+				const badMods: Set<string> = new Set();
+				Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
+					const thisError = errors.filter((error: ModError) => error.errorType === ModErrorType.MISSING_DEPENDENCY);
+					const isThisError = thisError.length > 0;
+					if (isThisError) {
+						thisError[0].values!.forEach((missingDependency: string) => {
+							badMods.add(missingDependency);
+						});
+					}
+				});
 				return (
 					<Modal
 						title="Missing Dependencies Detected"
@@ -780,7 +810,36 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						closable={false}
 						footer={[
 							<Button
-								key="cancel"
+								key="auto-fix"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									const badModUIDs = [...badMods].map((badDependency: string) => {
+										let foundDependency = false;
+										let dependencyWorkshopID = badDependency;
+										workshopToModID.forEach((modID: string, workshopID: string) => {
+											if (!foundDependency && (badDependency === modID || badDependency === workshopID)) {
+												foundDependency = true;
+												dependencyWorkshopID = workshopID;
+											}
+										});
+										return `workshop:${dependencyWorkshopID}`;
+									});
+
+									const currentMods: Set<string> = new Set(activeCollection!.mods);
+									badModUIDs.forEach((modUID: string) => {
+										currentMods.add(modUID);
+									});
+									activeCollection!.mods = [...currentMods].sort();
+									this.setState({ missingDependenciesFound: false, madeEdits: true }, this.checkNextErrorModal);
+									updateState({ launchingGame: false });
+								}}
+							>
+								Add dependencies
+							</Button>,
+							<Button
+								key="ignore"
+								type="primary"
 								danger
 								disabled={launchGameWithErrors}
 								onClick={() => {
@@ -788,38 +847,31 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 									updateState({ launchingGame: false });
 								}}
 							>
-								Do not Subscribe
-							</Button>,
-							<Button
-								key="auto-fix"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ missingDependenciesFound: false, madeEdits: true }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Add without subscribing
-							</Button>,
-							<Button
-								key="auto-fix-subscribe"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ missingDependenciesFound: false, madeEdits: true }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Subscribe
+								Ignore dependencies
 							</Button>
 						]}
 					>
 						<p>One or more mods are missing their dependencies. There is a high chance the game will break if they are not subscribed to.</p>
-						<p>Do you want to subscribe to the missing dependencies?</p>
+						<p>Do you want to continue anyway?</p>
+						<table key="missing_items">
+							<thead>Missing Dependencies:</thead>
+							<tbody>
+								{[...badMods].map((modUID: string) => {
+									return <tr key={modUID}>{modUID}</tr>;
+								})}
+							</tbody>
+						</table>
 					</Modal>
 				);
 			}
 			case ModalType.SUBSCRIBE_REMOTE: {
+				const badMods: string[] = [];
+				Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
+					const isThisError = errors.filter((error: ModError) => error.errorType === ModErrorType.NOT_SUBSCRIBED).length > 0;
+					if (isThisError) {
+						badMods.push(mod);
+					}
+				});
 				return (
 					<Modal
 						title="Unsubscribed Mods Detected"
@@ -827,31 +879,47 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						closable={false}
 						footer={[
 							<Button
-								key="cancel"
+								key="auto-fix"
 								danger
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									const currentMods: Set<string> = new Set(activeCollection!.mods);
+									badMods.forEach((mod: string) => {
+										delete modErrors![mod];
+										currentMods.delete(mod);
+									});
+									activeCollection!.mods = [...currentMods].sort();
+									this.setState({ missingSubscriptions: false, madeEdits: true }, this.checkNextErrorModal);
+									updateState({ launchingGame: false });
+								}}
+							>
+								Remove
+							</Button>,
+							<Button
+								key="cancel"
+								type="primary"
 								disabled={launchGameWithErrors}
 								onClick={() => {
 									this.setState({ missingSubscriptions: false }, this.checkNextErrorModal);
 									updateState({ launchingGame: false });
 								}}
 							>
-								Do not Subscribe
-							</Button>,
-							<Button
-								key="auto-fix"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ missingSubscriptions: false, madeEdits: true }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Subscribe
+								Keep
 							</Button>
 						]}
 					>
 						<p>One or more mods are selected that you are not subscribed to. Steam may not update them properly unless you subscribe to them.</p>
-						<p>Do you want to subscribe to them?</p>
+						<p>Do you want to keep them in your collection?</p>
+						<table key="unsubscribed_items">
+							<thead>Unsubscribed Mods:</thead>
+							<tbody>
+								{badMods.map((modUID: string) => {
+									return <tr key={modUID}>{modUID}</tr>;
+								})}
+							</tbody>
+						</table>
+						<p>NOTE: If they are kept in your collection, they will still appear in-game, even though you have not subscribed to them.</p>
 					</Modal>
 				);
 			}
@@ -865,6 +933,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							<Button
 								key="cancel"
 								danger
+								type="primary"
 								disabled={launchGameWithErrors}
 								onClick={() => {
 									this.setState({ incompatibleModsFound: false }, this.checkNextErrorModal);
@@ -889,6 +958,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						footer={[
 							<Button
 								key="cancel"
+								type="primary"
 								disabled={launchGameWithErrors}
 								onClick={() => {
 									this.setState({
@@ -905,15 +975,16 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</Button>,
 							<Button
 								key="auto-fix"
+								type="primary"
 								disabled={launchGameWithErrors}
 								onClick={() => {
 									this.checkNextErrorModal();
 									updateState({ launchingGame: false });
 								}}
 							>
-								Auto-Fix
+								Guided Fix
 							</Button>,
-							<Button key="launch" danger disabled={launchGameWithErrors} loading={launchGameWithErrors} onClick={launchAnyway}>
+							<Button key="launch" danger type="primary" disabled={launchGameWithErrors} loading={launchGameWithErrors} onClick={launchAnyway}>
 								Launch Anyway
 							</Button>
 						]}
@@ -937,6 +1008,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						footer={[
 							<Button
 								key="cancel"
+								type="primary"
 								disabled={launchGameWithErrors}
 								onClick={() => {
 									this.setState({
@@ -953,15 +1025,16 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</Button>,
 							<Button
 								key="auto-fix"
+								type="primary"
 								disabled={launchGameWithErrors}
 								onClick={() => {
 									this.checkNextErrorModal();
 									updateState({ launchingGame: false });
 								}}
 							>
-								Auto-Fix
+								Guided Fix
 							</Button>,
-							<Button key="launch" danger disabled={launchGameWithErrors} loading={launchGameWithErrors} onClick={launchAnyway}>
+							<Button key="launch" danger type="primary" disabled={launchGameWithErrors} loading={launchGameWithErrors} onClick={launchAnyway}>
 								Launch Anyway
 							</Button>
 						]}
