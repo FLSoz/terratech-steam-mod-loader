@@ -1,9 +1,7 @@
-import { api } from './Api';
-
 export enum ModType {
 	WORKSHOP = 'workshop',
 	LOCAL = 'local',
-	TTQMM = 'ttqmm',
+	TTQMM = 'ttqmm'
 }
 
 export interface ModConfig {
@@ -31,7 +29,7 @@ export enum ModErrorType {
 	MISSING_DEPENDENCY = 'missing_dependency',
 	INVALID_ID = 'invalid_id',
 	INCOMPATIBLE_MODS = 'incompatible_mods',
-	NOT_SUBSCRIBED = 'not_subscribed',
+	NOT_SUBSCRIBED = 'not_subscribed'
 }
 
 export interface ModError {
@@ -77,7 +75,7 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 			dependsOn: mod.config?.dependsOn,
 			hasCode: mod.config?.hasCode,
 			tags: mod.config?.tags,
-			subscribed: mod.subscribed,
+			subscribed: mod.subscribed
 		};
 		tempMap.set(mod.ID, modData);
 		if (mod.WorkshopID) {
@@ -106,20 +104,11 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 	return [...tempMap.values()];
 }
 
-export function filterRows(
-	rows: ModData[],
-	searchString: string | undefined
-): ModData[] {
+export function filterRows(rows: ModData[], searchString: string | undefined): ModData[] {
 	if (searchString && searchString.length > 0) {
 		const lowerSearchString = searchString.toLowerCase();
 		return rows.filter((modData) => {
-			api.logger.info(
-				`Checking if ${lowerSearchString} matches mod ${JSON.stringify(
-					modData,
-					null,
-					2
-				)}`
-			);
+			console.log(`Checking if ${lowerSearchString} matches mod ${JSON.stringify(modData, null, 2)}`);
 			if (modData.name.toLowerCase().includes(lowerSearchString)) {
 				return true;
 			}

@@ -5,11 +5,7 @@ import { ModCollection } from 'renderer/model/ModCollection';
 import { AppState } from 'renderer/model/AppState';
 import { validateAppConfig } from 'renderer/util/Validation';
 import { Layout, Progress } from 'antd';
-import {
-	useNavigate,
-	NavigateFunction,
-	useOutletContext,
-} from 'react-router-dom';
+import { useNavigate, NavigateFunction, useOutletContext } from 'react-router-dom';
 
 const { Footer, Content } = Layout;
 
@@ -22,10 +18,7 @@ interface ConfigLoadingState {
 	updatingSteamMod: boolean;
 }
 
-class ConfigLoadingComponent extends Component<
-	{ navigate: NavigateFunction; appState: AppState },
-	ConfigLoadingState
-> {
+class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; appState: AppState }, ConfigLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: { navigate: NavigateFunction; appState: AppState }) {
@@ -34,7 +27,7 @@ class ConfigLoadingComponent extends Component<
 			loadingConfig: true,
 			totalCollections: -1,
 			loadedCollections: 0,
-			updatingSteamMod: true,
+			updatingSteamMod: true
 		};
 		this.loadCollectionCallback = this.loadCollectionCallback.bind(this);
 	}
@@ -108,9 +101,7 @@ class ConfigLoadingComponent extends Component<
 			.then((collections) => {
 				if (collections && collections.length > 0) {
 					this.setState({ totalCollections: collections.length });
-					collections.forEach((collection: string) =>
-						api.readCollection(collection)
-					);
+					collections.forEach((collection: string) => api.readCollection(collection));
 				} else {
 					this.setState({ totalCollections: 0 });
 				}
@@ -130,10 +121,7 @@ class ConfigLoadingComponent extends Component<
 			allCollections!.set(collection.name, collection);
 			allCollectionNames.add(collection.name);
 		}
-		this.setState(
-			{ loadedCollections: loadedCollections + 1 },
-			this.checkCanProceed
-		);
+		this.setState({ loadedCollections: loadedCollections + 1 }, this.checkCanProceed);
 	}
 
 	validateConfig(config: AppConfig) {
@@ -149,8 +137,8 @@ class ConfigLoadingComponent extends Component<
 					console.error(error);
 					updateState({
 						configErrors: {
-							undefined: `Internal exception while validating AppConfig:\n${error.toString()}`,
-						},
+							undefined: `Internal exception while validating AppConfig:\n${error.toString()}`
+						}
 					});
 				})
 				.finally(() => {
@@ -174,67 +162,39 @@ class ConfigLoadingComponent extends Component<
 
 	checkCanProceed() {
 		const { appState } = this.props;
-		const { config, allCollections, allCollectionNames, updateState } =
-			appState;
-		const {
-			loadedCollections,
-			loadingConfig,
-			totalCollections,
-			updatingSteamMod,
-		} = this.state;
-		if (
-			!updatingSteamMod &&
-			totalCollections >= 0 &&
-			loadedCollections >= totalCollections &&
-			!loadingConfig
-		) {
+		const { config, allCollections, allCollectionNames, updateState } = appState;
+		const { loadedCollections, loadingConfig, totalCollections, updatingSteamMod } = this.state;
+		if (!updatingSteamMod && totalCollections >= 0 && loadedCollections >= totalCollections && !loadingConfig) {
 			if (allCollectionNames.size > 0) {
 				// We always override activeCollection with something
 				if (config && config.activeCollection) {
 					const collection = allCollections.get(config.activeCollection);
 					if (collection) {
-						updateState(
-							{ activeCollection: collection },
-							this.proceedToNext.bind(this)
-						);
+						updateState({ activeCollection: collection }, this.proceedToNext.bind(this));
 						return;
 					}
 					// activeCollection is no longer there: default to first available in ASCII-betical order
 				}
 				const collectionName = [...allCollectionNames].sort()[0];
 				config!.activeCollection = collectionName;
-				updateState(
-					{ activeCollection: allCollections.get(collectionName) },
-					this.proceedToNext.bind(this)
-				);
+				updateState({ activeCollection: allCollections.get(collectionName) }, this.proceedToNext.bind(this));
 			} else {
 				// there are no collections - create a new defaultCollection
 				config!.activeCollection = 'default';
 				const defaultCollection: ModCollection = {
 					mods: [],
-					name: 'default',
+					name: 'default'
 				};
 				allCollectionNames.add('default');
 				allCollections.set('default', defaultCollection);
-				updateState(
-					{ activeCollection: defaultCollection },
-					this.proceedToNext.bind(this)
-				);
+				updateState({ activeCollection: defaultCollection }, this.proceedToNext.bind(this));
 			}
 		}
 	}
 
 	render() {
-		const {
-			loadedCollections,
-			totalCollections,
-			configLoadError,
-			userDataPathError,
-		} = this.state;
-		const percent =
-			totalCollections > 0
-				? Math.ceil((100 * loadedCollections) / totalCollections)
-				: 100;
+		const { loadedCollections, totalCollections, configLoadError, userDataPathError } = this.state;
+		const percent = totalCollections > 0 ? Math.ceil((100 * loadedCollections) / totalCollections) : 100;
 		return (
 			<Layout style={{ minHeight: '100vh', minWidth: '100vw' }}>
 				<Content />
@@ -242,12 +202,10 @@ class ConfigLoadingComponent extends Component<
 					<Progress
 						strokeColor={{
 							from: '#108ee9',
-							to: '#87d068',
+							to: '#87d068'
 						}}
 						percent={percent}
-						status={
-							configLoadError || userDataPathError ? 'exception' : undefined
-						}
+						status={configLoadError || userDataPathError ? 'exception' : undefined}
 					/>
 				</Footer>
 			</Layout>
@@ -256,10 +214,5 @@ class ConfigLoadingComponent extends Component<
 }
 
 export default () => {
-	return (
-		<ConfigLoadingComponent
-			navigate={useNavigate()}
-			appState={useOutletContext<AppState>()}
-		/>
-	);
+	return <ConfigLoadingComponent navigate={useNavigate()} appState={useOutletContext<AppState>()} />;
 };

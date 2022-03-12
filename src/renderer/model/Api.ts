@@ -1,6 +1,5 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { AppConfig } from './AppConfig';
 import { ModCollection } from './ModCollection';
 import { Mod } from './Mod';
@@ -31,7 +30,7 @@ export enum ValidChannel {
 	READ_COLLECTIONS = 'read-collections-list',
 	UPDATE_COLLECTION = 'update-collection',
 	SELECT_PATH = 'select-path',
-	SELECT_PATH_RESULT = 'select-path-result',
+	SELECT_PATH_RESULT = 'select-path-result'
 }
 
 interface ElectronInterface {
@@ -94,18 +93,16 @@ class API {
 			},
 			error: (message) => {
 				window.electron.log.error(message);
-			},
+			}
 		};
 	}
 
 	async getUserDataPath() {
 		if (this.userDataPath === undefined) {
-			return ipcRenderer
-				.invoke(ValidChannel.USER_DATA_PATH)
-				.then((path: string) => {
-					this.userDataPath = path;
-					return path;
-				});
+			return ipcRenderer.invoke(ValidChannel.USER_DATA_PATH).then((path: string) => {
+				this.userDataPath = path;
+				return path;
+			});
 		}
 		return this.userDataPath;
 	}
@@ -118,30 +115,15 @@ class API {
 		return ipcRenderer.exit(code);
 	}
 
-	launchGame(
-		workshopID: string,
-		closeOnLaunch: boolean,
-		modList: Mod[]
-	): Promise<any> {
+	launchGame(workshopID: string, closeOnLaunch: boolean, modList: Mod[]): Promise<any> {
 		const modListStr: string = modList
 			.map((mod: Mod) => {
 				const modID = mod.WorkshopID ? mod.WorkshopID : mod.ID;
-				return mod
-					? `[${mod.type}:${
-							mod.type === 'local'
-								? modID.toString().replace(' ', ':/%20')
-								: modID
-					  }]`
-					: '';
+				return mod ? `[${mod.type}:${mod.type === 'local' ? modID.toString().replace(' ', ':/%20') : modID}]` : '';
 			})
 			.join(',');
 		const args: string[] = ['+ttsmm_mod_list', modListStr];
-		return ipcRenderer.invoke(
-			ValidChannel.LAUNCH_GAME,
-			workshopID,
-			closeOnLaunch,
-			args
-		);
+		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, workshopID, closeOnLaunch, args);
 	}
 
 	gameRunning(): Promise<boolean> {
@@ -189,68 +171,39 @@ class API {
 	}
 
 	readFile(path: PathParams | string): Promise<any> {
-		return ipcRenderer.invoke(
-			ValidChannel.READ_FILE,
-			this.convertToPathParam(path)
-		);
+		return ipcRenderer.invoke(ValidChannel.READ_FILE, this.convertToPathParam(path));
 	}
 
 	writeFile(path: PathParams | string, data: string): Promise<boolean> {
-		return ipcRenderer.invoke(
-			ValidChannel.WRITE_FILE,
-			this.convertToPathParam(path),
-			data
-		);
+		return ipcRenderer.invoke(ValidChannel.WRITE_FILE, this.convertToPathParam(path), data);
 	}
 
 	updateFile(path: PathParams | string, data: object): Promise<boolean> {
-		return ipcRenderer.invoke(
-			ValidChannel.UPDATE_FILE,
-			this.convertToPathParam(path),
-			data
-		);
+		return ipcRenderer.invoke(ValidChannel.UPDATE_FILE, this.convertToPathParam(path), data);
 	}
 
 	deleteFile(path: PathParams | string): Promise<boolean> {
-		return ipcRenderer.invoke(
-			ValidChannel.DELETE_FILE,
-			this.convertToPathParam(path)
-		);
+		return ipcRenderer.invoke(ValidChannel.DELETE_FILE, this.convertToPathParam(path));
 	}
 
 	listDir(path: PathParams | string): Promise<any> {
-		return ipcRenderer.invoke(
-			ValidChannel.LIST_DIR,
-			this.convertToPathParam(path)
-		);
+		return ipcRenderer.invoke(ValidChannel.LIST_DIR, this.convertToPathParam(path));
 	}
 
 	listSubdirs(path: PathParams | string): Promise<any> {
-		return ipcRenderer.invoke(
-			ValidChannel.LIST_SUBDIRS,
-			this.convertToPathParam(path)
-		);
+		return ipcRenderer.invoke(ValidChannel.LIST_SUBDIRS, this.convertToPathParam(path));
 	}
 
 	mkdir(path: PathParams | string): Promise<boolean> {
-		return ipcRenderer.invoke(
-			ValidChannel.MKDIR,
-			this.convertToPathParam(path)
-		);
+		return ipcRenderer.invoke(ValidChannel.MKDIR, this.convertToPathParam(path));
 	}
 
 	pathExists(path: PathParams | string): Promise<any> {
-		return ipcRenderer.invoke(
-			ValidChannel.PATH_EXISTS,
-			this.convertToPathParam(path)
-		);
+		return ipcRenderer.invoke(ValidChannel.PATH_EXISTS, this.convertToPathParam(path));
 	}
 
 	access(path: PathParams | string): Promise<any> {
-		return ipcRenderer.invoke(
-			ValidChannel.PATH_ACCESS,
-			this.convertToPathParam(path)
-		);
+		return ipcRenderer.invoke(ValidChannel.PATH_ACCESS, this.convertToPathParam(path));
 	}
 
 	readConfig(): Promise<AppConfig> {
@@ -277,15 +230,8 @@ class API {
 		return ipcRenderer.invoke(ValidChannel.DELETE_COLLECTION, collection);
 	}
 
-	renameCollection(
-		collection: ModCollection,
-		newName: string
-	): Promise<boolean> {
-		return ipcRenderer.invoke(
-			ValidChannel.RENAME_COLLECTION,
-			collection,
-			newName
-		);
+	renameCollection(collection: ModCollection, newName: string): Promise<boolean> {
+		return ipcRenderer.invoke(ValidChannel.RENAME_COLLECTION, collection, newName);
 	}
 }
 export const api = new API(window);

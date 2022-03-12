@@ -39,12 +39,9 @@ class MenuBar extends Component<MenuProps, {}> {
 						switch (e.key) {
 							case 'raw':
 								if (loadBeforeNavigation) {
-									updateState(
-										{ targetPathAfterLoad: '/collections/raw-mods' },
-										() => {
-											navigate('/loading/mods');
-										}
-									);
+									updateState({ targetPathAfterLoad: '/collections/raw-mods' }, () => {
+										navigate('/loading/mods');
+									});
 								} else {
 									navigate('/collections/raw-mods');
 								}
@@ -54,12 +51,9 @@ class MenuBar extends Component<MenuProps, {}> {
 								break;
 							case 'main':
 								if (loadBeforeNavigation) {
-									updateState(
-										{ targetPathAfterLoad: '/collections/main' },
-										() => {
-											navigate('/loading/mods');
-										}
-									);
+									updateState({ targetPathAfterLoad: '/collections/main' }, () => {
+										navigate('/loading/mods');
+									});
 								} else {
 									navigate('/collections/main');
 								}
@@ -89,18 +83,10 @@ class MenuBar extends Component<MenuProps, {}> {
 					}
 				}}
 			>
-				<Menu.Item
-					key="main"
-					style={MenuItemStyle}
-					icon={<AppstoreOutlined style={MenuIconStyle} />}
-				>
+				<Menu.Item key="main" style={MenuItemStyle} icon={<AppstoreOutlined style={MenuIconStyle} />}>
 					Mod Collections
 				</Menu.Item>
-				<Menu.Item
-					key="settings"
-					style={MenuItemStyle}
-					icon={<SettingOutlined style={MenuIconStyle} />}
-				>
+				<Menu.Item key="settings" style={MenuItemStyle} icon={<SettingOutlined style={MenuIconStyle} />}>
 					Settings
 				</Menu.Item>
 			</Menu>

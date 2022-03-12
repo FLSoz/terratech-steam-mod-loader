@@ -16,8 +16,6 @@ import { app, BrowserWindow, shell, ipcMain, protocol, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
-import child_process from 'child_process';
-const greenworks = require('greenworks');
 
 import querySteam from './steam';
 import MenuBuilder from './menu';
@@ -26,8 +24,7 @@ import { ModConfig, Mod, ModCollection } from './model';
 
 const psList = require('ps-list');
 
-const isDevelopment =
-	process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 export default class AppUpdater {
 	constructor() {
@@ -62,107 +59,12 @@ const installExtensions = async () => {
 		.catch(log.info);
 };
 
-var message = '';
-
-function testSteamAPI() {
-	var os = require('os');
-	var greenworks;
-	try {
-		// if greenworks is installed in a node_modules folder, this will work
-		greenworks = require('greenworks');
-	} catch (e) {
-		greenworks = require('../node_modules/greenworks');
-	}
-	if (!greenworks) {
-		log.info('Greenworks not support for ' + os.platform() + ' platform');
-	} else {
-		if (!greenworks.init()) {
-			log.info('Error on initializing steam API.');
-		} else {
-			log.info('Steam API initialized successfully.');
-			log.info('Cloud enabled: ' + greenworks.isCloudEnabled());
-			log.info('Cloud enabled for user: ' + greenworks.isCloudEnabledForUser());
-
-			log.info(`Steam Command Line: ${greenworks.getLaunchCommandLine()}`);
-
-			greenworks.on('steam-servers-connected', function () {
-				log.info('connected');
-			});
-			greenworks.on('steam-servers-disconnected', function () {
-				log.info('disconnected');
-			});
-			greenworks.on('steam-server-connect-failure', function () {
-				log.info('connected failure');
-			});
-			greenworks.on('steam-shutdown', function () {
-				log.info('shutdown');
-			});
-
-			greenworks.saveTextToFile(
-				'test_file.txt',
-				'test_content',
-				function () {
-					log.info('Save text to file successfully');
-				},
-				function (err: Error) {
-					log.error('Failed on saving text to file', err);
-				}
-			);
-			greenworks.readTextFromFile(
-				'test_file.txt',
-				function (message: string) {
-					log.info('Read text from file successfully: ', message);
-				},
-				function (err: Error) {
-					log.error('Failed on reading text from file', err);
-				}
-			);
-			greenworks.getCloudQuota(
-				function () {
-					log.info('Getting cloud quota successfully.');
-				},
-				function (err: Error) {
-					log.error('Failed on getting cloud quota.', err);
-				}
-			);
-			// The ACH_WIN_ONE_GAME achievement is available for the sample (id:480) game
-			/* greenworks.activateAchievement('ACH_WIN_ONE_GAME',
-				function() { log.info('Activating achievement successfully'); },
-				function(err: Error) { log.error('Failed on activating achievement.', err);
-			}); */
-			greenworks.getNumberOfPlayers(
-				function (a: number) {
-					log.info('Number of players ' + a);
-				},
-				function (err: Error) {
-					log.error('Failed on getting number of players', err);
-				}
-			);
-
-			log.info(
-				'Numer of friends: ' +
-					greenworks.getFriendCount(greenworks.FriendFlags.Immediate)
-			);
-			var friends = greenworks.getFriends(greenworks.FriendFlags.Immediate);
-			var friends_names = [];
-			for (var i = 0; i < friends.length; ++i)
-				friends_names.push(friends[i].getPersonaName());
-			log.info('Friends: [' + friends_names.join(',') + ']');
-		}
-	}
-}
-
 const createWindow = async () => {
-	if (
-		process.env.NODE_ENV === 'development' ||
-		process.env.DEBUG_PROD === 'true'
-	) {
+	if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
 		await installExtensions();
 	}
 
-	const RESOURCES_PATH = app.isPackaged
-		? path.join(process.resourcesPath, 'assets')
-		: path.join(__dirname, '../../assets');
+	const RESOURCES_PATH = app.isPackaged ? path.join(process.resourcesPath, 'assets') : path.join(__dirname, '../../assets');
 
 	const getAssetPath = (...paths: string[]): string => {
 		return path.join(RESOURCES_PATH, ...paths);
@@ -177,8 +79,8 @@ const createWindow = async () => {
 		icon: getAssetPath('icon.png'),
 		webPreferences: {
 			contextIsolation: true,
-			preload: path.join(__dirname, 'preload.js'),
-		},
+			preload: path.join(__dirname, 'preload.js')
+		}
 	});
 
 	protocol.registerFileProtocol('file', (request, callback) => {
@@ -223,8 +125,6 @@ const createWindow = async () => {
 		log.info(`App Name: ${app.getName()}`);
 		const version = app.getVersion();
 		mainWindow?.setTitle(`${name} v${version}`);
-
-		testSteamAPI();
 	});
 
 	// Remove this if your app does not use auto updates
@@ -276,111 +176,97 @@ interface PathParams {
 }
 
 // Read raw app metadata from the given paths
-ipcMain.on(
-	'read-mod-metadata',
-	async (event, pathParams: PathParams, type, workshopID: BigInt | null) => {
-		const modPath = path.join(...pathParams.prefixes, pathParams.path);
-		log.info(`Reading mod metadata for ${modPath}`);
-		fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
-			if (err) {
-				log.error(err);
-				event.reply('mod-metadata-results', null);
-			} else {
-				const tempID = workshopID ? `${workshopID}` : '';
-				const potentialMod: Mod = {
-					UID: `${type}:${tempID}`,
-					ID: tempID,
-					type,
-					WorkshopID: workshopID,
-					config: { hasCode: false },
-				};
-				let validMod = false;
-				const config: ModConfig = potentialMod.config as ModConfig;
-				files.forEach((file) => {
-					if (file.isFile()) {
-						if (file.name === 'preview.png') {
-							config.preview = `image://${path.join(modPath, file.name)}`;
-						} else if (file.name.match(/^(.*)\.dll$/)) {
-							config.hasCode = true;
-						} else if (file.name === 'ttsm_config.json') {
-							Object.assign(
-								potentialMod.config,
-								JSON.parse(
-									fs.readFileSync(path.join(modPath, file.name), 'utf8')
-								)
-							);
-						} else if (type === 'ttqmm') {
-							if (file.name === 'mod.json') {
-								const modConfig = JSON.parse(
-									fs.readFileSync(path.join(modPath, file.name), 'utf8')
-								);
-								config.name = modConfig.DisplayName;
-								config.authors = [modConfig.Author];
-								if (potentialMod.ID === '') {
-									potentialMod.ID = modConfig.Id;
-									potentialMod.UID = `ttqmm:${modConfig.Id}`;
-								}
+ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, workshopID: BigInt | null) => {
+	const modPath = path.join(...pathParams.prefixes, pathParams.path);
+	log.info(`Reading mod metadata for ${modPath}`);
+	fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
+		if (err) {
+			log.error(err);
+			event.reply('mod-metadata-results', null);
+		} else {
+			const tempID = workshopID ? `${workshopID}` : '';
+			const potentialMod: Mod = {
+				UID: `${type}:${tempID}`,
+				ID: tempID,
+				type,
+				WorkshopID: workshopID,
+				config: { hasCode: false }
+			};
+			let validMod = false;
+			const config: ModConfig = potentialMod.config as ModConfig;
+			files.forEach((file) => {
+				if (file.isFile()) {
+					if (file.name === 'preview.png') {
+						config.preview = `image://${path.join(modPath, file.name)}`;
+					} else if (file.name.match(/^(.*)\.dll$/)) {
+						config.hasCode = true;
+					} else if (file.name === 'ttsm_config.json') {
+						Object.assign(potentialMod.config, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
+					} else if (type === 'ttqmm') {
+						if (file.name === 'mod.json') {
+							const modConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
+							config.name = modConfig.DisplayName;
+							config.authors = [modConfig.Author];
+							if (potentialMod.ID === '') {
+								potentialMod.ID = modConfig.Id;
+								potentialMod.UID = `ttqmm:${modConfig.Id}`;
 							}
-							if (file.name === 'ttmm.json') {
-								const ttmmConfig = JSON.parse(
-									fs.readFileSync(path.join(modPath, file.name), 'utf8')
-								);
-								potentialMod.ID = ttmmConfig.CloudName;
-								potentialMod.UID = `ttqmm:${ttmmConfig.CloudName}`;
-								config.dependsOn = ttmmConfig.RequiredModNames;
-								config.loadAfter = ttmmConfig.RequiredModNames;
-								config.description = ttmmConfig.InlineDescription;
+						}
+						if (file.name === 'ttmm.json') {
+							const ttmmConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
+							potentialMod.ID = ttmmConfig.CloudName;
+							potentialMod.UID = `ttqmm:${ttmmConfig.CloudName}`;
+							config.dependsOn = ttmmConfig.RequiredModNames;
+							config.loadAfter = ttmmConfig.RequiredModNames;
+							config.description = ttmmConfig.InlineDescription;
+						}
+					} else {
+						const matches = file.name.match(/^(.*)_bundle$/);
+						if (matches && matches.length > 1) {
+							// eslint-disable-next-line prefer-destructuring
+							potentialMod.ID = matches[1];
+							if (type !== 'workshop') {
+								potentialMod.UID = `local:${potentialMod.ID}`;
 							}
-						} else {
-							const matches = file.name.match(/^(.*)_bundle$/);
-							if (matches && matches.length > 1) {
+							if (!config.name) {
 								// eslint-disable-next-line prefer-destructuring
-								potentialMod.ID = matches[1];
-								if (type !== 'workshop') {
-									potentialMod.UID = `local:${potentialMod.ID}`;
-								}
-								if (!config.name) {
-									// eslint-disable-next-line prefer-destructuring
-									config.name = matches[1];
-								}
-								validMod = true;
+								config.name = matches[1];
 							}
+							validMod = true;
 						}
-					}
-				});
-
-				// augment workshop mod with data
-				let workshopMod: Mod | null = null;
-				if (workshopID) {
-					potentialMod.subscribed = true;
-					try {
-						workshopMod = await querySteam(workshopID);
-						const steamConfig = workshopMod?.config;
-						if (steamConfig && config) {
-							const { name } = steamConfig;
-							// We take anything else we've determined for ourselves from the file system over whatever we got from Steam alone
-							potentialMod.config = Object.assign(steamConfig, config);
-							if (name) {
-								potentialMod.config.name = name;
-							}
-						}
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					} catch (error: any) {
-						log.error(error);
 					}
 				}
+			});
 
-				log.info(JSON.stringify(potentialMod, null, 2));
-				event.reply('mod-metadata-results', validMod ? potentialMod : null);
+			// augment workshop mod with data
+			let workshopMod: Mod | null = null;
+			if (workshopID) {
+				potentialMod.subscribed = true;
+				try {
+					workshopMod = await querySteam(workshopID);
+					const steamConfig = workshopMod?.config;
+					if (steamConfig && config) {
+						const { name } = steamConfig;
+						// We take anything else we've determined for ourselves from the file system over whatever we got from Steam alone
+						potentialMod.config = Object.assign(steamConfig, config);
+						if (name) {
+							potentialMod.config.name = name;
+						}
+					}
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				} catch (error: any) {
+					log.error(error);
+				}
 			}
-		});
-	}
-);
+
+			// log.debug(JSON.stringify(potentialMod, null, 2));
+			event.reply('mod-metadata-results', validMod ? potentialMod : null);
+		}
+	});
+});
 
 ipcMain.on('read-collection', async (event, collection) => {
-	const collectionString = fs.readFileSync(
-		path.join(app.getPath('userData'), 'collections', `${collection}.json`)
-	);
+	const collectionString = fs.readFileSync(path.join(app.getPath('userData'), 'collections', `${collection}.json`));
 	try {
 		const data = JSON.parse(collectionString.toString());
 		data.name = collection;
@@ -398,8 +284,7 @@ ipcMain.handle('read-collections-list', async () => {
 		if (!fs.existsSync(dirpath)) {
 			fs.mkdirSync(dirpath);
 		}
-		const dirContents: string[] | Buffer[] | fs.Dirent[] =
-			fs.readdirSync(dirpath);
+		const dirContents: string[] | Buffer[] | fs.Dirent[] = fs.readdirSync(dirpath);
 		return dirContents
 			.map((elem) => {
 				const matches = elem.toString().match(/(.*)\.json/);
@@ -415,73 +300,39 @@ ipcMain.handle('read-collections-list', async () => {
 	}
 });
 
-ipcMain.handle(
-	'update-collection',
-	async (_event, collection: ModCollection) => {
-		const filepath = path.join(
-			app.getPath('userData'),
-			'collections',
-			`${collection.name}.json`
-		);
-		try {
-			fs.writeFileSync(
-				filepath,
-				JSON.stringify({ ...collection, mods: [...collection.mods] }, null, 4),
-				{ encoding: 'utf8', flag: 'w' }
-			);
-		} catch (error) {
-			log.error(error);
-			return false;
-		}
-		return true;
+ipcMain.handle('update-collection', async (_event, collection: ModCollection) => {
+	const filepath = path.join(app.getPath('userData'), 'collections', `${collection.name}.json`);
+	try {
+		fs.writeFileSync(filepath, JSON.stringify({ ...collection, mods: [...collection.mods] }, null, 4), { encoding: 'utf8', flag: 'w' });
+	} catch (error) {
+		log.error(error);
+		return false;
 	}
-);
+	return true;
+});
 
 // Rename a file
-ipcMain.handle(
-	'rename-collection',
-	async (_event, collection: ModCollection, newName: string) => {
-		const oldName = collection.name;
-		const oldpath = path.join(
-			app.getPath('userData'),
-			'collections',
-			`${oldName}.json`
-		);
-		const newpath = path.join(
-			app.getPath('userData'),
-			'collections',
-			`${newName}.json`
-		);
-		log.info(`Renaming file ${oldpath} to ${newpath}`);
-		try {
-			if (fs.existsSync(oldpath)) {
-				fs.renameSync(oldpath, newpath);
-			} else {
-				fs.writeFileSync(
-					newpath,
-					JSON.stringify(
-						{ ...collection, mods: [...collection.mods] },
-						null,
-						4
-					),
-					{ encoding: 'utf8', flag: 'w' }
-				);
-			}
-			return true;
-		} catch (error) {
-			log.error(error);
-			return false;
+ipcMain.handle('rename-collection', async (_event, collection: ModCollection, newName: string) => {
+	const oldName = collection.name;
+	const oldpath = path.join(app.getPath('userData'), 'collections', `${oldName}.json`);
+	const newpath = path.join(app.getPath('userData'), 'collections', `${newName}.json`);
+	log.info(`Renaming file ${oldpath} to ${newpath}`);
+	try {
+		if (fs.existsSync(oldpath)) {
+			fs.renameSync(oldpath, newpath);
+		} else {
+			fs.writeFileSync(newpath, JSON.stringify({ ...collection, mods: [...collection.mods] }, null, 4), { encoding: 'utf8', flag: 'w' });
 		}
+		return true;
+	} catch (error) {
+		log.error(error);
+		return false;
 	}
-);
+});
 
 // Delete a json file
 ipcMain.handle('delete-collection', async (_event, collection: string) => {
-	const filepath = path.join(
-		app.getPath('userData'),
-		'collections',
-		`${collection}.json`
-	);
+	const filepath = path.join(app.getPath('userData'), 'collections', `${collection}.json`);
 	log.info(`Deleting file ${filepath}`);
 	try {
 		fs.unlinkSync(filepath);
@@ -510,7 +361,7 @@ ipcMain.handle('update-config', async (_event, config) => {
 		log.info('updated config');
 		fs.writeFileSync(filepath, JSON.stringify(config, null, 4), {
 			encoding: 'utf8',
-			flag: 'w',
+			flag: 'w'
 		});
 		return true;
 	} catch (error) {
@@ -528,9 +379,7 @@ interface ProcessDetails {
 ipcMain.on('game-running', async (event) => {
 	let running = false;
 	await psList().then((processes: ProcessDetails[]) => {
-		const matches = processes.filter((process) =>
-			/[Tt]erra[Tt]ech(?!.*mod.*manager)/.test(process.name)
-		);
+		const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod.*manager)/.test(process.name));
 		running = matches.length > 0;
 		event.reply('game-running', running);
 		return running;
@@ -540,23 +389,16 @@ ipcMain.on('game-running', async (event) => {
 });
 
 // Launch steam as separate process
-ipcMain.handle(
-	'launch-game',
-	async (_event, workshopID, closeOnLaunch, args) => {
-		log.info('Launching game with custom args:');
-		const allArgs = [
-			'+custom_mod_list',
-			`[workshop:${workshopID}]`,
-			...args,
-		];
-		log.info(allArgs);
-		shell.openExternal(`steam://run/285920//${allArgs.join(' ')}/`);
-		if (closeOnLaunch) {
-			app.quit();
-		}
-		return true;
+ipcMain.handle('launch-game', async (_event, workshopID, closeOnLaunch, args) => {
+	log.info('Launching game with custom args:');
+	const allArgs = ['+custom_mod_list', `[workshop:${workshopID}]`, ...args];
+	log.info(allArgs);
+	shell.openExternal(`steam://run/285920//${allArgs.join(' ')}/`);
+	if (closeOnLaunch) {
+		app.quit();
 	}
-);
+	return true;
+});
 
 // Handle querying steam and parsing the result for a mod page
 ipcMain.handle('query-steam', async (_event, workshopID) => {
@@ -579,37 +421,34 @@ ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
 });
 
 // Update a json file
-ipcMain.handle(
-	'update-file',
-	async (_event, pathParams: PathParams, newData) => {
-		const filepath = path.join(...pathParams.prefixes, pathParams.path);
-		log.info(`Updating json file ${filepath}`);
-		const raw: string = fs.readFileSync(filepath) as unknown as string;
-		try {
-			const data: Record<string, unknown> = JSON.parse(raw);
-			Object.entries(newData).forEach(([key, value]) => {
-				if (value === undefined) {
-					delete data[key];
-				} else {
-					data[key] = value;
-				}
-			});
-			log.info(`Writing ${JSON.stringify(data)} to file ${filepath}`);
-			fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
-			return true;
-		} catch (error) {
-			log.info(`Unable to parse file ${filepath} contents into json: ${raw}`);
-			log.error(error);
-			try {
-				fs.writeFileSync(filepath, JSON.stringify(newData, null, 4), 'utf8');
-				return true;
-			} catch (err2) {
-				log.error(err2);
-				return false;
+ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) => {
+	const filepath = path.join(...pathParams.prefixes, pathParams.path);
+	log.info(`Updating json file ${filepath}`);
+	const raw: string = fs.readFileSync(filepath) as unknown as string;
+	try {
+		const data: Record<string, unknown> = JSON.parse(raw);
+		Object.entries(newData).forEach(([key, value]) => {
+			if (value === undefined) {
+				delete data[key];
+			} else {
+				data[key] = value;
 			}
+		});
+		log.info(`Writing ${JSON.stringify(data)} to file ${filepath}`);
+		fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
+		return true;
+	} catch (error) {
+		log.info(`Unable to parse file ${filepath} contents into json: ${raw}`);
+		log.error(error);
+		try {
+			fs.writeFileSync(filepath, JSON.stringify(newData, null, 4), 'utf8');
+			return true;
+		} catch (err2) {
+			log.error(err2);
+			return false;
 		}
 	}
-);
+});
 
 // Delete a json file
 ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
@@ -707,32 +546,24 @@ ipcMain.handle('user-data-path', async () => {
 	return app.getPath('userData');
 });
 
-ipcMain.on(
-	'select-path',
-	async (event, target: string, directory: boolean, title: string) => {
-		log.info(`Selecting path: ${target}`);
+ipcMain.on('select-path', async (event, target: string, directory: boolean, title: string) => {
+	log.info(`Selecting path: ${target}`);
 
-		dialog
-			.showOpenDialog({
-				title,
-				properties: [
-					'showHiddenFiles',
-					directory ? 'openDirectory' : 'openFile',
-					'promptToCreate',
-					'createDirectory',
-				],
-			})
-			.then((result) => {
-				if (result.canceled) {
-					event.reply('select-path-result', null, target);
-				} else {
-					event.reply('select-path-result', result.filePaths[0], target);
-				}
-				return null;
-			})
-			.catch((error) => {
-				log.error(error);
+	dialog
+		.showOpenDialog({
+			title,
+			properties: ['showHiddenFiles', directory ? 'openDirectory' : 'openFile', 'promptToCreate', 'createDirectory']
+		})
+		.then((result) => {
+			if (result.canceled) {
 				event.reply('select-path-result', null, target);
-			});
-	}
-);
+			} else {
+				event.reply('select-path-result', result.filePaths[0], target);
+			}
+			return null;
+		})
+		.catch((error) => {
+			log.error(error);
+			event.reply('select-path-result', null, target);
+		});
+});

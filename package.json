@@ -12,7 +12,7 @@
     "publish-windows": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish onTagOrDraft",
     "publish": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build -mwl --publish onTagOrDraft",
     "package": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never",
-		"postinstall": "ts-node .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts && opencollective-postinstall",
+    "postinstall": "ts-node .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts && opencollective-postinstall",
     "start": "ts-node ./.erb/scripts/check-port-in-use.js && npm run start:renderer",
     "start:main": "cross-env NODE_ENV=development electron -r ts-node/register/transpile-only ./src/main/main.ts",
     "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
@@ -45,12 +45,16 @@
     "afterSign": ".erb/scripts/notarize.js",
     "mac": {
       "type": "distribution",
-			"target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "hardenedRuntime": true,
       "entitlements": "assets/entitlements.mac.plist",
       "entitlementsInherit": "assets/entitlements.mac.plist",
       "gatekeeperAssess": false,
-			"publish": ["github"]
+      "publish": [
+        "github"
+      ]
     },
     "dmg": {
       "contents": [
@@ -70,23 +74,27 @@
       "target": [
         "nsis"
       ],
-			"publish": ["github"],
-			"certificateSubjectName": "FLSoz",
-			"certificateFile": "../../FLSoz.pfx",
-			"publisherName": "FLSoz",
-			"verifyUpdateCodeSignature": false
+      "publish": [
+        "github"
+      ],
+      "certificateSubjectName": "FLSoz",
+      "certificateFile": "../../FLSoz.pfx",
+      "publisherName": "FLSoz",
+      "verifyUpdateCodeSignature": false
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-			"publish": ["github"],
+      "publish": [
+        "github"
+      ],
       "category": "Development"
     },
-		"appImage": {
-			"synopsis": "Steam Workshop mod manager for TerraTech",
-			"category": "Game"
-		},
+    "appImage": {
+      "synopsis": "Steam Workshop mod manager for TerraTech",
+      "category": "Game"
+    },
     "directories": {
       "app": "release/app",
       "buildResources": "assets",
@@ -163,8 +171,8 @@
     "@types/react-router-dom": "^5.3.2",
     "@types/react-test-renderer": "^17.0.1",
     "@types/terser-webpack-plugin": "^5.0.4",
+    "@types/webpack-bundle-analyzer": "^4.4.1",
     "@types/webpack-env": "^1.16.3",
-		"@types/webpack-bundle-analyzer": "^4.4.1",
     "@typescript-eslint/eslint-plugin": "^5.8.1",
     "@typescript-eslint/parser": "^5.8.1",
     "browserslist-config-erb": "^0.0.3",
@@ -193,6 +201,7 @@
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
     "file-loader": "^6.2.0",
+    "follow-redirects": ">=1.14.8",
     "html-webpack-plugin": "^5.5.0",
     "husky": "^7.0.4",
     "identity-obj-proxy": "^3.0.0",
@@ -218,9 +227,7 @@
     "webpack-bundle-analyzer": "^4.5.0",
     "webpack-cli": "^4.9.1",
     "webpack-dev-server": "^4.7.1",
-    "webpack-merge": "^5.8.0",
-
-		"follow-redirects": ">=1.14.8"
+    "webpack-merge": "^5.8.0"
   },
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
@@ -233,6 +240,7 @@
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.4",
     "electron-updater": "^4.6.5",
+    "follow-redirects": ">=1.14.8",
     "history": "^5.2.0",
     "html-react-parser": "^1.4.0",
     "less": "^4.1.1",
@@ -248,9 +256,7 @@
     "react-router-dom": "^6.2.1",
     "react-sizeme": "^3.0.2",
     "react-virtualized-auto-sizer": "^1.0.6",
-    "regenerator-runtime": "^0.13.9",
-
-		"follow-redirects": ">=1.14.8"
+    "regenerator-runtime": "^0.13.9"
   },
   "devEngines": {
     "node": ">=14.x",
@@ -273,7 +279,12 @@
         }
       }
     ],
-    "singleQuote": true
+    "singleQuote": true,
+    "trailingComma": "none",
+    "tabWidth": 2,
+    "useTabs": true,
+    "printWidth": 160,
+    "bracketSameLine": false
   },
   "husky": {
     "hooks": {
