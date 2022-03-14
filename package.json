@@ -256,7 +256,8 @@
     "react-router-dom": "^6.2.1",
     "react-sizeme": "^3.0.2",
     "react-virtualized-auto-sizer": "^1.0.6",
-    "regenerator-runtime": "^0.13.9"
+    "regenerator-runtime": "^0.13.9",
+    "steam-workshop": "^0.0.5"
   },
   "devEngines": {
     "node": ">=14.x",
