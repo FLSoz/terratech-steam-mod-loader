@@ -21,6 +21,7 @@ import getWorkshopModDetails from './steam';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ModConfig, Mod, ModCollection } from './model';
+import { ValidGreenworksChannels } from './steamworks';
 
 const psList = require('ps-list');
 
@@ -58,6 +59,65 @@ const installExtensions = async () => {
 		)
 		.catch(log.info);
 };
+
+const message = '';
+
+function testSteamAPI() {
+	const os = require('os');
+	let greenworks: any;
+	try {
+		// if greenworks is installed in a node_modules folder, this will work
+		greenworks = require('greenworks');
+	} catch (e) {
+		// eslint-disable-next-line import/extensions
+		greenworks = require('../node_modules/greenworks');
+	}
+	if (!greenworks) {
+		log.info(`Greenworks not support for ${os.platform()} platform`);
+	} else if (!greenworks.init()) {
+		log.info('Error on initializing steam API.');
+	} else {
+		log.info('Steam API initialized successfully.');
+		log.info(`Cloud enabled: ${greenworks.isCloudEnabled()}`);
+		log.info(`Cloud enabled for user: ${greenworks.isCloudEnabledForUser()}`);
+
+		log.info(`Steam Command Line: ${greenworks.getLaunchCommandLine()}`);
+		log.info(`Subscribed items: ${greenworks.getSubscribedItems()}`);
+
+		greenworks.ugcGetUserItems(
+			{
+				app_id: 285920,
+				page_num: 1
+			},
+			greenworks.UGCMatchingType.ItemsReadyToUse,
+			greenworks.UserUGCListSortOrder.LastUpdatedDesc,
+			greenworks.UserUGCList.Subscribed,
+			(items: any[]) => {
+				log.info('GOT UGC item details');
+				items.forEach((item: any) => {
+					log.info(JSON.stringify(item, null, 2));
+				});
+			},
+			(err: Error) => {
+				log.error('FAILED to get UGC subscribed details');
+				log.error(err);
+			}
+		);
+
+		greenworks.on('steam-servers-connected', function () {
+			log.info('connected');
+		});
+		greenworks.on('steam-servers-disconnected', function () {
+			log.info('disconnected');
+		});
+		greenworks.on('steam-server-connect-failure', function () {
+			log.info('connected failure');
+		});
+		greenworks.on('steam-shutdown', function () {
+			log.info('shutdown');
+		});
+	}
+}
 
 const createWindow = async () => {
 	if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
@@ -125,6 +185,8 @@ const createWindow = async () => {
 		log.info(`App Name: ${app.getName()}`);
 		const version = app.getVersion();
 		mainWindow?.setTitle(`${name} v${version}`);
+
+		testSteamAPI();
 	});
 
 	// Remove this if your app does not use auto updates
@@ -240,9 +302,10 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 								// eslint-disable-next-line prefer-destructuring
 								config.name = matches[1];
 							}
-							log.debug(`Found file: ${file.name} under mod path ${modPath}`);
 							validMod = true;
 						}
+						log.debug(`Found file: ${file.name} under mod path ${modPath}`);
+						validMod = true;
 					}
 				}
 			});
@@ -261,8 +324,8 @@ ipcMain.on('read-mod-metadata', async (event, pathParams: PathParams, type, work
 						if (name) {
 							potentialMod.config.name = name;
 						}
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					}
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				} catch (error: any) {
 					log.error(error);
 				}

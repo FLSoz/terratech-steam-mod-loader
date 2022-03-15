@@ -247,7 +247,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export default async function getWorkshopModDetails(id: string): Promise<Mod | null> {
 	const response = await axios.get(`https://steamcommunity.com/sharedfiles/filedetails/?id=${id.toString()}`);
 	await delay(0.5);
-	log.debug(`Got steam results for ${id}`);
+	log.info(`Got steam results for ${id}`);
 	const mod: HTMLElement = parse(response.data.toString());
 	return parseModPage(mod, id);
 }

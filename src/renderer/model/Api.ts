@@ -1,5 +1,6 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { AppConfig } from './AppConfig';
 import { ModCollection } from './ModCollection';
 import { Mod } from './Mod';
