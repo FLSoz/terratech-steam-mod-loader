@@ -1,11 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const pause = (
-	ms: number,
-	callback: (...args: any[]) => any,
-	...args: any[]
-): Promise<any> => {
+const pause = (ms: number, callback: (...args: any[]) => any, ...args: any[]): Promise<any> => {
 	return new Promise((resolve, reject) => {
 		setTimeout(async () => {
 			try {
@@ -27,12 +23,7 @@ export interface ForEachProps<Type> {
 	array: Type[];
 }
 
-function delayForEach<Type>(
-	array: Type[],
-	delayTime: number,
-	func: (props: ForEachProps<Type>, ...funcArgs: any[]) => void,
-	...args: any[]
-): Promise<any> {
+function delayForEach<Type>(array: Type[], delayTime: number, func: (props: ForEachProps<Type>, ...funcArgs: any[]) => void, ...args: any[]): Promise<any> {
 	let promise = Promise.resolve();
 	let index = 0;
 	while (index < array.length) {
@@ -44,7 +35,7 @@ function delayForEach<Type>(
 						{
 							value: array[fixInd],
 							index: fixInd,
-							array,
+							array
 						},
 						...args
 					);

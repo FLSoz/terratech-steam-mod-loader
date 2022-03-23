@@ -8,44 +8,137 @@ import parse from 'html-react-parser';
 import { ColumnType } from 'antd/lib/table';
 import { TableRowSelection } from 'antd/lib/table/interface';
 import { api } from 'renderer/model/Api';
-import { ModData, ModType } from 'renderer/model/Mod';
+import { ModData, ModError, ModErrorType, ModType } from 'renderer/model/Mod';
 import { ModCollectionProps } from 'renderer/model/ModCollection';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
+import Corp_Icon_HE from '../../../../assets/Corp_Icon_HE.png';
+import Corp_Icon_BF from '../../../../assets/Corp_Icon_BF.png';
+import Corp_Icon_GC from '../../../../assets/Corp_Icon_GC.png';
+import Corp_Icon_GSO from '../../../../assets/Corp_Icon_GSO.png';
+import Corp_Icon_VEN from '../../../../assets/Corp_Icon_VEN.png';
+import Corp_Icon_RR from '../../../../assets/Corp_Icon_EXP.png';
+import Corp_Icon_SPE from '../../../../assets/Corp_Icon_SPE.png';
 
 const { Content } = Layout;
 
-function getImageSrcFromType(type: ModType) {
+function getImageSrcFromType(type: ModType, size = 15) {
 	switch (type) {
 		case ModType.LOCAL:
 			return (
 				<Tooltip title="This is a local mod">
-					<img src={local} width="25px" alt="" key="type" />
+					<img src={local} width={size} alt="" key="type" />
 				</Tooltip>
 			);
 		case ModType.TTQMM:
 			return (
 				<Tooltip title="This is a TTMM mod">
-					<img src={ttmm} width="25px" alt="" key="type" />
+					<img src={ttmm} width={size} alt="" key="type" />
 				</Tooltip>
 			);
 		case ModType.WORKSHOP:
 			return (
 				<Tooltip title="This is a Steam mod">
-					<img src={steam} width="25px" alt="" key="type" />
+					<img src={steam} width={size} alt="" key="type" />
 				</Tooltip>
 			);
 		default:
 			return (
 				<Tooltip title="This is a local mod">
-					<img src={local} width="25px" alt="" key="type" />
+					<img src={local} width={size} alt="" key="type" />
 				</Tooltip>
 			);
 	}
 }
 
+enum CorpType {
+	HE = 'he',
+	GSO = 'gso',
+	GC = 'gc',
+	BF = 'bf',
+	VEN = 'ven',
+	RR = 'rr',
+	SPE = 'spe'
+}
+
+function getCorpIcon(type: CorpType, size = 15) {
+	switch (type) {
+		case CorpType.HE:
+			return (
+				<Tooltip title="Hawkeye" key={type}>
+					<img src={Corp_Icon_HE} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		case CorpType.GSO:
+			return (
+				<Tooltip title="Galactic Survey Organization" key={type}>
+					<img src={Corp_Icon_GSO} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		case CorpType.GC:
+			return (
+				<Tooltip title="GeoCorp" key={type}>
+					<img src={Corp_Icon_GC} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		case CorpType.BF:
+			return (
+				<Tooltip title="Better Future" key={type}>
+					<img src={Corp_Icon_BF} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		case CorpType.RR:
+			return (
+				<Tooltip title="Reticule Research" key={type}>
+					<img src={Corp_Icon_RR} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		case CorpType.SPE:
+			return (
+				<Tooltip title="Special" key={type}>
+					<img src={Corp_Icon_SPE} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		case CorpType.VEN:
+			return (
+				<Tooltip title="Venture" key={type}>
+					<img src={Corp_Icon_VEN} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		default:
+			return null;
+	}
+}
+function getCorpType(tag: string): CorpType | null {
+	const lowercase = tag.toLowerCase();
+	if (lowercase === 'gso') {
+		return CorpType.GSO;
+	}
+	if (lowercase === 'he' || lowercase === 'hawkeye') {
+		return CorpType.HE;
+	}
+	if (lowercase === 'gc' || lowercase === 'geocorp') {
+		return CorpType.GC;
+	}
+	if (lowercase === 'ven' || lowercase === 'venture') {
+		return CorpType.VEN;
+	}
+	if (lowercase === 'bf' || lowercase === 'betterfuture') {
+		return CorpType.BF;
+	}
+	if (lowercase === 'rr' || lowercase === 'reticuleresearch') {
+		return CorpType.RR;
+	}
+	if (lowercase === 'spe' || lowercase === 'special') {
+		return CorpType.SPE;
+	}
+	return null;
+}
+
 class MainCollectionComponent extends Component<ModCollectionProps, never> {
+	ZERO_DATE: Date = new Date(0);
+
 	componentDidMount() {
 		this.setState({});
 	}
@@ -125,92 +218,21 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 			}
 		};
 
-		const expandable = {
-			// eslint-disable-next-line @typescript-eslint/ban-types
-			expandedRowRender: (record: ModData) => parse(record.description as string),
-			// eslint-disable-next-line @typescript-eslint/ban-types
-			rowExpandable: (record: ModData) => {
-				const { description } = record;
-				return !!description && description.length > 0;
-			}
-		};
-
+		const small = true;
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		const columns: ColumnType<ModData>[] = [
 			{
 				title: 'Type',
 				dataIndex: 'type',
-				render: (type: ModType) => getImageSrcFromType(type),
+				render: (type: ModType) => getImageSrcFromType(type, small ? 20 : 35),
 				width: 65,
 				align: 'center'
-			},
-			{
-				title: 'Preview',
-				dataIndex: 'preview',
-				render: (imgPath: string | undefined | null) => {
-					if (imgPath) {
-						return <Image width={60} src={imgPath} key="preview" />;
-					}
-					return <FileImageOutlined style={{ fontSize: '40px', color: '#08c' }} />;
-				},
-				width: 85,
-				align: 'center'
-			},
-			{
-				key: 'dependency',
-				// eslint-disable-next-line @typescript-eslint/ban-types
-				render: (_: unknown, record: ModData) => {
-					const modData = record;
-					const isDependency = !!modData.isDependencyFor;
-					const hasDependencies = !!modData.dependsOn;
-					const hasCode = !!modData.hasCode;
-					return (
-						<Space>
-							{isDependency ? (
-								<Tooltip title="This mod is a dependency for another mod">
-									<ShareAltOutlined />
-								</Tooltip>
-							) : (
-								<> </>
-							)}
-							{hasDependencies ? (
-								<Tooltip title="This depends on another mod">
-									<DeploymentUnitOutlined />
-								</Tooltip>
-							) : (
-								<> </>
-							)}
-							{hasCode ? (
-								<Tooltip title="This mod has code">
-									<CodeOutlined />
-								</Tooltip>
-							) : (
-								<> </>
-							)}
-						</Space>
-					);
-				},
-				width: 75
 			},
 			{
 				title: 'Name',
 				dataIndex: 'name',
 				defaultSortOrder: 'ascend',
 				sorter: (a, b) => (a.name > b.name ? 1 : -1)
-			},
-			{
-				title: 'Tags',
-				dataIndex: 'tags',
-				// eslint-disable-next-line @typescript-eslint/ban-types
-				render: (tags: string[] | undefined, record: ModData) => {
-					return [...(tags || []), record.type].map((tag) => {
-						return (
-							<Tag color="blue" key={tag}>
-								{tag}
-							</Tag>
-						);
-					});
-				}
 			},
 			{
 				title: 'Authors',
@@ -249,12 +271,141 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				// eslint-disable-next-line @typescript-eslint/ban-types
 				render: (authors: string[] | undefined) => {
 					return (authors || []).map((author) => {
-						return (
-							<Tag color="green" key={author}>
-								{author}
-							</Tag>
-						);
+						return <Tag key={author}>{author}</Tag>;
 					});
+				}
+			},
+			{
+				title: 'ID',
+				dataIndex: 'id',
+				sorter: (a, b) => (a.id > b.id ? 1 : -1)
+			},
+			{
+				title: 'State',
+				dataIndex: 'errors',
+				render: (errors: ModError[] | undefined, record: ModData) => {
+					const selectedMods = collection.mods;
+					if (!selectedMods.includes(record.uid)) {
+						return null;
+					}
+					if (errors && errors.length > 0) {
+						return errors.map((modError: ModError) => {
+							let errorText = modError.errorType.toString();
+							let errorColor: string | undefined = 'red';
+							switch (modError.errorType) {
+								case ModErrorType.INCOMPATIBLE_MODS:
+									errorText = 'Conflicts';
+									break;
+								case ModErrorType.INVALID_ID:
+									errorText = 'Invalid';
+									errorColor = 'volcano';
+									break;
+								case ModErrorType.MISSING_DEPENDENCY:
+									errorText = 'Missing dependencies';
+									errorColor = 'orange';
+									break;
+								case ModErrorType.NOT_SUBSCRIBED:
+									errorText = 'Not subscribed';
+									errorColor = undefined;
+									break;
+								default:
+									break;
+							}
+							return (
+								<Tag key={modError.errorType} color={errorColor}>
+									{errorText}
+								</Tag>
+							);
+						});
+					}
+					return (
+						<Tag key="OK" color="green">
+							OK
+						</Tag>
+					);
+				}
+			},
+			{
+				title: 'Size',
+				dataIndex: 'size',
+				render: (size?: number) => {
+					if (size && size > 0) {
+						// return 3 points of precision
+						const strNum = `${size}`;
+						const power = strNum.length;
+						const digit1 = strNum[0];
+						const digit2 = strNum[1];
+						let digit3 = strNum[2];
+						const digit4 = strNum[3];
+						if (!digit4) {
+							return `${strNum} B`;
+						}
+						digit3 = parseInt(digit4, 10) >= 5 ? `${parseInt(digit3, 10) + 1}` : digit3;
+
+						let descriptor = ' B';
+						if (power >= 3) {
+							if (power >= 6) {
+								if (power >= 9) {
+									descriptor = ' GB';
+								} else {
+									descriptor = ' MB';
+								}
+							} else {
+								descriptor = ' KB';
+							}
+						}
+
+						let value = `${digit1}${digit2}${digit3}`;
+						const decimal = power % 3;
+						if (decimal === 1) {
+							value = `${digit1}.${digit2}${digit3}`;
+						} else if (decimal === 2) {
+							value = `${digit1}${digit2}.${digit3}`;
+						}
+						return value + descriptor;
+					}
+					return '';
+				}
+			},
+			{
+				title: 'Last Update',
+				dataIndex: 'lastUpdate',
+				render: (date: Date) => {
+					return date && date > this.ZERO_DATE ? date.toLocaleDateString() : '';
+				}
+			},
+			{
+				title: 'Date Added',
+				dataIndex: 'dateAdded',
+				render: (date: Date) => {
+					return date && date > this.ZERO_DATE ? date.toLocaleDateString() : '';
+				}
+			},
+			{
+				title: 'Tags',
+				dataIndex: 'tags',
+				// eslint-disable-next-line @typescript-eslint/ban-types
+				render: (tags: string[] | undefined, record: ModData) => {
+					const iconTags: CorpType[] = [];
+					const actualTags: string[] = [];
+					(tags || [])
+						.filter((tag) => tag.toLowerCase() !== 'mods')
+						.forEach((tag: string) => {
+							const corp = getCorpType(tag);
+							if (corp) {
+								iconTags.push(corp);
+							} else {
+								actualTags.push(tag);
+							}
+						});
+					return [
+						...actualTags.map((tag) => (
+							<Tag color="blue" key={tag}>
+								{tag}
+							</Tag>
+						)),
+						...iconTags.map((corp) => getCorpIcon(corp, small ? 20 : 35))
+					];
 				}
 			}
 		];
@@ -266,9 +417,9 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 					<Table
 						dataSource={filteredRows}
 						pagination={false}
+						size="small"
 						rowKey="uid"
 						rowSelection={rowSelection}
-						expandable={expandable}
 						columns={columns}
 						sticky
 						tableLayout="fixed"

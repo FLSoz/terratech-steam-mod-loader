@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { SteamworksAPIProps } from './Steamworks';
 
 export enum ItemPreviewType {
@@ -6,7 +7,7 @@ export enum ItemPreviewType {
 	Sketchfab = 2,
 	EnvironmentMap_HorizontalCross = 3,
 	EnvironmentMap_LatLong = 4,
-	ReservedMax = 255,
+	ReservedMax = 255
 }
 
 export enum UGCMatchingType {
@@ -21,7 +22,7 @@ export enum UGCMatchingType {
 	WebGuides,
 	IntegratedGuides,
 	UsableInGame,
-	ControllerBindings,
+	ControllerBindings
 }
 
 export enum UGCQueryType {
@@ -46,7 +47,7 @@ export enum UGCQueryType {
 	RankedByLifetimeAveragePlaytime = 16,
 	RankedByPlaytimeSessionsTrend = 17,
 	RankedByLifetimePlaytimeSessions = 18,
-	RankedByLastUpdatedDate = 19,
+	RankedByLastUpdatedDate = 19
 }
 
 export enum UGCItemVisibility {
@@ -80,7 +81,6 @@ export interface SteamUGCDetails {
 	title: string;
 	description: string;
 	URL: string;
-	tags: string;
 	/** Time when user added the item to their list provided in Unix epoch format */
 	timeAddedToUserList: number;
 	/** Time when item was created, provided in Unix epoch format */
@@ -89,6 +89,10 @@ export interface SteamUGCDetails {
 	timeUpdated: number;
 	votesDown: number;
 	votesUp: number;
+	children?: string[];
+	metadata: string;
+	tags: string[];
+	tagsDisplayNames: string[];
 }
 
 export interface ExtendedSteamUGCDetails extends SteamUGCDetails {
@@ -104,7 +108,7 @@ export enum UserUGCList {
 	Favorited = 5,
 	Subscribed = 6,
 	UsedOrPlayer = 7,
-	Followed = 8,
+	Followed = 8
 }
 
 export enum UserUGCListSortOrder {
@@ -114,7 +118,7 @@ export enum UserUGCListSortOrder {
 	LastUpdatedDesc = 3,
 	SubscriptionDateDesc = 4,
 	VoteScoreDesc = 5,
-	ForModeration = 6,
+	ForModeration = 6
 }
 
 export enum UGCItemState {
@@ -124,7 +128,7 @@ export enum UGCItemState {
 	Installed = 4,
 	NeedsUpdate = 8,
 	Downloading = 16,
-	DownloadPending = 32,
+	DownloadPending = 32
 }
 
 export enum ItemStatistic {
@@ -139,7 +143,7 @@ export enum ItemStatistic {
 	NumPlaytimeSessions = 9,
 	NumComments = 10,
 	NumSecondsPlayedDuringTimePeriod = 11,
-	NumPlaytimeSessionsDuringTimePeriod = 12,
+	NumPlaytimeSessionsDuringTimePeriod = 12
 }
 
 export const kNumUGCResultsPerPage = 50;
@@ -148,10 +152,10 @@ const k_UGCQueryHandleInvalid = '18446744073709551615'; // 0xffffffffffffffff in
 const k_UGCUpdateHandleInvalid = '18446744073709551615'; // 0xffffffffffffffff in unsigned long
 
 export function invalidQueryHandle(queryHandle: string) {
-	return queryHandle == k_UGCQueryHandleInvalid;
+	return queryHandle === k_UGCQueryHandleInvalid;
 }
 export function invalidUpdateHandle(updateHandle: string) {
-	return updateHandle == k_UGCUpdateHandleInvalid;
+	return updateHandle === k_UGCUpdateHandleInvalid;
 }
 
 // API Props

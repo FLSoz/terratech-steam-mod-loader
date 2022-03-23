@@ -6,7 +6,7 @@ import { delayForEach, ForEachProps } from './Sleep';
 
 async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
 	const errors: { [field: string]: string } = {};
-	const fields: ('workshopDir' | 'localDir')[] = ['workshopDir', 'localDir'];
+	const fields: ('gameExec' | 'localDir')[] = ['gameExec', 'localDir'];
 	const paths = ['Steam executable', 'TerraTech Steam Workshop directory', 'TerraTech Local Mods directory'];
 	let failed = false;
 	await Promise.allSettled(

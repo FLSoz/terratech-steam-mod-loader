@@ -5,13 +5,13 @@ export const TT_APP_ID = '285920';
 function getDefaultLocalDir(): string {
 	switch (platform) {
 		case 'win32':
-			return 'C:\\Program Files(x86)\\Steam\\steamapps\\common\\TerraTech\\LocalMods';
+			return 'C:\\Program Files(x86)\\Steam\\steamapps\\common\\TerraTech';
 			break;
 		case 'darwin':
-			return '~/Library/"Application Support"/Steam/steamapps/common/TerraTech/LocalMods';
+			return '~/Library/"Application Support"/Steam/steamapps/common/TerraTech';
 			break;
 		default:
-			return '~/.steam/steam/SteamApps/common/TerraTech/LocalMods';
+			return '~/.steam/steam/SteamApps/common/TerraTech';
 	}
 }
 export const DEFAULT_LOCAL_DIR = getDefaultLocalDir();

@@ -15,4 +15,6 @@ export interface ModCollectionProps {
 	setEnabledModsCallback: (mods: Set<string>) => any;
 	setEnabledCallback: (mod: string) => any;
 	setDisabledCallback: (mod: string) => any;
+	getModDetails: (mod: string, modData: ModData) => void;
+	getModContextMenu: (mod: string, modData: ModData) => void;
 }

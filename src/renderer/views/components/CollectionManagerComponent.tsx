@@ -1135,7 +1135,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						},
 						setDisabledCallback: (id: string) => {
 							this.handleClick(false, id);
-						}
+						},
+						getModContextMenu: (id: string, data: ModData) => {},
+						getModDetails: (id: string, data: ModData) => {}
 					};
 
 					return (

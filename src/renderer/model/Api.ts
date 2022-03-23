@@ -22,6 +22,7 @@ export enum ValidChannel {
 	USER_DATA_PATH = 'user-data-path',
 	READ_MOD_METADATA = 'read-mod-metadata',
 	MOD_METADATA_RESULTS = 'mod-metadata-results',
+	BATCH_MOD_METADATA_RESULTS = 'batch-mod-metadata-results',
 	READ_CONFIG = 'read-config',
 	UPDATE_CONFIG = 'update-config',
 	READ_COLLECTION = 'read-collection',
@@ -33,7 +34,12 @@ export enum ValidChannel {
 	SELECT_PATH = 'select-path',
 	SELECT_PATH_RESULT = 'select-path-result',
 	OPEN_MOD_BROWSER = 'open-mod-browser',
-	OPEN_MOD_STEAM = 'open-mod-steam'
+	OPEN_MOD_STEAM = 'open-mod-steam',
+	PROGRESS_CHANGE = 'progress-change'
+}
+
+export enum ProgressTypes {
+	MOD_LOAD = 'mod-load'
 }
 
 interface ElectronInterface {
@@ -243,6 +249,10 @@ class API {
 
 	openModSteam(workshopID: string) {
 		ipcRenderer.send(ValidChannel.OPEN_MOD_STEAM, workshopID);
+	}
+
+	getSubscribedMods(): Promise<string[]> {
+		return ipcRenderer.invoke(ValidChannel.QUERY_STEAM_SUBSCRIBED);
 	}
 }
 export const api = new API(window);

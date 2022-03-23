@@ -10,7 +10,7 @@ export enum FriendFlags {
 	Ignored = 512,
 	IgnoredFriend = 1024,
 	ChatMember = 4096,
-	All = 65535,
+	All = 65535
 }
 
 export enum FriendRelationship {
@@ -39,7 +39,7 @@ export enum PersonaChange {
 	NameFirstSet = 1024,
 	FacebookInfo = 2048,
 	NickName = 4096,
-	SteamLevel = 8192,
+	SteamLevel = 8192
 }
 
 export enum AccountType {
@@ -69,7 +69,7 @@ export enum ChatEntryType {
 	WasBanned = 9,
 	Disconnected = 10,
 	HistoricalChat = 11,
-	LinkBlocked = 14,
+	LinkBlocked = 14
 }
 
 export interface SteamID {

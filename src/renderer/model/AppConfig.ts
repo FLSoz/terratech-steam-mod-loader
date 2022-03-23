@@ -6,7 +6,7 @@ export interface AppConfig {
 	language: string;
 
 	localDir: string;
-	workshopDir: string;
+	gameExec: string;
 	workshopID: string;
 
 	activeCollection?: string;
@@ -30,8 +30,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 	// workshopDir: `E:\\Steam\\steamapps\\workshop\\content\\285920`,
 
 	localDir: DEFAULT_LOCAL_DIR,
-	workshopDir: DEFAULT_WORKSHOP_DIR,
-
+	gameExec: '',
 	workshopID: DEFAULT_WORKSHOP_ID,
 
 	logsDir: '',

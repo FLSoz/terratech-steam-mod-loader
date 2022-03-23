@@ -19,6 +19,7 @@ interface SettingsState {
 
 interface SettingsFields {
 	localDir?: string;
+	gameExec?: string;
 	workshopDir?: string;
 	logsDir?: string;
 	closeOnLaunch?: boolean;
@@ -56,7 +57,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 		api.removeAllListeners(ValidChannel.SELECT_PATH_RESULT);
 	}
 
-	setSelectedPath(path: string, target: 'localDir' | 'workshopDir') {
+	setSelectedPath(path: string, target: 'localDir' | 'gameExec') {
 		if (path) {
 			const { editingConfig } = this.state;
 			editingConfig![target] = path;
@@ -122,8 +123,18 @@ class SettingsView extends Component<AppState, SettingsState> {
 						throw new Error('Provided path is invalid');
 					}
 					switch (field) {
+						case 'gameExec':
+							if (value.toLowerCase().includes('terratech')) {
+								delete configErrors[field];
+								updateState({});
+								return true;
+							}
+							configErrors[field] = "The TerraTech executable should contain 'TerraTech'";
+							updateState({});
+							return false;
+
 						case 'localDir':
-							if (value.endsWith('LocalMods')) {
+							if (value.toLowerCase().endsWith('localmods')) {
 								delete configErrors[field];
 								updateState({});
 								return true;
@@ -225,45 +236,42 @@ class SettingsView extends Component<AppState, SettingsState> {
 							/>
 						</Form.Item>
 						<Form.Item
-							name="workshopDir"
-							label="Steam Workshop Directory"
+							name="gameExec"
+							label="TerraTech Executable"
 							tooltip={{
-								overlayInnerStyle: { minWidth: 400 },
+								overlayInnerStyle: { minWidth: 300 },
 								title: (
 									<div>
-										<p>Path to Steam Workshop directory</p>
-										<p>It will be under Steam/steamapps/workshop/content/285920</p>
+										<p>Path to TT executable</p>
+										<p>Generally, it should be under: Steam/steamapps/common/TerraTech. It varies by platform</p>
 									</div>
 								)
 							}}
-							initialValue={editingConfig!.workshopDir}
+							initialValue={editingConfig!.gameExec}
 							rules={[
 								{
 									required: true,
 									validator: (_, value) => {
-										return this.validateFile('workshopDir', value);
+										return this.validateFile('gameExec', value);
 									}
 								}
 							]}
-							help={configErrors && configErrors.workshopDir ? configErrors.workshopDir : undefined}
-							validateStatus={configErrors && configErrors.workshopDir ? 'error' : undefined}
+							help={configErrors && configErrors.gameExec ? configErrors.gameExec : undefined}
+							validateStatus={configErrors && configErrors.gameExec ? 'error' : undefined}
 						>
 							<Search
 								disabled={selectingDirectory}
-								value={editingConfig!.workshopDir}
+								value={editingConfig!.gameExec}
 								enterButton={<FolderOutlined />}
 								onSearch={() => {
 									if (!selectingDirectory) {
-										api.send(ValidChannel.SELECT_PATH, 'workshopDir', true, 'Select TerraTech Steam workshop directory');
+										api.send(ValidChannel.SELECT_PATH, 'gameExec', false, 'Select TerraTech Executable');
 										this.setState({ selectingDirectory: true });
 									}
 								}}
 								onChange={(event) => {
-									editingConfig!.workshopDir = event.target.value;
+									editingConfig!.gameExec = event.target.value;
 									updateState({ madeConfigEdits: true });
-									this.formRef.current!.setFieldsValue({
-										workshopDir: event.target.value
-									});
 								}}
 							/>
 						</Form.Item>

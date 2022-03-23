@@ -18,6 +18,7 @@ const validChannels = [
 	'user-data-path',
 	'read-mod-metadata',
 	'mod-metadata-results',
+	'batch-mod-metadata-results',
 	'read-config',
 	'update-config',
 	'read-collection',
@@ -29,7 +30,8 @@ const validChannels = [
 	'select-path',
 	'select-path-result',
 	'open-mod-browser',
-	'open-mod-steam'
+	'open-mod-steam',
+	'progress-change'
 ];
 
 contextBridge.exposeInMainWorld('electron', {

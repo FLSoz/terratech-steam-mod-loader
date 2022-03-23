@@ -1,3 +1,5 @@
+import { UGCItemState } from './steamworks';
+
 export enum ModType {
 	WORKSHOP = 'workshop',
 	LOCAL = 'local',
@@ -14,6 +16,10 @@ export interface ModConfig {
 	loadBefore?: string[];
 	dependsOn?: string[];
 	tags?: string[];
+	lastUpdate?: Date;
+	dateAdded?: Date;
+	size?: number;
+	state?: UGCItemState;
 }
 export interface Mod {
 	type: ModType;
@@ -21,7 +27,6 @@ export interface Mod {
 	UID: string;
 	WorkshopID: string | null;
 	config?: ModConfig;
-	subscribed?: boolean;
 }
 
 export interface ModCollection {

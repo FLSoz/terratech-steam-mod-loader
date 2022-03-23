@@ -14,15 +14,19 @@ export interface ModConfig {
 	loadBefore?: string[];
 	dependsOn?: string[];
 	tags?: string[];
+	lastUpdate?: Date;
+	dateAdded?: Date;
+	size?: number;
+	state?: UGCItemState;
 }
 
 export interface Mod {
 	type: ModType;
 	ID: string;
 	UID: string;
+	path: string;
 	WorkshopID?: string;
 	config?: ModConfig;
-	subscribed?: boolean;
 }
 
 export enum ModErrorType {
@@ -45,6 +49,7 @@ export interface ModData {
 	key: string;
 	uid: string;
 	id: string;
+	path: string;
 	workshopId?: string;
 	type: ModType;
 	preview?: string;
@@ -57,6 +62,20 @@ export interface ModData {
 	tags?: string[];
 	errors?: ModError[];
 	subscribed?: boolean;
+	lastUpdate?: Date;
+	dateAdded?: Date;
+	size?: number;
+	state?: UGCItemState;
+}
+
+export enum UGCItemState {
+	None = 0,
+	Subscribed = 1,
+	LegacyItem = 2,
+	Installed = 4,
+	NeedsUpdate = 8,
+	Downloading = 16,
+	DownloadPending = 32
 }
 
 export function convertToModData(input: Map<string, Mod>): ModData[] {
@@ -78,7 +97,13 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 			dependsOn: mod.config?.dependsOn,
 			hasCode: mod.config?.hasCode,
 			tags: mod.config?.tags,
-			subscribed: mod.subscribed
+			// eslint-disable-next-line no-bitwise
+			subscribed: !!mod.config?.state && !!(mod.config?.state & UGCItemState.Subscribed),
+			lastUpdate: mod.config?.lastUpdate,
+			dateAdded: mod.config?.dateAdded,
+			size: mod.config?.size,
+			path: mod.path,
+			state: mod.config?.state
 		};
 		const duplicateMods = tempMap.get(mod.ID);
 		if (duplicateMods) {
