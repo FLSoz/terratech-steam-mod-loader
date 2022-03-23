@@ -12,6 +12,8 @@ export interface ModCollectionProps {
 	collection: ModCollection;
 	height: number;
 	width: number;
+	madeEdits?: boolean;
+	lastValidationStatus?: boolean;
 	setEnabledModsCallback: (mods: Set<string>) => any;
 	setEnabledCallback: (mod: string) => any;
 	setDisabledCallback: (mod: string) => any;

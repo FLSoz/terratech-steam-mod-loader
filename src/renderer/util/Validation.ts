@@ -40,18 +40,13 @@ interface ModCollectionValidationProps {
 	setModErrorsCallback?: (errors: ModErrors) => void;
 }
 
-function validateMod(
-	props: ForEachProps<ModData>,
-	modList: ModData[],
-	allMods: Map<string, Mod>,
-	workshopToModID: Map<string, string>,
-	errors: ModErrors,
-	updateValidatedModsCallback?: (numValidatedMods: number) => void
-) {
-	const modData: ModData = props.value;
-	const { index } = props;
+function validateMod(modData: ModData, modList: ModData[], allMods: Map<string, Mod>, workshopToModID: Map<string, string>) {
 	api.logger.debug(`validating ${modData.name}`);
 	const thisModErrors = [];
+
+	if (modData.id === modData.workshopId) {
+		// we couldn't find any info on this mod
+	}
 
 	// Check subscription
 	if (modData.type === ModType.WORKSHOP && !modData.subscribed) {
@@ -80,16 +75,12 @@ function validateMod(
 		const missingDependencies: Set<string> = new Set(
 			dependencies.map((workshopID: string) => {
 				const modID = workshopToModID.get(workshopID);
-				api.logger.debug(`Checking if workshop mod ${workshopID} was processed`);
 				if (modID) {
-					api.logger.debug('YES');
 					return modID;
 				}
-				api.logger.debug('NO');
 				return workshopID.toString();
 			})
 		);
-		api.logger.debug(`Dependencies detected for ${modData.uid}: ${[...missingDependencies]}`);
 		modList.forEach((mod: ModData) => {
 			missingDependencies.delete(mod.id);
 		});
@@ -101,55 +92,32 @@ function validateMod(
 			});
 		}
 	}
-	if (thisModErrors.length > 0) {
-		errors[modData.uid] = thisModErrors;
-	}
-	if (updateValidatedModsCallback) {
-		updateValidatedModsCallback(index + 1);
-	}
+	return thisModErrors;
 }
 
-function validateFunctionAsync(validationProps: ModCollectionValidationProps) {
-	const { modList, allMods, workshopToModID, updateValidatedModsCallback, setModErrorsCallback } = validationProps;
-	workshopToModID.forEach((id: string, workshopID: string) => {
-		api.logger.debug(`Detected workshop mod ${workshopID} has mod ID of ${id}`);
-	});
+function validateFunction(validationProps: ModCollectionValidationProps) {
+	const { modList, allMods, workshopToModID } = validationProps;
 	const errors: { [id: string]: ModError[] } = {};
-	return new Promise((resolve) => {
-		delayForEach(modList, 1, validateMod, modList, allMods, workshopToModID, errors, updateValidatedModsCallback)
-			.then(() => {
-				// eslint-disable-next-line promise/always-return
-				if (Object.keys(errors).length > 0) {
-					if (setModErrorsCallback) {
-						setModErrorsCallback(errors);
-					}
-					resolve(false);
-				}
-				resolve(true);
-			})
-			.catch((error) => {
-				api.logger.error(error);
-				errors.undefined = error.toString();
+
+	modList.forEach((modData: ModData) => {
+		errors[modData.uid] = validateMod(modData, modList, allMods, workshopToModID);
+	});
+
+	return errors;
+}
+
+function validateActiveCollection(validationProps: ModCollectionValidationProps) {
+	const { setModErrorsCallback } = validationProps;
+	const validationPromise = new Promise((resolve, reject) => {
+		try {
+			const errors = validateFunction(validationProps);
+			if (Object.keys(errors).length > 0) {
 				if (setModErrorsCallback) {
 					setModErrorsCallback(errors);
 				}
 				resolve(false);
-			});
-	});
-}
-
-function validateActiveCollection(validationProps: ModCollectionValidationProps) {
-	const validationPromise = new Promise((resolve, reject) => {
-		try {
-			validateFunctionAsync(validationProps)
-				// eslint-disable-next-line promise/always-return
-				.then((isValid) => {
-					resolve(isValid);
-				})
-				.catch((error) => {
-					api.logger.error(error);
-					reject(error);
-				});
+			}
+			resolve(true);
 		} catch (error) {
 			reject(error);
 		}

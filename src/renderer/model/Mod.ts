@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 export enum ModType {
 	WORKSHOP = 'workshop',
 	LOCAL = 'local',
@@ -58,10 +59,17 @@ export interface ModData {
 	authors?: string[];
 	dependsOn?: string[];
 	hasCode?: boolean;
-	isDependencyFor?: string[];
+	isDependencyFor?: string[]; // Mod IDs it's dependency for. Workshop IDs if mod ID unknown
 	tags?: string[];
 	errors?: ModError[];
+
+	// For managing of non-subscribed mods
 	subscribed?: boolean;
+	downloading?: boolean;
+	downloadPending?: boolean;
+	needsUpdate?: boolean;
+	installed?: boolean;
+
 	lastUpdate?: Date;
 	dateAdded?: Date;
 	size?: number;
@@ -97,8 +105,11 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 			dependsOn: mod.config?.dependsOn,
 			hasCode: mod.config?.hasCode,
 			tags: mod.config?.tags,
-			// eslint-disable-next-line no-bitwise
 			subscribed: !!mod.config?.state && !!(mod.config?.state & UGCItemState.Subscribed),
+			installed: !!mod.config?.state && !!(mod.config?.state & UGCItemState.Installed),
+			downloading: !!mod.config?.state && !!(mod.config?.state & UGCItemState.Downloading),
+			downloadPending: !!mod.config?.state && !!(mod.config?.state & UGCItemState.DownloadPending),
+			needsUpdate: !!mod.config?.state && !!(mod.config?.state & UGCItemState.NeedsUpdate),
 			lastUpdate: mod.config?.lastUpdate,
 			dateAdded: mod.config?.dateAdded,
 			size: mod.config?.size,

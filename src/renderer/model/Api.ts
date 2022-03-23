@@ -124,7 +124,7 @@ class API {
 		return ipcRenderer.exit(code);
 	}
 
-	launchGame(workshopID: string, closeOnLaunch: boolean, modList: Mod[]): Promise<any> {
+	launchGame(gameExec: string, workshopID: string, closeOnLaunch: boolean, modList: Mod[]): Promise<any> {
 		const modListStr: string = modList
 			.map((mod: Mod) => {
 				const modID = mod.WorkshopID ? mod.WorkshopID : mod.ID;
@@ -132,7 +132,7 @@ class API {
 			})
 			.join(',');
 		const args: string[] = ['+ttsmm_mod_list', modListStr];
-		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, workshopID, closeOnLaunch, args);
+		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, gameExec, workshopID, closeOnLaunch, args);
 	}
 
 	gameRunning(): Promise<boolean> {

@@ -2,10 +2,8 @@
 import { Layout, Table, Tag, Space, Tooltip, Image } from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
-import { DeploymentUnitOutlined, FileImageOutlined, ShareAltOutlined, CodeOutlined } from '@ant-design/icons';
-import parse from 'html-react-parser';
-
 import { ColumnType } from 'antd/lib/table';
+import dateFormat from 'dateformat';
 import { TableRowSelection } from 'antd/lib/table/interface';
 import { api } from 'renderer/model/Api';
 import { ModData, ModError, ModErrorType, ModType } from 'renderer/model/Mod';
@@ -144,7 +142,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 	}
 
 	render() {
-		const { collection, rows, filteredRows } = this.props;
+		const { collection, rows, filteredRows, lastValidationStatus } = this.props;
 		// <img src={cellData} height="50px" width="50px" />
 		// <div>
 		/*
@@ -286,6 +284,12 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				render: (errors: ModError[] | undefined, record: ModData) => {
 					const selectedMods = collection.mods;
 					if (!selectedMods.includes(record.uid)) {
+						if (!record.subscribed && record.workshopId && record.workshopId.length > 0) {
+							return <Tag key="notSubscribed">Not subscribed</Tag>;
+						}
+						if (record.subscribed && !record.installed) {
+							return <Tag key="notInstalled">Not installed</Tag>;
+						}
 						return null;
 					}
 					if (errors && errors.length > 0) {
@@ -306,7 +310,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 									break;
 								case ModErrorType.NOT_SUBSCRIBED:
 									errorText = 'Not subscribed';
-									errorColor = undefined;
+									errorColor = 'yellow';
 									break;
 								default:
 									break;
@@ -318,11 +322,16 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 							);
 						});
 					}
-					return (
-						<Tag key="OK" color="green">
-							OK
-						</Tag>
-					);
+
+					// If everything is fine, only return OK if we have actually validated it
+					if (lastValidationStatus !== undefined && !!errors) {
+						return (
+							<Tag key="OK" color="green">
+								OK
+							</Tag>
+						);
+					}
+					return null;
 				}
 			},
 			{
@@ -337,48 +346,73 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 						const digit2 = strNum[1];
 						let digit3 = strNum[2];
 						const digit4 = strNum[3];
+						let sizeStr = '';
 						if (!digit4) {
-							return `${strNum} B`;
-						}
-						digit3 = parseInt(digit4, 10) >= 5 ? `${parseInt(digit3, 10) + 1}` : digit3;
+							sizeStr = `${strNum} B`;
+						} else {
+							digit3 = parseInt(digit4, 10) >= 5 ? `${parseInt(digit3, 10) + 1}` : digit3;
 
-						let descriptor = ' B';
-						if (power >= 3) {
-							if (power >= 6) {
-								if (power >= 9) {
-									descriptor = ' GB';
+							let descriptor = ' B';
+							if (power > 3) {
+								if (power > 6) {
+									if (power > 9) {
+										descriptor = ' GB';
+									} else {
+										descriptor = ' MB';
+									}
 								} else {
-									descriptor = ' MB';
+									descriptor = ' KB';
 								}
+							}
+
+							let value = `${digit1}${digit2}${digit3}`;
+							const decimal = power % 3;
+							if (decimal === 1) {
+								value = `${digit1}.${digit2}${digit3}`;
+							} else if (decimal === 2) {
+								value = `${digit1}${digit2}.${digit3}`;
+							}
+							sizeStr = value + descriptor;
+						}
+						let color = 'green'; // under 1 MB is green
+						if (size > 1000000) {
+							if (size < 5000000) {
+								// under 5 MB is cyan
+								color = 'cyan';
+							} else if (size < 50000000) {
+								// under 50 MB is blue
+								color = 'blue';
+							} else if (size < 1000000000) {
+								// under 1 GB is geekblue
+								color = 'geekblue';
+							} else if (size < 5000000000) {
+								// under 5 GB is purple
+								color = 'purple';
 							} else {
-								descriptor = ' KB';
+								color = 'magenta';
 							}
 						}
-
-						let value = `${digit1}${digit2}${digit3}`;
-						const decimal = power % 3;
-						if (decimal === 1) {
-							value = `${digit1}.${digit2}${digit3}`;
-						} else if (decimal === 2) {
-							value = `${digit1}${digit2}.${digit3}`;
-						}
-						return value + descriptor;
+						return (
+							<Tag color={color} key="size">
+								{sizeStr}
+							</Tag>
+						);
 					}
-					return '';
+					return null;
 				}
 			},
 			{
 				title: 'Last Update',
 				dataIndex: 'lastUpdate',
 				render: (date: Date) => {
-					return date && date > this.ZERO_DATE ? date.toLocaleDateString() : '';
+					return date && date > this.ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
 				}
 			},
 			{
 				title: 'Date Added',
 				dataIndex: 'dateAdded',
 				render: (date: Date) => {
-					return date && date > this.ZERO_DATE ? date.toLocaleDateString() : '';
+					return date && date > this.ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
 				}
 			},
 			{

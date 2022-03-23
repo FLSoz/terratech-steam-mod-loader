@@ -39,6 +39,7 @@ interface CollectionManagementToolbarProps {
 	validatingCollection?: boolean;
 	numResults?: number;
 	lastValidationStatus?: boolean;
+	loadingMods?: boolean;
 	onSearchCallback: (search: string) => void;
 	onSearchChangeCallback: (search: string) => void;
 	saveCollectionCallback: () => void;
@@ -88,8 +89,8 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 
 	disabledFeatures() {
 		const { modalType } = this.state;
-		const { savingCollection } = this.props;
-		return savingCollection || !!modalType;
+		const { savingCollection, appState } = this.props;
+		return savingCollection || appState.loadingMods || !!modalType;
 	}
 
 	opInProgress() {
@@ -152,6 +153,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 			lastValidationStatus
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
+		const { loadingMods } = appState;
 		return (
 			<div id="mod-collection-toolbar">
 				{this.renderModal()}
@@ -165,6 +167,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 									onSelect={(value: string) => {
 										changeActiveCollectionCallback(value);
 									}}
+									disabled={disabledFeatures}
 								>
 									{[...appState.allCollectionNames].sort().map((name: string) => {
 										return (
@@ -311,9 +314,8 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								key="validate"
 								type="primary"
 								danger={!lastValidationStatus || madeEdits}
-								icon={<CheckCircleOutlined />}
-								disabled={disabledFeatures}
-								loading={validatingCollection}
+								icon={validatingCollection ? <SyncOutlined spin /> : <CheckCircleOutlined />}
+								disabled={disabledFeatures || validatingCollection}
 								onClick={validateCollectionCallback}
 							>
 								Validate
@@ -323,12 +325,10 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								shape="round"
 								key="refresh"
 								type="primary"
-								icon={<SyncOutlined />}
+								icon={<SyncOutlined spin={loadingMods} />}
 								disabled={disabledFeatures}
 								onClick={() => {
-									appState.updateState({ targetPathAfterLoad: '/collections/main' }, () => {
-										appState.navigate('/loading/mods');
-									});
+									appState.updateState({ targetPathAfterLoad: '/collections/main', loadingMods: true });
 								}}
 							>
 								Refresh

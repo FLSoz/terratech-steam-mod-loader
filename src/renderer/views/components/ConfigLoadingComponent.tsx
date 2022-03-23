@@ -153,10 +153,10 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 		if (!!configErrors && Object.keys(configErrors).length > 0) {
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
 			config.currentTab = 'settings';
-			updateState({}, () => navigate('/settings'));
+			updateState({ loadingMods: true }, () => navigate('/settings'));
 		} else {
 			config.currentTab = 'main';
-			updateState({}, () => navigate('/loading/mods'));
+			updateState({ loadingMods: true }, () => navigate('/collections/main'));
 		}
 	}
 

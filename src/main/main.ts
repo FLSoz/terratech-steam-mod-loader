@@ -16,6 +16,7 @@ import { app, BrowserWindow, shell, ipcMain, protocol, dialog, IpcMain } from 'e
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs, { Dirent } from 'fs';
+import child_process from 'child_process';
 
 import Steamworks, { SteamID, SteamUGCDetails, ValidGreenworksChannels } from './steamworks';
 import MenuBuilder from './menu';
@@ -211,7 +212,12 @@ else if (type === 'ttqmm') {
 					}
 */
 
-function processLocalMod(event: Electron.IpcMainEvent, resolveExternal: (value: unknown) => void, rejectExternal: (reason?: any) => void, modPath: string) {
+function getDetailsForLocalMod(
+	event: Electron.IpcMainEvent,
+	resolveExternal: (value: unknown) => void,
+	rejectExternal: (reason?: any) => void,
+	modPath: string
+) {
 	log.info(`Reading mod metadata for ${modPath}`);
 	fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
 		try {
@@ -226,7 +232,8 @@ function processLocalMod(event: Electron.IpcMainEvent, resolveExternal: (value: 
 					ID: tempID,
 					type: ModType.LOCAL,
 					WorkshopID: null,
-					config: { hasCode: false }
+					config: { hasCode: false },
+					path: ''
 				};
 				let validMod = false;
 				const config: ModConfig = potentialMod.config as ModConfig;
@@ -242,10 +249,10 @@ function processLocalMod(event: Electron.IpcMainEvent, resolveExternal: (value: 
 					let size = 0;
 					if (file.isFile()) {
 						try {
-							const stats = fs.statSync(modPath);
+							const stats = fs.statSync(path.join(modPath, file.name));
+							size = stats.size;
 							if (!config.lastUpdate || stats.mtime > config.lastUpdate) {
 								config.lastUpdate = stats.mtime;
-								size = stats.size;
 							}
 						} catch (e) {
 							log.error(`Failed to get file details for ${file.name} under ${modPath}`);
@@ -266,6 +273,7 @@ function processLocalMod(event: Electron.IpcMainEvent, resolveExternal: (value: 
 									// eslint-disable-next-line prefer-destructuring
 									config.name = matches[1];
 								}
+								potentialMod.path = modPath;
 								validMod = true;
 							}
 							log.debug(`Found file: ${file.name} under mod path ${modPath}`);
@@ -276,7 +284,7 @@ function processLocalMod(event: Electron.IpcMainEvent, resolveExternal: (value: 
 
 				if (validMod) {
 					// log.debug(JSON.stringify(potentialMod, null, 2));
-					config.size = fileSizes.reduce((acc: number, curr: number) => acc + curr);
+					config.size = fileSizes.reduce((acc: number, curr: number) => acc + curr, 0);
 					event.reply('mod-metadata-results', potentialMod);
 					resolveExternal(potentialMod);
 				} else {
@@ -290,22 +298,35 @@ function processLocalMod(event: Electron.IpcMainEvent, resolveExternal: (value: 
 	});
 }
 
-function chunk(arr: any[], size: number): any[][] {
+function chunk<Type>(arr: Type[], size: number): Type[][] {
 	return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
 }
+
+function updateModLoadingProgress(event: Electron.IpcMainEvent, size: number) {
+	Atomics.add(COUNTS_ARRAY, 1, size);
+	const newValue = Atomics.load(COUNTS_ARRAY, 1);
+	const total = Atomics.load(COUNTS_ARRAY, 0);
+	event.reply('progress-change', 'mod-load', newValue / total, 'Loading mod details');
+}
+
 // Read workshop mod metadata
-async function processModChunk(
+async function getDetailsForWorkshopModChunk(
 	event: Electron.IpcMainEvent,
 	resolveExternal: (value: unknown) => void,
 	rejectExternal: (reason?: any) => void,
-	workshopIDs: string[]
+	workshopIDs: bigint[]
 ) {
 	Steamworks.getUGCDetails(
-		workshopIDs,
+		workshopIDs.map((workshopID) => workshopID.toString()),
+		// eslint-disable-next-line consistent-return
 		async (steamDetails: SteamUGCDetails[]) => {
 			try {
-				const modDetails: (Mod | null)[] = await Promise.all(
-					steamDetails.map(async (steamUGCDetails: SteamUGCDetails) => {
+				const modDetails: Mod[] = [];
+
+				// eslint-disable-next-line no-plusplus
+				for (let i = 0; i < steamDetails.length; i++) {
+					const steamUGCDetails = steamDetails[i];
+					try {
 						const workshopID: string = steamUGCDetails.publishedFileId;
 						const tempID = workshopID ? `${workshopID}` : '';
 						const potentialMod: Mod = {
@@ -313,7 +334,8 @@ async function processModChunk(
 							ID: tempID,
 							type: ModType.WORKSHOP,
 							WorkshopID: workshopID,
-							config: { hasCode: false }
+							config: { hasCode: false },
+							path: ''
 						};
 						const config: ModConfig = potentialMod.config as ModConfig;
 						config.dependsOn = steamUGCDetails.children;
@@ -324,9 +346,11 @@ async function processModChunk(
 						config.dateAdded = new Date(steamUGCDetails.timeAddedToUserList * 1000);
 						config.lastUpdate = new Date(steamUGCDetails.timeUpdated * 1000);
 						config.state = Steamworks.ugcGetItemState(workshopID);
+						const validMod = config.tags?.includes('Mods');
 
 						try {
 							if (Steamworks.requestUserInformation(steamUGCDetails.steamIDOwner, true)) {
+								// eslint-disable-next-line no-await-in-loop
 								await new Promise((resolve) => setTimeout(resolve, 5000)); // sleep until done (hopefully)
 							}
 							config.authors = [Steamworks.getFriendPersonaName(steamUGCDetails.steamIDOwner)];
@@ -336,7 +360,6 @@ async function processModChunk(
 							config.authors = [steamUGCDetails.steamIDOwner];
 						}
 
-						let validMod = false;
 						const installInfo = Steamworks.ugcGetItemInstallInfo(workshopID);
 						if (installInfo) {
 							// augment workshop mod with data
@@ -344,29 +367,27 @@ async function processModChunk(
 							config.size = parseInt(installInfo.sizeOnDisk, 10);
 							try {
 								const modPath = installInfo.folder;
+								potentialMod.path = modPath;
 								const files: Dirent[] = fs.readdirSync(modPath, { withFileTypes: true });
 								files.forEach((file) => {
 									if (file.isFile()) {
-										if (file.isFile()) {
-											if (file.name === 'preview.png') {
-												config.preview = `image://${path.join(modPath, file.name)}`;
-											} else if (file.name.match(/^(.*)\.dll$/)) {
-												config.hasCode = true;
-											} else if (file.name === 'ttsm_config.json') {
-												Object.assign(potentialMod.config, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
-											} else {
-												const matches = file.name.match(/^(.*)_bundle$/);
-												if (matches && matches.length > 1) {
+										if (file.name === 'preview.png') {
+											config.preview = `image://${path.join(modPath, file.name)}`;
+										} else if (file.name.match(/^(.*)\.dll$/)) {
+											config.hasCode = true;
+										} else if (file.name === 'ttsm_config.json') {
+											Object.assign(potentialMod.config, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
+										} else {
+											const matches = file.name.match(/^(.*)_bundle$/);
+											if (matches && matches.length > 1) {
+												// eslint-disable-next-line prefer-destructuring
+												potentialMod.ID = matches[1];
+												if (!config.name) {
 													// eslint-disable-next-line prefer-destructuring
-													potentialMod.ID = matches[1];
-													if (!config.name) {
-														// eslint-disable-next-line prefer-destructuring
-														config.name = matches[1];
-													}
-													validMod = true;
+													config.name = matches[1];
 												}
-												log.debug(`Found file: ${file.name} under mod path ${modPath}`);
 											}
+											log.debug(`Found file: ${file.name} under mod path ${modPath}`);
 										}
 									}
 								});
@@ -377,10 +398,18 @@ async function processModChunk(
 						}
 						if (validMod) {
 							log.debug(JSON.stringify(potentialMod, null, 2));
+							modDetails.push(potentialMod);
 						}
-						return validMod ? potentialMod : null;
-					})
-				);
+					} catch (e) {
+						log.error('Error processing local mod');
+						log.error(e);
+					}
+					updateModLoadingProgress(event, 1);
+				}
+				const numFailedMods = workshopIDs.length - steamDetails.length;
+				if (numFailedMods > 0) {
+					updateModLoadingProgress(event, numFailedMods);
+				}
 				event.reply('batch-mod-metadata-results', modDetails, workshopIDs.length);
 				resolveExternal(modDetails);
 			} catch (err) {
@@ -397,7 +426,49 @@ async function processModChunk(
 		}
 	);
 }
-ipcMain.on('read-mod-metadata', async (event, localDir: string) => {
+
+const MAX_MODS_PER_PAGE = 50;
+
+async function processWorkshopModChunk(
+	event: Electron.IpcMainEvent,
+	processedMods: Set<bigint>,
+	knownInvalidMods: Set<bigint>,
+	missingKnownWorkshopMods: Set<bigint>,
+	modChunks: bigint[][]
+) {
+	// eslint-disable-next-line no-plusplus
+	for (let i = 0; i < modChunks.length; i++) {
+		try {
+			// eslint-disable-next-line no-await-in-loop
+			await new Promise((resolve, reject) => {
+				getDetailsForWorkshopModChunk(event, resolve, reject, modChunks[i]);
+				// eslint-disable-next-line promise/always-return
+			}).then((modDetails) => {
+				const castModDetails: Mod[] = modDetails as Mod[];
+				castModDetails.forEach((mod: Mod) => {
+					const modID = BigInt(mod.WorkshopID!);
+					missingKnownWorkshopMods.delete(modID);
+					knownInvalidMods.delete(modID);
+					if (mod.config?.dependsOn) {
+						// Add missing dependencies. We assume processedMods has been handled before
+						mod.config?.dependsOn
+							.map((idString) => BigInt(idString))
+							.filter((dependency) => !processedMods.has(dependency))
+							.forEach((missingDependency) => missingKnownWorkshopMods.add(missingDependency));
+					}
+				});
+				if (missingKnownWorkshopMods.size === 0) {
+					event.reply('progress-change', 'mod-load', 2.0, 'Finished loading mods'); // Return a value > 1.0 to signal we are done
+				}
+				return missingKnownWorkshopMods.size === 0;
+			});
+		} catch (e) {
+			log.error('Error processing chunk');
+		}
+	}
+}
+
+ipcMain.on('read-mod-metadata', async (event, localDir: string, knownWorkshopMods: bigint[]) => {
 	// get counts fist
 	Atomics.store(COUNTS_ARRAY, 0, 0);
 	Atomics.store(COUNTS_ARRAY, 1, 0);
@@ -411,10 +482,10 @@ ipcMain.on('read-mod-metadata', async (event, localDir: string) => {
 	} catch (e) {
 		log.error(`Failed to read local mods in ${localModDirs}`);
 	}
-	let allWorkshopIDs: string[] = [];
+	let subscribedWorkshopIDs: string[] = [];
 	try {
-		allWorkshopIDs = Steamworks.getSubscribedItems();
-		Atomics.add(COUNTS_ARRAY, 0, allWorkshopIDs.length);
+		subscribedWorkshopIDs = Steamworks.getSubscribedItems();
+		Atomics.add(COUNTS_ARRAY, 0, subscribedWorkshopIDs.length);
 	} catch (e) {
 		log.error(`Failed to get subscribed workshop mods`);
 	}
@@ -428,42 +499,44 @@ ipcMain.on('read-mod-metadata', async (event, localDir: string) => {
 			try {
 				// eslint-disable-next-line no-await-in-loop
 				await new Promise((resolve, reject) => {
-					processLocalMod(event, resolve, reject, path.join(localDir, localModDirs[i]));
+					getDetailsForLocalMod(event, resolve, reject, path.join(localDir, localModDirs[i]));
 				});
 			} catch (e) {
 				log.error('Error processing local mod');
 				log.error(e);
 			}
-			Atomics.add(COUNTS_ARRAY, 1, 1);
-			const newValue = Atomics.load(COUNTS_ARRAY, 1);
-			const total = Atomics.load(COUNTS_ARRAY, 0);
-			event.reply('progress-change', 'mod-load', newValue / total, 'Loading mod details');
+			updateModLoadingProgress(event, 1);
 		}
 	}
 	// load workshop mods
-	if (allWorkshopIDs.length > 0) {
+	if (subscribedWorkshopIDs.length > 0 || knownWorkshopMods.length > 0) {
 		hasModsToLoad = true;
-		const chunks = chunk(allWorkshopIDs, 50);
-		// eslint-disable-next-line no-plusplus
-		for (let i = 0; i < chunks.length; i++) {
-			try {
-				// eslint-disable-next-line no-await-in-loop
-				await new Promise((resolve, reject) => {
-					processModChunk(event, resolve, reject, chunks[i]);
-				});
-			} catch (e) {
-				log.error('Error processing chunk');
-			}
-			Atomics.add(COUNTS_ARRAY, 1, chunks[i].length);
-			const newValue = Atomics.load(COUNTS_ARRAY, 1);
-			const total = Atomics.load(COUNTS_ARRAY, 0);
-			event.reply('progress-change', 'mod-load', newValue / total, 'Loading mod details');
+		const subscribedWorkshopIDsList = subscribedWorkshopIDs.map((idString) => BigInt(idString));
+		const allWorkshopIDsList = subscribedWorkshopIDsList.concat(knownWorkshopMods);
+		const processedMods: Set<bigint> = new Set(allWorkshopIDsList);
+		const knownInvalidMods: Set<bigint> = new Set(allWorkshopIDsList);
+		const missingKnownWorkshopMods: Set<bigint> = new Set(knownWorkshopMods);
+
+		const chunks = chunk(allWorkshopIDsList, MAX_MODS_PER_PAGE);
+		await processWorkshopModChunk(event, processedMods, knownInvalidMods, missingKnownWorkshopMods, chunks);
+
+		// continue to query steam until all dependencies are met via BFS search
+		while (missingKnownWorkshopMods.size > 0) {
+			Atomics.add(COUNTS_ARRAY, 0, missingKnownWorkshopMods.size);
+			const missingModChunks: bigint[][] = chunk([...missingKnownWorkshopMods], MAX_MODS_PER_PAGE);
+			missingKnownWorkshopMods.forEach((workshopID) => {
+				processedMods.add(workshopID);
+				knownInvalidMods.add(workshopID);
+			});
+			missingKnownWorkshopMods.clear();
+			// eslint-disable-next-line no-await-in-loop
+			await processWorkshopModChunk(event, processedMods, knownInvalidMods, missingKnownWorkshopMods, missingModChunks);
 		}
 	}
 
-	// If no mods - return immediately
+	// If no mods - we return immediately. We assume the awaits will enforce that all processing will be done by the time we get here
 	if (!hasModsToLoad) {
-		event.reply('progress-change', 'mod-load', 1.0, 'Finished loading mods');
+		event.reply('progress-change', 'mod-load', 2.0, 'Finished loading mods'); // Return a value > 1.0 to signal we are done
 	}
 });
 
@@ -591,11 +664,17 @@ ipcMain.on('game-running', async (event) => {
 });
 
 // Launch steam as separate process
-ipcMain.handle('launch-game', async (_event, workshopID, closeOnLaunch, args) => {
+ipcMain.handle('launch-game', async (_event, gameExec, workshopID, closeOnLaunch, args) => {
 	log.info('Launching game with custom args:');
 	const allArgs = ['+custom_mod_list', `[workshop:${workshopID}]`, ...args];
 	log.info(allArgs);
+	await child_process.spawn(gameExec, allArgs, {
+		detached: true
+	});
 	shell.openExternal(`steam://run/285920//${allArgs.join(' ')}/`);
+	if (closeOnLaunch) {
+		app.quit();
+	}
 	if (closeOnLaunch) {
 		app.quit();
 	}

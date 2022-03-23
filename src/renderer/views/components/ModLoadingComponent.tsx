@@ -7,9 +7,9 @@ import { Mod, ModType } from 'renderer/model/Mod';
 import { ValidChannel, api, ProgressTypes } from 'renderer/model/Api';
 import { AppState } from 'renderer/model/AppState';
 import { delayForEach, ForEachProps } from 'renderer/util/Sleep';
-import { useOutletContext } from 'react-router-dom';
 import { chunk } from 'renderer/util/Util';
 import { ProgressType } from 'antd/lib/progress/progress';
+import { ModCollection } from 'renderer/model/ModCollection';
 
 const { Footer, Content } = Layout;
 
@@ -17,12 +17,18 @@ interface ModLoadingState {
 	config: AppConfig;
 	progress: number;
 	progressMessage: string;
+	checkedDependencies: Set<string>;
 }
 
-class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingState> {
+interface ModLoadingProps {
+	appState: AppState;
+	modLoadCompleteCallback: (...args: any) => void;
+}
+
+export default class ModLoadingComponent extends Component<ModLoadingProps, ModLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
-	constructor(props: { appState: AppState }) {
+	constructor(props: ModLoadingProps) {
 		super(props);
 
 		const { appState } = this.props;
@@ -31,7 +37,8 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 		this.state = {
 			config,
 			progress: 0.0,
-			progressMessage: 'Counting mods'
+			progressMessage: 'Counting mods',
+			checkedDependencies: new Set()
 		};
 
 		this.updateProgressCallback = this.updateProgressCallback.bind(this);
@@ -42,10 +49,37 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 	// Register listener for mod load callback, start mod loading
 	componentDidMount() {
 		const { config } = this.state;
+		const { appState } = this.props;
 		api.on(ValidChannel.MOD_METADATA_RESULTS, this.loadModCallback);
 		api.on(ValidChannel.BATCH_MOD_METADATA_RESULTS, this.batchLoadModCallback);
 		api.on(ValidChannel.PROGRESS_CHANGE, this.updateProgressCallback);
-		api.send(ValidChannel.READ_MOD_METADATA, config.localDir);
+		const { allCollections } = appState;
+		const allKnownWorkshopMods: Set<BigInt> = new Set();
+		[...allCollections.values()].forEach((value: ModCollection) => {
+			value.mods.forEach((modUID: string) => {
+				if (modUID.startsWith(`${ModType.WORKSHOP}`)) {
+					const workshopID = modUID.split(':')[1];
+					try {
+						allKnownWorkshopMods.add(BigInt(workshopID));
+					} catch (e) {
+						api.logger.error(`Error reading known mod ${modUID} from collection ${value.name}`);
+						api.logger.error(e);
+
+						const modsMap: Map<string, Mod> = appState.mods;
+						const failedMod: Mod = {
+							UID: modUID,
+							ID: workshopID,
+							WorkshopID: '',
+							type: ModType.WORKSHOP,
+							path: ''
+						};
+						// api.logger.debug(JSON.stringify(mod, null, 2));
+						modsMap.set(modUID, failedMod);
+					}
+				}
+			});
+		});
+		api.send(ValidChannel.READ_MOD_METADATA, config.localDir, [...allKnownWorkshopMods]);
 	}
 
 	componentWillUnmount() {
@@ -62,8 +96,8 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 	updateProgressCallback(type: ProgressTypes, progress: number, progressMessage: string) {
 		if (type === ProgressTypes.MOD_LOAD) {
 			this.setState({ progress, progressMessage }, () => {
-				if (progress >= 1.0) {
-					const { appState } = this.props;
+				if (progress >= 2.0) {
+					const { appState, modLoadCompleteCallback } = this.props;
 
 					// Update all Workshop dependencies to work off of Mod IDs
 					const { mods, workshopToModID } = appState;
@@ -77,7 +111,10 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 					// We are done
 					api.logger.info(`Loading complete: moving to ${appState.targetPathAfterLoad}`);
 					appState.firstModLoad = true;
+					appState.loadingMods = false;
 					appState.navigate(appState.targetPathAfterLoad);
+
+					modLoadCompleteCallback(mods);
 				}
 			});
 		}
@@ -120,12 +157,9 @@ class ModLoadingComponent extends Component<{ appState: AppState }, ModLoadingSt
 						}}
 						percent={progress * 100}
 					/>
+					{progressMessage}
 				</Footer>
 			</Layout>
 		);
 	}
 }
-
-export default () => {
-	return <ModLoadingComponent appState={useOutletContext<AppState>()} />;
-};

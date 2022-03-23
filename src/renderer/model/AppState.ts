@@ -27,5 +27,6 @@ export interface AppState {
 	madeConfigEdits?: boolean;
 	configErrors: { [field: string]: string };
 
-	// Config loading
+	//
+	loadingMods?: boolean;
 }

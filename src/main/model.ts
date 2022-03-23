@@ -25,6 +25,7 @@ export interface Mod {
 	type: ModType;
 	ID: string;
 	UID: string;
+	path: string;
 	WorkshopID: string | null;
 	config?: ModConfig;
 }

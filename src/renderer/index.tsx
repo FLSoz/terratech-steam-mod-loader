@@ -11,7 +11,6 @@ import '@fontsource/roboto/700.css';
 
 import App from './App';
 import ConfigLoadingView from './views/components/ConfigLoadingComponent';
-import ModLoadingView from './views/components/ModLoadingComponent';
 import LoadingView from './views/LoadingView';
 import ModsBrowserView from './views/ModsBrowserView';
 import SettingsView from './views/SettingsView';
@@ -31,7 +30,6 @@ render(
 				{/* Paths that indicate the application is processing request to load something from disk */}
 				<Route path="loading" element={<LoadingView />}>
 					<Route path="config" element={<ConfigLoadingView />} />
-					<Route path="mods" element={<ModLoadingView />} />
 				</Route>
 				{/* The actual collection management components */}
 				<Route path="collections" element={<CollectionManagerComponent />}>

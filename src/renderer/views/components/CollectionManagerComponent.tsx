@@ -12,7 +12,8 @@ import { getIncompatibilityGroups, validateActiveCollection } from 'renderer/uti
 import { CancellablePromiseManager } from 'renderer/util/Promise';
 import { pause } from 'renderer/util/Sleep';
 import { AppConfig } from 'renderer/model/AppConfig';
-import ModCollectionManager from './CollectionManagementToolbar';
+import CollectionManagerToolbar from './CollectionManagementToolbar';
+import ModLoadingView from './ModLoadingComponent';
 
 const { Header, Footer, Content } = Layout;
 
@@ -28,7 +29,8 @@ enum ModalType {
 }
 
 interface CollectionManagerState {
-	promiseManager: CancellablePromiseManager;
+	updatePromiseManager: CancellablePromiseManager;
+	validationPromiseManager: CancellablePromiseManager;
 	savingCollection?: boolean;
 	launchGameWithErrors?: boolean;
 	gameRunning?: boolean;
@@ -76,15 +78,11 @@ const openNotification = (props: NotificationProps, type?: 'info' | 'error' | 's
 class CollectionManagerComponent extends Component<{ appState: AppState; location: Location }, CollectionManagerState> {
 	constructor(props: { appState: AppState; location: Location }) {
 		super(props);
-		const { appState } = props;
-		const rows: ModData[] = appState.mods ? convertToModData(appState.mods) : [];
-		const modIdToModDataMap = new Map<string, ModData>();
-		rows.forEach((mod: ModData) => modIdToModDataMap.set(mod.uid, mod));
-
 		this.state = {
-			promiseManager: new CancellablePromiseManager(),
-			rows,
-			modIdToModDataMap,
+			updatePromiseManager: new CancellablePromiseManager(),
+			validationPromiseManager: new CancellablePromiseManager(),
+			rows: [],
+			modIdToModDataMap: new Map<string, ModData>(),
 			filteredRows: undefined,
 			gameRunning: false,
 			validatingMods: false, // we don't validate on load
@@ -106,16 +104,23 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		this.saveCollection = this.saveCollection.bind(this);
 
 		this.pollGameRunning = this.pollGameRunning.bind(this);
+		this.validateActiveCollection = this.validateActiveCollection.bind(this);
 	}
 
 	componentDidMount() {
 		api.on(ValidChannel.GAME_RUNNING, this.setGameRunningCallback);
 		this.pollGameRunning();
+
+		const { appState } = this.props;
+		if (!appState.loadingMods) {
+			this.recalculateModData();
+		}
 	}
 
 	componentWillUnmount() {
-		const { promiseManager } = this.state;
+		const { updatePromiseManager: promiseManager, validationPromiseManager } = this.state;
 		promiseManager.cancelAllPromises();
+		validationPromiseManager.cancelAllPromises();
 		api.removeAllListeners(ValidChannel.GAME_RUNNING);
 	}
 
@@ -130,7 +135,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				activeCollection.mods = [];
 			}
 		}
-		this.setState({});
+		const { validationPromiseManager } = this.state;
+		validationPromiseManager.cancelAllPromises();
+		this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,7 +152,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			} else {
 				activeCollection.mods = activeCollection.mods.filter((mod) => mod !== id);
 			}
-			this.setState({ madeEdits: true }, () => appState.updateState({}));
+			const { validationPromiseManager } = this.state;
+			validationPromiseManager.cancelAllPromises();
+			this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
 		}
 	}
 
@@ -157,8 +166,23 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		this.setState({ gameRunning: running });
 	}
 
+	recalculateModData() {
+		const { appState } = this.props;
+		const { modIdToModDataMap } = this.state;
+		const rows: ModData[] = appState.mods ? convertToModData(appState.mods) : [];
+		rows.forEach((mod: ModData) => modIdToModDataMap.set(mod.uid, mod));
+		this.setState(
+			{
+				rows
+			},
+			() => {
+				this.validateActiveCollection(false);
+			}
+		);
+	}
+
 	createNewCollection(name: string) {
-		const { madeEdits, promiseManager } = this.state;
+		const { madeEdits, updatePromiseManager: promiseManager } = this.state;
 		const { appState } = this.props;
 		const { config, allCollectionNames, allCollections, activeCollection } = appState;
 		if (madeEdits) {
@@ -214,7 +238,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	duplicateCollection(name: string) {
-		const { madeEdits, promiseManager } = this.state;
+		const { madeEdits, updatePromiseManager: promiseManager } = this.state;
 		const { appState } = this.props;
 		const { config, allCollectionNames, allCollections, activeCollection } = appState;
 		this.setState({ savingCollection: true });
@@ -282,7 +306,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	renameCollection(name: string) {
-		const { promiseManager } = this.state;
+		const { updatePromiseManager: promiseManager } = this.state;
 		const { appState } = this.props;
 		const { config, activeCollection } = appState;
 		const oldName = activeCollection!.name;
@@ -339,7 +363,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	deleteCollection() {
-		const { promiseManager } = this.state;
+		const { updatePromiseManager: promiseManager } = this.state;
 		const { appState } = this.props;
 		const { config, allCollectionNames, allCollections, activeCollection } = appState;
 		this.setState({ savingCollection: true });
@@ -411,7 +435,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	pollGameRunning() {
-		const { promiseManager } = this.state;
+		const { updatePromiseManager: promiseManager } = this.state;
 		api.send(ValidChannel.GAME_RUNNING);
 		if (!promiseManager.isCancelled.value) {
 			pause(5000, this.pollGameRunning);
@@ -462,7 +486,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	baseLaunchGame(mods: Mod[]) {
-		const { promiseManager } = this.state;
+		const { updatePromiseManager: promiseManager } = this.state;
 		const { appState } = this.props;
 		const { config, updateState } = appState;
 		api.logger.info('launching game');
@@ -470,7 +494,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		this.setState({ overrideGameRunning: true });
 		// add a visual delay so the user gets to see the nice spinning wheel
 		promiseManager
-			.execute(pause(1000, api.launchGame, config!.workshopID, config!.closeOnLaunch, mods))
+			.execute(pause(1000, api.launchGame, config.gameExec, config!.workshopID, config!.closeOnLaunch, mods))
 			.then((success) => {
 				setTimeout(() => {
 					this.setState({ overrideGameRunning: false });
@@ -507,11 +531,11 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	validateActiveCollection(launchIfValid: boolean) {
-		const { promiseManager, rows, modIdToModDataMap } = this.state;
+		const { updatePromiseManager, validationPromiseManager, modIdToModDataMap } = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods, workshopToModID } = appState;
 		this.setState({
-			modalType: ModalType.VALIDATING,
+			validatingMods: true,
 			invalidIdsFound: false,
 			incompatibleModsFound: false,
 			missingDependenciesFound: false,
@@ -520,7 +544,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		if (activeCollection) {
 			const collectionMods = [...activeCollection!.mods];
 			api.logger.debug(`Selected mods: ${collectionMods}`);
-			promiseManager
+			validationPromiseManager
 				.execute(
 					validateActiveCollection({
 						modList: collectionMods.map((uid: string) => modIdToModDataMap.get(uid) as ModData),
@@ -531,6 +555,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							this.setState({ validatedMods });
 						},
 						setModErrorsCallback: (modErrors: ModErrors) => {
+							const { rows } = this.state;
 							if (!!modErrors && Object.keys(modErrors).length > 0) {
 								const foundErrorTypes = new Set<ModErrorType>();
 								Object.values(modErrors).forEach((errors: ModError[]) => {
@@ -550,13 +575,17 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 									}
 								});
 								this.setState({
-									modalType: invalidIdsFound || incompatibleModsFound || missingDependenciesFound ? ModalType.ERRORS_FOUND : ModalType.WARNINGS_FOUND,
 									modErrors,
 									incompatibleModsFound,
 									invalidIdsFound,
 									missingSubscriptions,
 									missingDependenciesFound
 								});
+								if (launchIfValid) {
+									this.setState({
+										modalType: invalidIdsFound || incompatibleModsFound || missingDependenciesFound ? ModalType.ERRORS_FOUND : ModalType.WARNINGS_FOUND
+									});
+								}
 							} else {
 								rows.forEach((mod: ModData) => {
 									mod.errors = undefined;
@@ -578,7 +607,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						}
 
 						// eslint-disable-next-line promise/no-nesting
-						promiseManager
+						updatePromiseManager
 							.execute(api.updateCollection(activeCollection!))
 							.then((updateSuccess) => {
 								if (!updateSuccess) {
@@ -589,16 +618,6 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 												duration: null
 											},
 											'error'
-										);
-									}, 500);
-								} else {
-									setTimeout(() => {
-										openNotification(
-											{
-												message: 'Collection validated',
-												duration: 1
-											},
-											'success'
 										);
 									}, 500);
 								}
@@ -633,15 +652,6 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							modalType: ModalType.NONE,
 							lastValidationStatus: false
 						});
-					}, 500);
-					setTimeout(() => {
-						openNotification(
-							{
-								message: `Failed to validate collection ${activeCollection.name}`,
-								duration: null
-							},
-							'error'
-						);
 					}, 500);
 				})
 				.finally(() => {
@@ -688,7 +698,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			case ModalType.NONE:
 				return null;
 			case ModalType.VALIDATING: {
-				let progressPercent = 0;
+				return null;
+				/* let progressPercent = 0;
 				let currentMod: Mod | undefined;
 				if (!activeCollection?.mods) {
 					progressPercent = 100;
@@ -728,7 +739,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</Space>
 						</div>
 					</Modal>
-				);
+				); */
 			}
 			case ModalType.REMOVE_INVALID: {
 				const badMods: string[] = [];
@@ -1062,7 +1073,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			case ModalType.WARNINGS_FOUND:
 				return (
 					<Modal
-						title="Errors Found in Configuration"
+						title="Minor Errors Found in Configuration"
 						visible
 						closable={false}
 						footer={[
@@ -1110,13 +1121,15 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	renderContent() {
-		const { rows, filteredRows } = this.state;
+		const { rows, filteredRows, madeEdits, lastValidationStatus } = this.state;
 		const { appState } = this.props;
 
 		return (
 			<SizeMe monitorHeight monitorWidth refreshMode="debounce">
 				{({ size }) => {
 					const collectionComponentProps: ModCollectionProps = {
+						madeEdits,
+						lastValidationStatus,
 						rows,
 						filteredRows: filteredRows || rows,
 						height: size.height as number,
@@ -1126,8 +1139,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							api.logger.debug(`Setting active mods: ${[...enabledMods]}`);
 							if (appState.activeCollection) {
 								appState.activeCollection.mods = [...enabledMods].sort();
-								this.setState({ madeEdits: true });
-								appState.updateState({});
+								const { validationPromiseManager } = this.state;
+								validationPromiseManager.cancelAllPromises();
+								this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
 							}
 						},
 						setEnabledCallback: (id: string) => {
@@ -1142,9 +1156,18 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 
 					return (
 						<Content key="collection" style={{ padding: '0px', overflowY: 'clip', overflowX: 'clip' }}>
-							<Spin spinning={appState.launchingGame} tip="Launching Game...">
-								<Outlet context={{ ...collectionComponentProps }} />
-							</Spin>
+							{appState.loadingMods ? (
+								<ModLoadingView
+									appState={appState}
+									modLoadCompleteCallback={() => {
+										this.recalculateModData();
+									}}
+								/>
+							) : (
+								<Spin spinning={appState.launchingGame} tip="Launching Game...">
+									<Outlet context={{ ...collectionComponentProps }} />
+								</Spin>
+							)}
 						</Content>
 					);
 				}}
@@ -1171,7 +1194,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		return (
 			<Layout>
 				<Header style={{ height: 120 }}>
-					<ModCollectionManager
+					<CollectionManagerToolbar
 						appState={appState}
 						searchString={searchString || ''}
 						validatingCollection={validatingMods}

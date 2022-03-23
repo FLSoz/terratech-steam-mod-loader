@@ -16,7 +16,7 @@ class MenuBar extends Component<MenuProps, never> {
 	render() {
 		const { disableNavigation, appState } = this.props;
 		const { config, navigate, updateState } = appState;
-		const loadBeforeNavigation = !appState.firstModLoad;
+		const loadModsOnNavigate = !appState.firstModLoad;
 		const MenuIconStyle = { fontSize: 28, lineHeight: 0, marginLeft: -4 };
 		const MenuItemStyle = { display: 'flex', alignItems: 'center' };
 
@@ -34,44 +34,31 @@ class MenuBar extends Component<MenuProps, never> {
 						updateState({});
 						switch (e.key) {
 							case 'raw':
-								if (loadBeforeNavigation) {
-									updateState({ targetPathAfterLoad: '/collections/raw-mods' }, () => {
-										navigate('/loading/mods');
-									});
-								} else {
-									navigate('/collections/raw-mods');
+								if (loadModsOnNavigate) {
+									updateState({ loadingMods: true });
 								}
+								navigate('/collections/raw-mods');
 								break;
 							case 'settings':
 								navigate('/settings');
 								break;
 							case 'main':
-								if (loadBeforeNavigation) {
-									updateState({ targetPathAfterLoad: '/collections/main' }, () => {
-										navigate('/loading/mods');
-									});
-								} else {
-									navigate('/collections/main');
+								if (loadModsOnNavigate) {
+									updateState({ loadingMods: true });
 								}
+								navigate('/collections/main');
 								break;
 							case 'steam':
-								if (loadBeforeNavigation) {
-									updateState({ targetPathAfterLoad: '/browse/steam' }, () => {
-										navigate('/loading/mods');
-									});
-								} else {
-									navigate('/browse/steam');
+								if (loadModsOnNavigate) {
+									updateState({ loadingMods: true });
 								}
+								navigate('/browse/steam');
 								break;
 							case 'ttqmm':
-								if (loadBeforeNavigation) {
-									updateState({ targetPathAfterLoad: '/browse/ttqmm' }, () => {
-										navigate('/loading/mods');
-									});
-									navigate('/loading/mods');
-								} else {
-									navigate('/browse/ttqmm');
+								if (loadModsOnNavigate) {
+									updateState({ loadingMods: true });
 								}
+								navigate('/browse/ttqmm');
 								break;
 							default:
 								break;
