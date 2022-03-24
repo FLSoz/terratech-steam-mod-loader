@@ -575,8 +575,67 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		}
 	}
 
+	processValidationResult(result: { errors: ModErrors; success: boolean }, launchIfValid: boolean) {
+		const { updatePromiseManager } = this.state;
+		const { appState } = this.props;
+		const { activeCollection, mods } = appState;
+		const { success, errors } = result;
+		setTimeout(() => this.setState({ validatingMods: false }), 100);
+		if (activeCollection) {
+			this.setModErrors(errors, launchIfValid);
+			const collectionMods = [...activeCollection.mods];
+			if (success) {
+				this.setState({ lastValidationStatus: true });
+				api.logger.debug(`To launch game?: ${launchIfValid}`);
+				if (success && launchIfValid) {
+					const modDataList = collectionMods.map((modUID: string) => {
+						return mods.get(modUID) as Mod;
+					});
+					this.baseLaunchGame(modDataList);
+				}
+
+				// eslint-disable-next-line promise/no-nesting
+				updatePromiseManager
+					.execute(api.updateCollection(activeCollection))
+					.then((updateSuccess) => {
+						if (!updateSuccess) {
+							setTimeout(() => {
+								openNotification(
+									{
+										message: `Failed to save collection ${activeCollection.name}`,
+										duration: null
+									},
+									'error'
+								);
+							}, 500);
+						}
+						setTimeout(() => {
+							this.setState({ modalType: ModalType.NONE });
+						}, 500);
+						return updateSuccess;
+					})
+					.catch((error) => {
+						api.logger.error(error);
+						setTimeout(() => {
+							openNotification(
+								{
+									message: `Failed to save collection ${activeCollection.name}`,
+									duration: null
+								},
+								'error'
+							);
+							this.setState({});
+						}, 500);
+					});
+			} else {
+				this.setState({ lastValidationStatus: false });
+				api.logger.error('Failed to validate active collection');
+			}
+		}
+	}
+
 	validateActiveCollection(launchIfValid: boolean) {
-		const { updatePromiseManager, modIdToModDataMap } = this.state;
+		const { modIdToModDataMap } = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods, workshopToModID } = appState;
 		this.setState(
@@ -607,58 +666,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 
 					validationPromise.promise
 						.then(async (result) => {
-							await new Promise((resolve) => setTimeout(resolve, 1000));
-							const { success, errors } = result;
-							this.setState({ validatingMods: false });
-							this.setModErrors(errors, launchIfValid);
-							if (success) {
-								this.setState({ lastValidationStatus: true });
-								api.logger.debug(`To launch game?: ${launchIfValid}`);
-								if (success && launchIfValid) {
-									const modDataList = collectionMods.map((modUID: string) => {
-										return mods.get(modUID) as Mod;
-									});
-									this.baseLaunchGame(modDataList);
-								}
-
-								// eslint-disable-next-line promise/no-nesting
-								updatePromiseManager
-									.execute(api.updateCollection(activeCollection!))
-									.then((updateSuccess) => {
-										if (!updateSuccess) {
-											setTimeout(() => {
-												openNotification(
-													{
-														message: `Failed to save collection ${activeCollection.name}`,
-														duration: null
-													},
-													'error'
-												);
-											}, 500);
-										}
-										setTimeout(() => {
-											this.setState({ modalType: ModalType.NONE });
-										}, 500);
-										return updateSuccess;
-									})
-									.catch((error) => {
-										api.logger.error(error);
-										setTimeout(() => {
-											openNotification(
-												{
-													message: `Failed to save collection ${activeCollection.name}`,
-													duration: null
-												},
-												'error'
-											);
-											this.setState({});
-										}, 500);
-									});
-							} else {
-								this.setState({ lastValidationStatus: false });
-								api.logger.error('Failed to validate active collection');
-							}
-							return success;
+							this.processValidationResult(result, launchIfValid);
+							return result.success;
 						})
 						.catch((error) => {
 							if (!error.cancelled) {
