@@ -23,14 +23,7 @@ import {
 	SteamUGCDetails
 } from './types';
 
-let greenworks: any;
-try {
-	// if greenworks is installed in a node_modules folder, this will work
-	greenworks = require('greenworks');
-} catch (e) {
-	// eslint-disable-next-line import/extensions
-	greenworks = require('../node_modules/greenworks');
-}
+const greenworks: any = require('greenworks');
 
 class SteamworksAPI {
 	init(): boolean {

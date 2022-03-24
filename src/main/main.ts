@@ -129,6 +129,7 @@ const createWindow = async () => {
 		mainWindow?.setTitle(`${name} v${version}`);
 		mainWindow?.maximize();
 
+		fs.writeFileSync('steam_appid.txt', '285920\n', 'utf8');
 		STEAMWORKS_INITED = Steamworks.init();
 	});
 

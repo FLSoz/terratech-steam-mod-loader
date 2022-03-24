@@ -32,37 +32,10 @@ class MenuBar extends Component<MenuProps, never> {
 					if (e.key !== config.currentPath) {
 						config.currentPath = e.key;
 						updateState({});
-						switch (e.key) {
-							case 'raw':
-								if (loadModsOnNavigate) {
-									updateState({ loadingMods: true });
-								}
-								navigate('/collections/raw-mods');
-								break;
-							case 'settings':
-								navigate('/settings');
-								break;
-							case 'main':
-								if (loadModsOnNavigate) {
-									updateState({ loadingMods: true });
-								}
-								navigate('/collections/main');
-								break;
-							case 'steam':
-								if (loadModsOnNavigate) {
-									updateState({ loadingMods: true });
-								}
-								navigate('/browse/steam');
-								break;
-							case 'ttqmm':
-								if (loadModsOnNavigate) {
-									updateState({ loadingMods: true });
-								}
-								navigate('/browse/ttqmm');
-								break;
-							default:
-								break;
+						if (loadModsOnNavigate) {
+							updateState({ loadingMods: true });
 						}
+						navigate(e.key);
 					}
 				}}
 			>
