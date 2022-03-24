@@ -37,7 +37,6 @@ interface ModCollectionValidationProps {
 	allMods: Map<string, Mod>;
 	workshopToModID: Map<string, string>;
 	updateValidatedModsCallback?: (numValidatedMods: number) => void;
-	setModErrorsCallback?: (errors: ModErrors) => void;
 }
 
 function validateMod(modData: ModData, modList: ModData[], allMods: Map<string, Mod>, workshopToModID: Map<string, string>) {
@@ -100,37 +99,29 @@ function validateFunction(validationProps: ModCollectionValidationProps) {
 	const errors: { [id: string]: ModError[] } = {};
 
 	modList.forEach((modData: ModData) => {
-		errors[modData.uid] = validateMod(modData, modList, allMods, workshopToModID);
+		const modErrors = validateMod(modData, modList, allMods, workshopToModID);
+		if (modErrors.length > 0) {
+			errors[modData.uid] = modErrors;
+		}
 	});
 
 	return errors;
 }
 
-function validateActiveCollection(validationProps: ModCollectionValidationProps) {
-	const { setModErrorsCallback } = validationProps;
-	const validationPromise = new Promise((resolve, reject) => {
+function validateActiveCollection(validationProps: ModCollectionValidationProps): Promise<{ errors: ModErrors; success: boolean }> {
+	const validationPromise: Promise<{ errors: ModErrors; success: boolean }> = new Promise((resolve, reject) => {
 		try {
 			const errors = validateFunction(validationProps);
 			if (Object.keys(errors).length > 0) {
-				if (setModErrorsCallback) {
-					setModErrorsCallback(errors);
-				}
-				resolve(false);
+				resolve({ success: false, errors });
 			}
-			resolve(true);
+			resolve({ success: true, errors });
 		} catch (error) {
+			api.logger.error(error);
 			reject(error);
 		}
 	});
-	return validationPromise
-		.then((isValid) => {
-			api.logger.debug(`IS VALID: ${isValid}`);
-			return isValid;
-		})
-		.catch((error) => {
-			api.logger.error(error);
-			return false;
-		});
+	return validationPromise;
 }
 
 function bronKerbosch() {}

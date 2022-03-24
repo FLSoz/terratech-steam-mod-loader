@@ -25,12 +25,12 @@ class MenuBar extends Component<MenuProps, never> {
 				id="MenuBar"
 				theme="dark"
 				className="MenuBar"
-				selectedKeys={[config.currentTab]}
+				selectedKeys={[config.currentPath]}
 				mode="inline"
 				disabled={disableNavigation}
 				onClick={(e) => {
-					if (e.key !== config.currentTab) {
-						config.currentTab = e.key;
+					if (e.key !== config.currentPath) {
+						config.currentPath = e.key;
 						updateState({});
 						switch (e.key) {
 							case 'raw':
@@ -66,7 +66,7 @@ class MenuBar extends Component<MenuProps, never> {
 					}
 				}}
 			>
-				<Menu.Item key="main" style={MenuItemStyle} icon={<AppstoreOutlined style={MenuIconStyle} />}>
+				<Menu.Item key="collections/main" style={MenuItemStyle} icon={<AppstoreOutlined style={MenuIconStyle} />}>
 					Mod Collections
 				</Menu.Item>
 				<Menu.Item key="settings" style={MenuItemStyle} icon={<SettingOutlined style={MenuIconStyle} />}>

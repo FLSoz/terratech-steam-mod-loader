@@ -127,6 +127,7 @@ const createWindow = async () => {
 		log.info(`App Name: ${app.getName()}`);
 		const version = app.getVersion();
 		mainWindow?.setTitle(`${name} v${version}`);
+		mainWindow?.maximize();
 
 		STEAMWORKS_INITED = Steamworks.init();
 	});
@@ -382,7 +383,7 @@ async function getDetailsForWorkshopModChunk(
 											if (matches && matches.length > 1) {
 												// eslint-disable-next-line prefer-destructuring
 												potentialMod.ID = matches[1];
-												if (!config.name) {
+												if (!config.name || config.name.length <= 0) {
 													// eslint-disable-next-line prefer-destructuring
 													config.name = matches[1];
 												}

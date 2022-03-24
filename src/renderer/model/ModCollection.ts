@@ -14,6 +14,7 @@ export interface ModCollectionProps {
 	width: number;
 	madeEdits?: boolean;
 	lastValidationStatus?: boolean;
+	launchingGame?: boolean;
 	setEnabledModsCallback: (mods: Set<string>) => any;
 	setEnabledCallback: (mod: string) => any;
 	setDisabledCallback: (mod: string) => any;

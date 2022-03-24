@@ -14,7 +14,7 @@ export interface AppConfig {
 	logsDir: string;
 
 	steamMaxConcurrency: number;
-	currentTab: string;
+	currentPath: string;
 }
 
 export interface ConfigUpdate {
@@ -40,5 +40,5 @@ export const DEFAULT_CONFIG: AppConfig = {
 	activeCollection: undefined,
 	steamMaxConcurrency: 5,
 
-	currentTab: 'main'
+	currentPath: 'collections/main'
 };

@@ -313,7 +313,7 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								shape="round"
 								key="validate"
 								type="primary"
-								danger={!lastValidationStatus || madeEdits}
+								danger={!lastValidationStatus}
 								icon={validatingCollection ? <SyncOutlined spin /> : <CheckCircleOutlined />}
 								disabled={disabledFeatures || validatingCollection}
 								onClick={validateCollectionCallback}

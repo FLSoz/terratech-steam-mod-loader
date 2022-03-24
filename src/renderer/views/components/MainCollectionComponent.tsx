@@ -142,7 +142,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 	}
 
 	render() {
-		const { collection, rows, filteredRows, lastValidationStatus } = this.props;
+		const { collection, rows, filteredRows, lastValidationStatus, launchingGame } = this.props;
 		// <img src={cellData} height="50px" width="50px" />
 		// <div>
 		/*
@@ -274,11 +274,6 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				}
 			},
 			{
-				title: 'ID',
-				dataIndex: 'id',
-				sorter: (a, b) => (a.id > b.id ? 1 : -1)
-			},
-			{
 				title: 'State',
 				dataIndex: 'errors',
 				render: (errors: ModError[] | undefined, record: ModData) => {
@@ -333,6 +328,11 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 					}
 					return null;
 				}
+			},
+			{
+				title: 'ID',
+				dataIndex: 'id',
+				sorter: (a, b) => (a.id > b.id ? 1 : -1)
 			},
 			{
 				title: 'Size',
@@ -451,6 +451,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 					<Table
 						dataSource={filteredRows}
 						pagination={false}
+						loading={launchingGame}
 						size="small"
 						rowKey="uid"
 						rowSelection={rowSelection}

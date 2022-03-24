@@ -12,7 +12,11 @@ export function cancellablePromise<Type>(promise: Promise<Type>): CancellablePro
 				return isCancelled.value ? reject(isCancelled) : resolve(d);
 			})
 			.catch((e) => {
-				reject(isCancelled.value ? isCancelled : e);
+				// eslint-disable-next-line prefer-promise-reject-errors
+				reject({
+					cancelled: isCancelled.value,
+					error: e
+				});
 			});
 	});
 
@@ -34,7 +38,11 @@ export class CancellablePromiseManager {
 					return this.isCancelled.value ? reject(this.isCancelled) : resolve(d);
 				})
 				.catch((e) => {
-					reject(this.isCancelled.value ? this.isCancelled : e);
+					// eslint-disable-next-line prefer-promise-reject-errors
+					reject({
+						cancelled: this.isCancelled.value,
+						error: e
+					});
 				});
 		});
 		return wrappedPromise;
