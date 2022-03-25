@@ -123,15 +123,15 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 
 	batchLoadModCallback(modsBatch: (Mod | null)[]) {
 		const { appState } = this.props;
+		const modsMap: Map<string, Mod> = appState.mods;
 		modsBatch.forEach((mod: Mod | null) => {
 			if (mod) {
-				const modsMap: Map<string, Mod> = appState.mods;
 				api.logger.debug(`Loaded mod: ${mod.ID} (${mod.UID})`);
 				// api.logger.debug(JSON.stringify(mod, null, 2));
 				modsMap.set(mod.UID, mod);
-				appState.mods = modsMap;
 			}
 		});
+		appState.mods = modsMap;
 	}
 
 	render() {

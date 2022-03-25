@@ -17,13 +17,12 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs, { Dirent } from 'fs';
 import child_process from 'child_process';
+import psList from 'ps-list';
 
 import { ModConfig, Mod, ModCollection, ModType } from '../model';
 import Steamworks, { EResult, SteamID, SteamUGCDetails, ValidGreenworksChannels } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-
-const psList = require('ps-list');
 
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
@@ -403,7 +402,10 @@ async function getDetailsForWorkshopModChunk(
 						config.dateAdded = new Date(steamUGCDetails.timeAddedToUserList * 1000);
 						config.lastUpdate = new Date(steamUGCDetails.timeUpdated * 1000);
 						config.state = Steamworks.ugcGetItemState(workshopID);
-						const validMod = config.tags?.includes('Mods');
+						let validMod =
+							config.tags
+								?.map((tag: string) => tag.toLowerCase())
+								.filter((tag) => tag.includes('mod') || tag.includes('block') || tag.includes('skin') || tag.includes('corp')).length > 0;
 
 						try {
 							if (Steamworks.requestUserInformation(steamUGCDetails.steamIDOwner, true)) {
@@ -443,6 +445,7 @@ async function getDetailsForWorkshopModChunk(
 													// eslint-disable-next-line prefer-destructuring
 													config.name = matches[1];
 												}
+												validMod = true; // override filtering
 											}
 											log.debug(`Found file: ${file.name} under mod path ${modPath}`);
 										}
@@ -454,7 +457,7 @@ async function getDetailsForWorkshopModChunk(
 							}
 						}
 						if (validMod) {
-							log.debug(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
+							log.info(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 							modDetails.push(potentialMod);
 						}
 					} catch (e) {
@@ -710,18 +713,22 @@ interface ProcessDetails {
 }
 ipcMain.on('game-running', async (event) => {
 	let running = false;
-	await psList().then((processes: ProcessDetails[]) => {
-		const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod)/.test(process.name));
-		running = matches.length > 0;
-		if (running) {
-			log.warn('Detected TT is running. Currently running processes:');
-			log.warn(matches);
-		}
-		event.reply('game-running', running);
-		return running;
-	});
-	event.reply('game-running', running);
-	return running;
+	psList()
+		.then((processes: ProcessDetails[]) => {
+			const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod)/.test(process.name));
+			running = matches.length > 0;
+			if (running) {
+				log.warn('Detected TT is running. Currently running processes:');
+				log.warn(matches);
+			}
+			event.reply('game-running', running);
+			return running;
+		})
+		.catch((e) => {
+			log.error('Failed to get game running status. Defaulting to not running');
+			log.error(e);
+			event.reply('game-running', false);
+		});
 });
 
 // Launch steam as separate process
