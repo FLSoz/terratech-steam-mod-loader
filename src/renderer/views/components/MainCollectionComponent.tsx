@@ -142,6 +142,14 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 		this.setState({});
 	}
 
+	componentDidUpdate() {
+		const { rows, filteredRows } = this.props;
+		api.logger.info('Updated state. New rows:');
+		const handleBigint = (_: unknown, v: unknown) => (typeof v === 'bigint' ? v.toString() : v);
+		api.logger.info(JSON.stringify(rows, handleBigint));
+		api.logger.info(JSON.stringify(filteredRows, handleBigint));
+	}
+
 	render() {
 		const { collection, rows, filteredRows, lastValidationStatus, launchingGame } = this.props;
 		// <img src={cellData} height="50px" width="50px" />
