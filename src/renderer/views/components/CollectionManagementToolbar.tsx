@@ -17,7 +17,7 @@ import {
 	ExportOutlined,
 	CloseCircleOutlined
 } from '@ant-design/icons';
-import { api } from 'renderer/Api';
+import api from 'renderer/Api';
 
 const { Option } = Select;
 const { Search } = Input;

@@ -5,7 +5,7 @@ import webpackDevServer from 'webpack-dev-server';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import chalk from 'chalk';
 import { merge } from 'webpack-merge';
-import { spawn, execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
@@ -19,25 +19,14 @@ if (process.env.NODE_ENV === 'production') {
 
 const port = process.env.PORT || 1212;
 const manifest = path.resolve(webpackPaths.dllPath, 'renderer.json');
-const moduleParents: NodeModule[] = Object.values(require.cache).filter(
-	(m) => !!m && m.children.includes(module)
-) as NodeModule[];
-const requiredByDLLConfig = moduleParents[0].filename.includes(
-	'webpack.config.renderer.dev.dll'
-);
+const moduleParents: NodeModule[] = Object.values(require.cache).filter((m) => !!m && m.children.includes(module)) as NodeModule[];
+const requiredByDLLConfig = moduleParents[0].filename.includes('webpack.config.renderer.dev.dll');
 
 /**
  * Warn if the DLL is not built
  */
-if (
-	!requiredByDLLConfig &&
-	!(fs.existsSync(webpackPaths.dllPath) && fs.existsSync(manifest))
-) {
-	console.log(
-		chalk.black.bgYellow.bold(
-			'The DLL files are missing. Sit back while we build them for you with "npm run build-dll"'
-		)
-	);
+if (!requiredByDLLConfig && !(fs.existsSync(webpackPaths.dllPath) && fs.existsSync(manifest))) {
+	console.log(chalk.black.bgYellow.bold('The DLL files are missing. Sit back while we build them for you with "npm run build-dll"'));
 	execSync('npm run postinstall');
 }
 
@@ -53,7 +42,7 @@ const devConfiguration: Configuration = {
 		'webpack/hot/only-dev-server',
 		'core-js',
 		'regenerator-runtime/runtime',
-		path.join(webpackPaths.srcRendererPath, 'index.tsx'),
+		path.join(webpackPaths.srcRendererPath, 'index.tsx')
 	],
 
 	output: {
@@ -61,8 +50,8 @@ const devConfiguration: Configuration = {
 		publicPath: '/',
 		filename: 'renderer.dev.js',
 		library: {
-			type: 'umd',
-		},
+			type: 'umd'
+		}
 	},
 
 	module: {
@@ -76,22 +65,22 @@ const devConfiguration: Configuration = {
 						options: {
 							modules: true,
 							sourceMap: true,
-							importLoaders: 1,
-						},
+							importLoaders: 1
+						}
 					},
-					'sass-loader',
+					'sass-loader'
 				],
-				include: /\.module\.s?(c|a)ss$/,
+				include: /\.module\.s?(c|a)ss$/
 			},
 			{
 				test: /\.s?css$/,
 				use: ['style-loader', 'css-loader', 'sass-loader'],
-				exclude: /\.module\.s?(c|a)ss$/,
+				exclude: /\.module\.s?(c|a)ss$/
 			},
 			//Font Loader
 			{
 				test: /\.(woff|woff2|eot|ttf|otf)$/i,
-				type: 'asset/resource',
+				type: 'asset/resource'
 			},
 			// SVG Font
 			{
@@ -100,24 +89,24 @@ const devConfiguration: Configuration = {
 					loader: 'url-loader',
 					options: {
 						limit: 10000,
-						mimetype: 'image/svg+xml',
-					},
-				},
+						mimetype: 'image/svg+xml'
+					}
+				}
 			},
 			// Common Image Formats
 			{
 				test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
-				use: 'url-loader',
+				use: 'url-loader'
 			},
 			// Less
 			{
 				test: /\.less$/,
 				use: [
 					{
-						loader: 'style-loader',
+						loader: 'style-loader'
 					},
 					{
-						loader: 'css-loader', // translates CSS into CommonJS
+						loader: 'css-loader' // translates CSS into CommonJS
 					},
 					{
 						loader: 'less-loader', // compiles Less to CSS
@@ -127,16 +116,16 @@ const devConfiguration: Configuration = {
 								modifyVars: {
 									'primary-color': '#1DA57A',
 									'link-color': '#1DA57A',
-									'border-radius-base': '2px',
+									'border-radius-base': '2px'
 								},
-								javascriptEnabled: true,
-							},
-						},
-					},
-				],
+								javascriptEnabled: true
+							}
+						}
+					}
+				]
 				// ...other rules
-			},
-		],
+			}
+		]
 	},
 	plugins: [
 		new webpack.NoEmitOnErrorsPlugin(),
@@ -154,11 +143,11 @@ const devConfiguration: Configuration = {
 		 * 'staging', for example, by changing the ENV variables in the npm scripts
 		 */
 		new webpack.EnvironmentPlugin({
-			NODE_ENV: 'development',
+			NODE_ENV: 'development'
 		}),
 
 		new webpack.LoaderOptionsPlugin({
-			debug: true,
+			debug: true
 		}),
 
 		new ReactRefreshWebpackPlugin(),
@@ -169,18 +158,18 @@ const devConfiguration: Configuration = {
 			minify: {
 				collapseWhitespace: true,
 				removeAttributeQuotes: true,
-				removeComments: true,
+				removeComments: true
 			},
 			isBrowser: false,
 			env: process.env.NODE_ENV,
 			isDevelopment: process.env.NODE_ENV !== 'production',
-			nodeModules: webpackPaths.appNodeModulesPath,
-		}),
+			nodeModules: webpackPaths.appNodeModulesPath
+		})
 	],
 
 	node: {
 		__dirname: false,
-		__filename: false,
+		__filename: false
 	},
 
 	devServer: {
@@ -189,23 +178,34 @@ const devConfiguration: Configuration = {
 		hot: true,
 		headers: { 'Access-Control-Allow-Origin': '*' },
 		static: {
-			publicPath: '/',
+			publicPath: '/'
 		},
 		historyApiFallback: {
-			verbose: true,
-			disableDotRule: undefined,
+			verbose: true
 		},
-		onBeforeSetupMiddleware() {
+
+		setupMiddlewares(middlewares) {
+			console.log('Starting preload.js builder...');
+			const preloadProcess = spawn('npm', ['run', 'start:preload'], {
+				shell: true,
+				stdio: 'inherit'
+			})
+				.on('close', (code: number) => process.exit(code!))
+				.on('error', (spawnError) => console.error(spawnError));
+
 			console.log('Starting Main Process...');
 			spawn('npm', ['run', 'start:main'], {
 				shell: true,
-				env: process.env,
-				stdio: 'inherit',
+				stdio: 'inherit'
 			})
-				.on('close', (code: number | undefined) => process.exit(code))
+				.on('close', (code: number) => {
+					preloadProcess.kill();
+					process.exit(code!);
+				})
 				.on('error', (spawnError) => console.error(spawnError));
-		},
-	},
+			return middlewares;
+		}
+	}
 };
 
 if (!requiredByDLLConfig) {
@@ -213,7 +213,7 @@ if (!requiredByDLLConfig) {
 		new webpack.DllReferencePlugin({
 			context: webpackPaths.dllPath,
 			manifest: require(manifest),
-			sourceType: 'var',
+			sourceType: 'var'
 		})
 	);
 }

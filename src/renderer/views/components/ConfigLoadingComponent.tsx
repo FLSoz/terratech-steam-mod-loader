@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import { api, ValidChannel } from 'renderer/Api';
-import { AppConfig, ModCollection, AppState } from 'model';
+import api from 'renderer/Api';
+import { AppConfig, ModCollection, AppState, ValidChannel } from 'model';
 import { validateAppConfig } from 'renderer/util/Validation';
 import { Layout, Progress } from 'antd';
 import { useNavigate, NavigateFunction, useOutletContext } from 'react-router-dom';

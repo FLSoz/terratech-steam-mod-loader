@@ -1,15 +1,13 @@
 import React, { Component } from 'react';
-import { AppState, AppConfig } from 'model';
+import { AppState, AppConfig, ValidChannel } from 'model';
 import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader } from 'antd';
 import { useOutletContext } from 'react-router-dom';
-import { api, ValidChannel } from 'renderer/Api';
+import api from 'renderer/Api';
 import { FolderOutlined } from '@ant-design/icons';
 import { TT_APP_ID } from 'renderer/Constants';
 
 const { Content } = Layout;
 const { Search } = Input;
-
-const fileRegexPath = /^(?<path>(.*[\\/])?)(?<filename>.*)$/; // taken from: https://stackoverflow.com/questions/423376/how-to-get-the-file-name-from-a-full-path-using-javascript
 
 interface SettingsState {
 	editingConfig?: AppConfig;
@@ -309,7 +307,12 @@ class SettingsView extends Component<AppState, SettingsState> {
 								}}
 							/>
 						</Form.Item>
-						<Form.Item name="steamMaxConcurrency" label="Steam API Limit" rules={[{ required: true }]} initialValue={editingConfig!.steamMaxConcurrency}>
+						<Form.Item
+							name="steamMaxConcurrency"
+							label="Steam API Limit"
+							rules={[{ required: true }]}
+							initialValue={editingConfig!.steamMaxConcurrency}
+						>
 							<InputNumber
 								disabled
 								min={0}

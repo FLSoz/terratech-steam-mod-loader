@@ -81,7 +81,7 @@ const createWindow = async () => {
 		icon: getAssetPath('icon.png'),
 		webPreferences: {
 			contextIsolation: true,
-			preload: path.join(__dirname, 'preload.js')
+			preload: app.isPackaged ? path.join(__dirname, 'preload.js') : path.join(__dirname, '../../.erb/dll/preload.js')
 		}
 	});
 
@@ -713,6 +713,10 @@ ipcMain.on('game-running', async (event) => {
 	await psList().then((processes: ProcessDetails[]) => {
 		const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod.*manager)/.test(process.name));
 		running = matches.length > 0;
+		if (running) {
+			log.info('Detected TT is running. Currently running processes:');
+			log.info(matches);
+		}
 		event.reply('game-running', running);
 		return running;
 	});

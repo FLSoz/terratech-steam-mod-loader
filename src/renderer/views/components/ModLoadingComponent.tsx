@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Layout, Progress } from 'antd';
-import { AppConfig, Mod, ModType, AppState, ModCollection } from 'model';
-import { ValidChannel, api, ProgressTypes } from 'renderer/Api';
+import { AppConfig, Mod, ModType, AppState, ModCollection, ValidChannel, ProgressTypes } from 'model';
+import api from 'renderer/Api';
 
 const { Footer, Content } = Layout;
 
@@ -9,12 +9,11 @@ interface ModLoadingState {
 	config: AppConfig;
 	progress: number;
 	progressMessage: string;
-	checkedDependencies: Set<string>;
 }
 
 interface ModLoadingProps {
 	appState: AppState;
-	modLoadCompleteCallback: (...args: any) => void;
+	modLoadCompleteCallback: () => void;
 }
 
 export default class ModLoadingComponent extends Component<ModLoadingProps, ModLoadingState> {
@@ -29,8 +28,7 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 		this.state = {
 			config,
 			progress: 0.0,
-			progressMessage: 'Counting mods',
-			checkedDependencies: new Set()
+			progressMessage: 'Counting mods'
 		};
 
 		this.updateProgressCallback = this.updateProgressCallback.bind(this);
@@ -105,7 +103,7 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 					appState.loadingMods = false;
 					appState.navigate(appState.targetPathAfterLoad);
 
-					modLoadCompleteCallback(mods);
+					modLoadCompleteCallback();
 				}
 			});
 		}
@@ -123,7 +121,7 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 		}
 	}
 
-	batchLoadModCallback(modsBatch: (Mod | null)[], batchSize: number) {
+	batchLoadModCallback(modsBatch: (Mod | null)[]) {
 		const { appState } = this.props;
 		modsBatch.forEach((mod: Mod | null) => {
 			if (mod) {

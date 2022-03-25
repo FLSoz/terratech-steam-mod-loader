@@ -1,7 +1,5 @@
-import { stringify } from 'querystring';
-import { api } from 'renderer/Api';
+import api from 'renderer/Api';
 import { AppConfig, Mod, ModError, ModErrors, ModErrorType, ModData, ModType } from 'model';
-import { delayForEach, ForEachProps } from './Sleep';
 
 async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
 	const errors: { [field: string]: string } = {};
@@ -35,7 +33,6 @@ interface ModCollectionValidationProps {
 	modList: ModData[];
 	allMods: Map<string, Mod>;
 	workshopToModID: Map<bigint, string>;
-	updateValidatedModsCallback?: (numValidatedMods: number) => void;
 }
 
 function validateMod(modData: ModData, modList: ModData[], allMods: Map<string, Mod>, workshopToModID: Map<bigint, string>) {

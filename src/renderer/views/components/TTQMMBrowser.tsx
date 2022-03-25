@@ -1,18 +1,13 @@
 import React, { Component } from 'react';
 import { AppState } from 'model';
 import { Layout, Skeleton } from 'antd';
-import { useNavigate, useLocation, Location } from 'react-router-dom';
+import { useLocation, Location } from 'react-router-dom';
 import MenuBar from './MenuBar';
 
 const { Sider, Content } = Layout;
 
 class TTQMMBrowserView extends Component<{ location: Location }, AppState> {
 	CONFIG_PATH: string | undefined = undefined;
-
-	constructor(props: { location: Location }) {
-		super(props);
-		console.log('hi');
-	}
 
 	componentDidMount() {}
 
@@ -47,6 +42,6 @@ class TTQMMBrowserView extends Component<{ location: Location }, AppState> {
 	}
 }
 
-export default (props: any) => {
+export default (props: unknown) => {
 	return <TTQMMBrowserView {...props} location={useLocation()} />;
 };

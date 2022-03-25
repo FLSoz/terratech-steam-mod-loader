@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component, CSSProperties, ReactNode } from 'react';
 import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
-import { Layout, Button, Popover, Modal, Progress, Spin, Space, notification, Checkbox, Typography } from 'antd';
+import { Layout, Button, Popover, Modal, notification, Checkbox, Typography } from 'antd';
 
 import { SizeMe } from 'react-sizeme';
 import {
@@ -15,9 +15,10 @@ import {
 	AppState,
 	ModCollection,
 	ModCollectionProps,
-	AppConfig
+	AppConfig,
+	ValidChannel
 } from 'model';
-import { api, ValidChannel } from 'renderer/Api';
+import api from 'renderer/Api';
 import { getIncompatibilityGroups, validateActiveCollection } from 'renderer/util/Validation';
 import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'renderer/util/Promise';
 import { pause } from 'renderer/util/Sleep';
@@ -580,7 +581,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			});
 			this.baseLaunchGame(modDataList);
 		} else {
-			this.setState({ validatingMods: true, modErrors: undefined, validatedMods: 0 }, () => {
+			this.setState({ validatingMods: true, modErrors: undefined }, () => {
 				this.validateActiveCollection(true);
 			});
 		}
@@ -667,11 +668,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						validateActiveCollection({
 							modList: collectionMods.map((uid: string) => modIdToModDataMap.get(uid) as ModData),
 							allMods: mods,
-							workshopToModID,
-							updateValidatedModsCallback: (validatedMods: number) => {
-								api.logger.debug(`We have validated ${validatedMods} mods`);
-								this.setState({ validatedMods });
-							}
+							workshopToModID
 						})
 					);
 
@@ -717,7 +714,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	// We allow you to load multiple mods with the same ID (bundle name), but only the local mod will be used
 	// If multiple workshop mods have the same ID, and you select multiple, then we will force you to choose one to use
 	renderModal() {
-		const { modalType, launchGameWithErrors, validatedMods, modErrors, modIdToModDataMap } = this.state;
+		const { modalType, launchGameWithErrors, modErrors, modIdToModDataMap } = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods, workshopToModID, updateState } = appState;
 
@@ -1268,7 +1265,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	render() {
 		const { madeEdits, filteredRows, gameRunning, overrideGameRunning, modalType, savingCollection, validatingMods, lastValidationStatus } =
 			this.state;
-		const { appState, location } = this.props;
+		const { appState } = this.props;
 		const { allCollections, searchString, launchingGame } = appState;
 
 		const launchGameButton = (

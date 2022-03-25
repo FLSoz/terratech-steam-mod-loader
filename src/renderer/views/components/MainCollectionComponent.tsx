@@ -6,7 +6,7 @@ import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
 import dateFormat from 'dateformat';
 import { TableRowSelection } from 'antd/lib/table/interface';
-import { api } from 'renderer/Api';
+import api from 'renderer/Api';
 import { ModData, ModError, ModErrorType, ModType, ModCollectionProps } from 'model';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
@@ -20,7 +20,7 @@ import Corp_Icon_RR from '../../../../assets/Corp_Icon_EXP.png';
 import Corp_Icon_SPE from '../../../../assets/Corp_Icon_SPE.png';
 
 const { Content } = Layout;
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 function getImageSrcFromType(type: ModType, size = 15) {
 	switch (type) {
@@ -438,7 +438,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				title: 'Tags',
 				dataIndex: 'tags',
 				// eslint-disable-next-line @typescript-eslint/ban-types
-				render: (tags: string[] | undefined, record: ModData) => {
+				render: (tags: string[] | undefined) => {
 					const iconTags: CorpType[] = [];
 					const actualTags: string[] = [];
 					(tags || [])
