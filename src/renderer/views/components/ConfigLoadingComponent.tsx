@@ -1,11 +1,10 @@
 import React, { Component } from 'react';
-import { api, ValidChannel } from 'renderer/model/Api';
-import { AppConfig, DEFAULT_CONFIG } from 'renderer/model/AppConfig';
-import { ModCollection } from 'renderer/model/ModCollection';
-import { AppState } from 'renderer/model/AppState';
+import { api, ValidChannel } from 'renderer/Api';
+import { AppConfig, ModCollection, AppState } from 'model';
 import { validateAppConfig } from 'renderer/util/Validation';
 import { Layout, Progress } from 'antd';
 import { useNavigate, NavigateFunction, useOutletContext } from 'react-router-dom';
+import { DEFAULT_CONFIG } from 'renderer/Constants';
 
 const { Footer, Content } = Layout;
 

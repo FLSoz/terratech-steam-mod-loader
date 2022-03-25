@@ -1,6 +1,7 @@
+/* eslint-disable no-nested-ternary */
 /* eslint-disable react/require-default-props */
 import React, { Component } from 'react';
-import { AppState } from 'renderer/model/AppState';
+import { AppState } from 'model';
 import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
 import {
 	EditOutlined,
@@ -13,9 +14,10 @@ import {
 	CheckCircleOutlined,
 	CopyOutlined,
 	ImportOutlined,
-	ExportOutlined
+	ExportOutlined,
+	CloseCircleOutlined
 } from '@ant-design/icons';
-import { api } from 'renderer/model/Api';
+import { api } from 'renderer/Api';
 
 const { Option } = Select;
 const { Search } = Input;
@@ -57,7 +59,10 @@ interface CollectionManagementToolbarModalProps {
 	callback: (name: string) => void;
 }
 
-export default class CollectionManagementToolbarComponent extends Component<CollectionManagementToolbarProps, CollectionManagementToolbarState> {
+export default class CollectionManagementToolbarComponent extends Component<
+	CollectionManagementToolbarProps,
+	CollectionManagementToolbarState
+> {
 	modalProps: Record<CollectionManagementToolbarModalType, CollectionManagementToolbarModalProps>;
 
 	constructor(props: CollectionManagementToolbarProps) {
@@ -314,7 +319,10 @@ export default class CollectionManagementToolbarComponent extends Component<Coll
 								key="validate"
 								type="primary"
 								danger={!lastValidationStatus}
-								icon={validatingCollection ? <SyncOutlined spin /> : <CheckCircleOutlined />}
+								icon={
+									// eslint-disable-next-line max-len
+									validatingCollection ? <SyncOutlined spin /> : lastValidationStatus ? <CheckCircleOutlined /> : <CloseCircleOutlined />
+								}
 								disabled={disabledFeatures || validatingCollection}
 								onClick={validateCollectionCallback}
 							>

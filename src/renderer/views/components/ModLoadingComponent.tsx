@@ -1,15 +1,7 @@
 import React, { Component } from 'react';
 import { Layout, Progress } from 'antd';
-import ReactLoading from 'react-loading';
-import { SizeMe } from 'react-sizeme';
-import { AppConfig } from 'renderer/model/AppConfig';
-import { Mod, ModType } from 'renderer/model/Mod';
-import { ValidChannel, api, ProgressTypes } from 'renderer/model/Api';
-import { AppState } from 'renderer/model/AppState';
-import { delayForEach, ForEachProps } from 'renderer/util/Sleep';
-import { chunk } from 'renderer/util/Util';
-import { ProgressType } from 'antd/lib/progress/progress';
-import { ModCollection } from 'renderer/model/ModCollection';
+import { AppConfig, Mod, ModType, AppState, ModCollection } from 'model';
+import { ValidChannel, api, ProgressTypes } from 'renderer/Api';
 
 const { Footer, Content } = Layout;
 
@@ -69,7 +61,6 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 						const failedMod: Mod = {
 							UID: modUID,
 							ID: workshopID,
-							WorkshopID: '',
 							type: ModType.WORKSHOP,
 							path: ''
 						};

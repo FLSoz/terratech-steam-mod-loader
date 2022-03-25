@@ -13,7 +13,7 @@ export interface ModConfig {
 	authors?: string[];
 	loadAfter?: string[];
 	loadBefore?: string[];
-	dependsOn?: string[];
+	dependsOn?: bigint[];
 	tags?: string[];
 	lastUpdate?: Date;
 	dateAdded?: Date;
@@ -26,7 +26,7 @@ export interface Mod {
 	ID: string;
 	UID: string;
 	path: string;
-	WorkshopID?: string;
+	WorkshopID?: bigint;
 	config?: ModConfig;
 }
 
@@ -51,13 +51,13 @@ export interface ModData {
 	uid: string;
 	id: string;
 	path: string;
-	workshopId?: string;
+	workshopId?: bigint;
 	type: ModType;
 	preview?: string;
 	name: string;
 	description?: string;
 	authors?: string[];
-	dependsOn?: string[];
+	dependsOn?: bigint[];
 	hasCode?: boolean;
 	isDependencyFor?: string[]; // Mod IDs it's dependency for. Workshop IDs if mod ID unknown
 	tags?: string[];
@@ -87,9 +87,9 @@ export enum UGCItemState {
 }
 
 export function convertToModData(input: Map<string, Mod>): ModData[] {
-	const dependenciesMap: Map<string, Set<string>> = new Map();
+	const dependenciesMap: Map<bigint, Set<string>> = new Map();
 	const tempMap: Map<string, ModData[]> = new Map();
-	const workshopMap: Map<string, string> = new Map();
+	const workshopMap: Map<bigint, string> = new Map();
 
 	[...input.values()].forEach((mod: Mod) => {
 		const modData: ModData = {
@@ -138,16 +138,20 @@ export function convertToModData(input: Map<string, Mod>): ModData[] {
 	});
 	const missingMods = [];
 	dependenciesMap.forEach((reliers, dependency) => {
-		const modID = workshopMap.get(dependency);
-		if (modID) {
-			const duplicateMods = tempMap.get(modID);
-			if (duplicateMods) {
-				duplicateMods.forEach((modData: ModData) => {
-					modData.isDependencyFor = [...reliers];
-				});
-			} else {
-				missingMods.push(dependency);
+		try {
+			const modID = workshopMap.get(BigInt(dependency));
+			if (modID) {
+				const duplicateMods = tempMap.get(modID);
+				if (duplicateMods) {
+					duplicateMods.forEach((modData: ModData) => {
+						modData.isDependencyFor = [...reliers];
+					});
+				} else {
+					missingMods.push(dependency);
+				}
 			}
+		} catch (e) {
+			// failed
 		}
 	});
 	return [...tempMap.values()].flat();

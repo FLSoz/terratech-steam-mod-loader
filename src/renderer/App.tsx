@@ -3,12 +3,10 @@
 import React, { Component } from 'react';
 import { Layout } from 'antd';
 
-import { AppState } from 'renderer/model/AppState';
+import { AppState, Mod, ModCollection } from 'model';
 import { Outlet, useLocation, Location, useNavigate, NavigateFunction } from 'react-router-dom';
 import MenuBar from './views/components/MenuBar';
-import { Mod } from './model/Mod';
-import { ModCollection } from './model/ModCollection';
-import { DEFAULT_CONFIG } from './model/AppConfig';
+import { DEFAULT_CONFIG } from './Constants';
 
 const { Sider } = Layout;
 
@@ -20,7 +18,7 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 			userDataPath: '',
 			targetPathAfterLoad: '/collections/main',
 			mods: new Map<string, Mod>(),
-			workshopToModID: new Map<string, string>(),
+			workshopToModID: new Map<bigint, string>(),
 			allCollections: new Map<string, ModCollection>(),
 			allCollectionNames: new Set<string>(),
 			activeCollection: undefined,

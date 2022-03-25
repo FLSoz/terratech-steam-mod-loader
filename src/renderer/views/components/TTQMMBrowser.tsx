@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { AppState } from 'renderer/model/AppState';
+import { AppState } from 'model';
 import { Layout, Skeleton } from 'antd';
 import { useNavigate, useLocation, Location } from 'react-router-dom';
 import MenuBar from './MenuBar';

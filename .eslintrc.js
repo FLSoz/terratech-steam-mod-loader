@@ -9,7 +9,7 @@ module.exports = {
 			trailingComma: 'none',
 			tabWidth: 2,
 			useTabs: true,
-			printWidth: 160,
+			printWidth: 140,
 			bracketSameLine: false
 		}],
 		"no-restricted-imports": [
@@ -22,7 +22,7 @@ module.exports = {
     'max-len': [
       'warn',
       {
-        code: 180,
+        code: 140,
         ignoreComments: true,
 				ignoreUrls: true,
         ignoreTrailingComments: true

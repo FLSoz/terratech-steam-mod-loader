@@ -2,7 +2,7 @@
 import { Layout, Skeleton } from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
-import { ModCollectionProps } from 'renderer/model/ModCollection';
+import { ModCollectionProps } from 'model';
 
 const { Content } = Layout;
 

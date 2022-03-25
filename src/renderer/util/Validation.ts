@@ -1,7 +1,6 @@
 import { stringify } from 'querystring';
-import { api } from 'renderer/model/Api';
-import { AppConfig } from '../model/AppConfig';
-import { Mod, ModError, ModErrors, ModErrorType, ModData, ModType } from '../model/Mod';
+import { api } from 'renderer/Api';
+import { AppConfig, Mod, ModError, ModErrors, ModErrorType, ModData, ModType } from 'model';
 import { delayForEach, ForEachProps } from './Sleep';
 
 async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
@@ -35,15 +34,15 @@ async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: 
 interface ModCollectionValidationProps {
 	modList: ModData[];
 	allMods: Map<string, Mod>;
-	workshopToModID: Map<string, string>;
+	workshopToModID: Map<bigint, string>;
 	updateValidatedModsCallback?: (numValidatedMods: number) => void;
 }
 
-function validateMod(modData: ModData, modList: ModData[], allMods: Map<string, Mod>, workshopToModID: Map<string, string>) {
+function validateMod(modData: ModData, modList: ModData[], allMods: Map<string, Mod>, workshopToModID: Map<bigint, string>) {
 	api.logger.debug(`validating ${modData.name}`);
 	const thisModErrors = [];
 
-	if (modData.id === modData.workshopId) {
+	if ((!modData.id || modData.id.length <= 0) && !modData.workshopId) {
 		// we couldn't find any info on this mod
 	}
 
@@ -72,10 +71,14 @@ function validateMod(modData: ModData, modList: ModData[], allMods: Map<string, 
 	const dependencies = modData.dependsOn;
 	if (dependencies) {
 		const missingDependencies: Set<string> = new Set(
-			dependencies.map((workshopID: string) => {
-				const modID = workshopToModID.get(workshopID);
-				if (modID) {
-					return modID;
+			dependencies.map((workshopID: bigint) => {
+				try {
+					const modID = workshopToModID.get(BigInt(workshopID));
+					if (modID) {
+						return modID;
+					}
+				} catch (e) {
+					// failed to parse, ignore
 				}
 				return workshopID.toString();
 			})

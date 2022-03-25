@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { AppState } from 'renderer/model/AppState';
+import { AppState } from 'model';
 import { Menu } from 'antd';
 import { AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate, NavigateFunction } from 'react-router-dom';

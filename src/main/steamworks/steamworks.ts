@@ -4,6 +4,9 @@
 /* eslint-disable class-methods-use-this */
 // A wrapper interface around Greenworks written in ts
 import {
+	// Steam API
+	EResult,
+
 	// Steamworks
 	ValidGreenworksChannels,
 	SteamErrorCallback,
@@ -24,6 +27,20 @@ import {
 } from './types';
 
 const greenworks: any = require('greenworks');
+
+function wrapCallbackForWorkshopIDConversion(callback: (items: SteamUGCDetails[]) => void) {
+	return (results: unknown[]) => {
+		callback(
+			results.map((result: any) => {
+				return {
+					...result,
+					publishedFileId: BigInt(result.publishedFileId),
+					children: result.children ? result.children.map((stringID: string) => BigInt(stringID)) : undefined
+				};
+			})
+		);
+	};
+}
 
 class SteamworksAPI {
 	init(): boolean {
@@ -115,7 +132,13 @@ class SteamworksAPI {
 		greenworks.Utils.createArchive(zip_file_path, source_dir, password, compress_level, success_callback, error_callback);
 	}
 
-	extractArchive(zip_file_path: string, extract_dir: string, password: string, success_callback: () => void, error_callback?: SteamErrorCallback) {
+	extractArchive(
+		zip_file_path: string,
+		extract_dir: string,
+		password: string,
+		success_callback: () => void,
+		error_callback?: SteamErrorCallback
+	) {
 		greenworks.Utils.extractArchive(zip_file_path, extract_dir, password, success_callback, error_callback);
 	}
 
@@ -124,32 +147,45 @@ class SteamworksAPI {
 		return greenworks.fileShare(file_path, success_callback, error_callback);
 	}
 
-	ugcDownloadItem(download_file_handle: string, download_dir: string, success_callback: () => void, error_callback?: SteamErrorCallback) {
-		return greenworks.ugcDownloadItem(download_file_handle, download_dir, success_callback, error_callback);
+	ugcDownloadItem(published_file_id: bigint, success_callback: (result: EResult) => void, error_callback?: SteamErrorCallback) {
+		return greenworks.ugcDownloadItem(published_file_id.toString(), success_callback, error_callback);
 	}
 
-	ugcUnsubscribe(published_file_handle: string, success_callback: () => void, error_callback?: SteamErrorCallback) {
-		return greenworks.ugcUnsubscribe(published_file_handle, success_callback, error_callback);
+	ugcUnsubscribe(published_file_id: bigint, success_callback: (result: EResult) => void, error_callback?: SteamErrorCallback) {
+		return greenworks.ugcUnsubscribe(published_file_id.toString(), success_callback, error_callback);
 	}
 
-	ugcShowOverlay(published_file_id?: string) {
-		return greenworks.ugcShowOverlay(published_file_id);
+	ugcSubscribe(published_file_id: bigint, success_callback: (result: EResult) => void, error_callback?: SteamErrorCallback) {
+		return greenworks.ugcSubscribe(published_file_id.toString(), success_callback, error_callback);
 	}
 
-	ugcGetItemState(published_file_id: string): UGCItemState {
-		return greenworks.ugcGetItemState(published_file_id);
+	ugcShowOverlay(published_file_id?: bigint) {
+		return greenworks.ugcShowOverlay(published_file_id?.toString());
 	}
 
-	ugcGetItemInstallInfo(published_file_id: string): ItemInstallInfo | undefined {
-		return greenworks.ugcGetItemInstallInfo(published_file_id);
+	ugcGetItemState(published_file_id: bigint): UGCItemState {
+		return greenworks.ugcGetItemState(published_file_id.toString());
 	}
 
-	getSubscribedItems(): string[] {
-		return greenworks.getSubscribedItems();
+	ugcGetItemInstallInfo(published_file_id: bigint): ItemInstallInfo | undefined {
+		return greenworks.ugcGetItemInstallInfo(published_file_id.toString());
+	}
+
+	getSubscribedItems(): bigint[] {
+		return greenworks
+			.getSubscribedItems()
+			.map((workshopID: string) => {
+				try {
+					return BigInt(workshopID);
+				} catch (e) {
+					return 0;
+				}
+			})
+			.filter((id: bigint) => id > 0);
 	}
 
 	getUGCDetails(workshop_ids: string[], success_callback: (items: SteamUGCDetails[]) => void, error_callback?: SteamErrorCallback) {
-		greenworks.getUGCDetails(workshop_ids, success_callback, error_callback);
+		greenworks.getUGCDetails(workshop_ids, wrapCallbackForWorkshopIDConversion(success_callback), error_callback);
 	}
 
 	ugcGetItems(props: GetItemsProps) {
@@ -161,7 +197,13 @@ class SteamworksAPI {
 				page_num: 1
 			};
 		}
-		greenworks._ugcGetItems(options, ugc_matching_type, ugc_query_type, success_callback, error_callback);
+		greenworks._ugcGetItems(
+			options,
+			ugc_matching_type,
+			ugc_query_type,
+			wrapCallbackForWorkshopIDConversion(success_callback),
+			error_callback
+		);
 	}
 
 	ugcGetUserItems(props: GetUserItemsProps) {
@@ -173,7 +215,14 @@ class SteamworksAPI {
 				page_num: 1
 			};
 		}
-		greenworks._ugcGetUserItems(options, ugc_matching_type, ugc_list_sort_order, ugc_list, success_callback, error_callback);
+		greenworks._ugcGetUserItems(
+			options,
+			ugc_matching_type,
+			ugc_list_sort_order,
+			ugc_list,
+			wrapCallbackForWorkshopIDConversion(success_callback),
+			error_callback
+		);
 	}
 
 	ugcSynchronizeItems(props: SynchronizeItemsProps) {
@@ -185,7 +234,22 @@ class SteamworksAPI {
 				page_num: 1
 			};
 		}
-		greenworks._ugcSynchronizeItems(actualOptions, sync_dir, success_callback, error_callback);
+		greenworks._ugcSynchronizeItems(
+			actualOptions,
+			sync_dir,
+			(results: unknown[]) => {
+				success_callback(
+					results.map((result: any) => {
+						return {
+							...result,
+							publishedFileId: BigInt(result.publishedFileId),
+							children: result.children ? result.children.map((stringID: string) => BigInt(stringID)) : undefined
+						};
+					})
+				);
+			},
+			error_callback
+		);
 	}
 
 	publishWorkshopFile(props: PublishWorkshopFileProps) {
@@ -208,7 +272,16 @@ class SteamworksAPI {
 				tags: [] // No tags are set
 			};
 		}
-		greenworks._updatePublishedWorkshopFile(actualOptions, published_file_handle, file_path, image_path, title, description, success_callback, error_callback);
+		greenworks._updatePublishedWorkshopFile(
+			actualOptions,
+			published_file_handle,
+			file_path,
+			image_path,
+			title,
+			description,
+			success_callback,
+			error_callback
+		);
 	}
 
 	ugcPublish(
@@ -233,7 +306,16 @@ class SteamworksAPI {
 		error_callback?: SteamErrorCallback,
 		progress_callback?: ProgressCallback
 	) {
-		greenworks.ugcPublishUpdate(published_file_id, file_name, title, description, image_name, success_callback, error_callback, progress_callback);
+		greenworks.ugcPublishUpdate(
+			published_file_id,
+			file_name,
+			title,
+			description,
+			image_name,
+			success_callback,
+			error_callback,
+			progress_callback
+		);
 	}
 }
 

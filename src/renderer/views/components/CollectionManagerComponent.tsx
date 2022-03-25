@@ -1,21 +1,31 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component, CSSProperties, ReactNode } from 'react';
 import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
-import { Layout, Button, Popover, Modal, Progress, Spin, Space, notification, Checkbox } from 'antd';
+import { Layout, Button, Popover, Modal, Progress, Spin, Space, notification, Checkbox, Typography } from 'antd';
 
 import { SizeMe } from 'react-sizeme';
-import { convertToModData, filterRows, Mod, ModData, ModError, ModErrors, ModErrorType } from 'renderer/model/Mod';
-import { AppState } from 'renderer/model/AppState';
-import { api, ValidChannel } from 'renderer/model/Api';
-import { ModCollection, ModCollectionProps } from 'renderer/model/ModCollection';
+import {
+	convertToModData,
+	filterRows,
+	Mod,
+	ModData,
+	ModError,
+	ModErrors,
+	ModErrorType,
+	AppState,
+	ModCollection,
+	ModCollectionProps,
+	AppConfig
+} from 'model';
+import { api, ValidChannel } from 'renderer/Api';
 import { getIncompatibilityGroups, validateActiveCollection } from 'renderer/util/Validation';
 import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'renderer/util/Promise';
 import { pause } from 'renderer/util/Sleep';
-import { AppConfig } from 'renderer/model/AppConfig';
 import CollectionManagerToolbar from './CollectionManagementToolbar';
 import ModLoadingView from './ModLoadingComponent';
 
 const { Header, Footer, Content } = Layout;
+const { Text, Title } = Typography;
 
 enum ModalType {
 	NONE = 0,
@@ -200,7 +210,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			});
 			if (launchIfValid) {
 				this.setState({
-					modalType: invalidIdsFound || incompatibleModsFound || missingDependenciesFound ? ModalType.ERRORS_FOUND : ModalType.WARNINGS_FOUND
+					modalType:
+						invalidIdsFound || incompatibleModsFound || missingDependenciesFound ? ModalType.ERRORS_FOUND : ModalType.WARNINGS_FOUND
 				});
 			}
 		} else {
@@ -808,7 +819,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</Button>
 						]}
 					>
-						<p>One or more mods are marked as invalid. This means that we are unable to locate the mods either locally, or on the workshop.</p>
+						<p>
+							One or more mods are marked as invalid. This means that we are unable to locate the mods either locally, or on the workshop.
+						</p>
 						<p>Do you want to remove them from the collection?</p>
 						<table key="invalid_mods">
 							<thead>
@@ -827,8 +840,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</tbody>
 						</table>
 						<p>
-							NOTE: Invalid local mods will do nothing, but invalid workshop mods will still be loaded by 0ModManager, even though you haven&apos;t subscribed
-							to them.
+							NOTE: Invalid local mods will do nothing, but invalid workshop mods will still be loaded by 0ModManager, even though you
+							haven&apos;t subscribed to them.
 						</p>
 					</Modal>
 				);
@@ -859,10 +872,16 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 									const missingDependencyUIDs = [...missingDependencies].map((badDependency: string) => {
 										let foundDependency = false;
 										let dependencyWorkshopID = badDependency;
-										workshopToModID.forEach((modID: string, workshopID: string) => {
-											if (!foundDependency && (badDependency === modID || badDependency === workshopID)) {
+										workshopToModID.forEach((modID: string, workshopID: bigint) => {
+											let parsedDependency = null;
+											try {
+												parsedDependency = BigInt(badDependency);
+											} catch (e) {
+												// we failed to parse - means we know the mod ID
+											}
+											if (!foundDependency && (badDependency === modID || parsedDependency === workshopID)) {
 												foundDependency = true;
-												dependencyWorkshopID = workshopID;
+												dependencyWorkshopID = workshopID.toString();
 											}
 										});
 										return `workshop:${dependencyWorkshopID}`;
@@ -905,7 +924,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</Button>
 						]}
 					>
-						<p>One or more mods are missing their dependencies. There is a high chance the game will break if they are not subscribed to.</p>
+						<p>
+							One or more mods are missing their dependencies. There is a high chance the game will break if they are not subscribed to.
+						</p>
 						<p>Do you want to continue anyway?</p>
 						<table key="missing_items">
 							<thead>
@@ -980,7 +1001,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							</Button>
 						]}
 					>
-						<p>One or more mods are selected that you are not subscribed to. Steam may not update them properly unless you subscribe to them.</p>
+						<p>
+							One or more mods are selected that you are not subscribed to. Steam may not update them properly unless you subscribe to them.
+						</p>
 						<p>Do you want to keep them in your collection?</p>
 						<table key="unsubscribed_items">
 							<thead>
@@ -1107,7 +1130,14 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							>
 								Guided Fix
 							</Button>, */
-							<Button key="launch" danger type="primary" disabled={launchGameWithErrors} loading={launchGameWithErrors} onClick={launchAnyway}>
+							<Button
+								key="launch"
+								danger
+								type="primary"
+								disabled={launchGameWithErrors}
+								loading={launchGameWithErrors}
+								onClick={launchAnyway}
+							>
 								Launch Anyway
 							</Button>
 						]}
@@ -1115,8 +1145,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						<p>One or more mods have either missing dependencies, or is selected alongside incompatible mods.</p>
 						<p>Launching the game with this mod list may lead to crashes, or even save game corruption.</p>
 						<p>
-							Mods that share the same Mod ID (Not the same as Workshop ID) are explicitly incompatible, and only the first one TerraTech loads will be used.
-							All others will be ignored.
+							Mods that share the same Mod ID (Not the same as Workshop ID) are explicitly incompatible, and only the first one TerraTech
+							loads will be used. All others will be ignored.
 						</p>
 
 						<p>Do you want to continue anyway?</p>
@@ -1157,7 +1187,14 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							>
 								Guided Fix
 							</Button>, */
-							<Button key="launch" danger type="primary" disabled={launchGameWithErrors} loading={launchGameWithErrors} onClick={launchAnyway}>
+							<Button
+								key="launch"
+								danger
+								type="primary"
+								disabled={launchGameWithErrors}
+								loading={launchGameWithErrors}
+								onClick={launchAnyway}
+							>
 								Launch Anyway
 							</Button>
 						]}
@@ -1229,7 +1266,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	render() {
-		const { madeEdits, filteredRows, gameRunning, overrideGameRunning, modalType, savingCollection, validatingMods, lastValidationStatus } = this.state;
+		const { madeEdits, filteredRows, gameRunning, overrideGameRunning, modalType, savingCollection, validatingMods, lastValidationStatus } =
+			this.state;
 		const { appState, location } = this.props;
 		const { allCollections, searchString, launchingGame } = appState;
 

@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
-import { AppState } from 'renderer/model/AppState';
-import { AppConfig } from 'renderer/model/AppConfig';
+import { AppState, AppConfig } from 'model';
 import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader } from 'antd';
 import { useOutletContext } from 'react-router-dom';
-import { api, ValidChannel } from 'renderer/model/Api';
+import { api, ValidChannel } from 'renderer/Api';
 import { FolderOutlined } from '@ant-design/icons';
 import { TT_APP_ID } from 'renderer/Constants';
 

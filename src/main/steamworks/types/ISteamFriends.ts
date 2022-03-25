@@ -1,3 +1,5 @@
+import { EAccountType } from './steam_api';
+
 export enum FriendFlags {
 	None = 0,
 	Blocked = 1,
@@ -42,21 +44,6 @@ export enum PersonaChange {
 	SteamLevel = 8192
 }
 
-export enum AccountType {
-	Invalid = 0,
-	Individual = 1,
-	Multiseat = 2,
-	GameServer = 3,
-	AnonymousGameServer = 4,
-	Pending = 5,
-	ContentServer = 6,
-	Clan = 7,
-	Chat = 8,
-	ConsoleUser = 9,
-	AnonymousUser = 10,
-	Max = 11
-}
-
 export enum ChatEntryType {
 	Invalid = 0,
 	ChatMsg = 1,
@@ -86,7 +73,7 @@ export interface SteamID {
 	isLobby: () => void;
 	getAccountID: () => number;
 	getRawSteamID: () => string;
-	getAccountType: () => AccountType;
+	getAccountType: () => EAccountType;
 	isValid: () => boolean;
 	getStaticAccountKey: () => string;
 	getPersonaName: () => string;

@@ -3,9 +3,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 const log = require('electron-log');
 
 const validChannels = [
+	// Check if game is running
 	'game-running',
-	'query-steam-subscribed',
 	'launch-game',
+
+	// IO file management
 	'read-file',
 	'write-file',
 	'update-file',
@@ -15,23 +17,46 @@ const validChannels = [
 	'mkdir',
 	'path-exists',
 	'path-access',
+
+	// Return user data path
 	'user-data-path',
+
+	// Generic channel for progress change events
+	'progress-change',
+
+	// Mod management
+	'query-steam-subscribed',
 	'read-mod-metadata',
 	'mod-metadata-results',
 	'batch-mod-metadata-results',
+	'subscribe-mod',
+	'unsubscribe-mod',
+	'subscribe-mod-result',
+	'unsubscribe-mod-result',
+	'download-mod',
+	'download-mod-result',
+	'mod-install-result',
+
+	// Config management
 	'read-config',
 	'update-config',
+
+	// Collection management
 	'read-collection',
 	'rename-collection',
 	'delete-collection',
 	'collection-results',
 	'read-collections-list',
 	'update-collection',
+
+	// File Explorer management
 	'select-path',
 	'select-path-result',
+
+	// External go to mod details
+	'open-mod-path',
 	'open-mod-browser',
-	'open-mod-steam',
-	'progress-change'
+	'open-mod-steam'
 ];
 
 contextBridge.exposeInMainWorld('electron', {

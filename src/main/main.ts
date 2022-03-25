@@ -18,10 +18,10 @@ import log from 'electron-log';
 import fs, { Dirent } from 'fs';
 import child_process from 'child_process';
 
-import Steamworks, { SteamID, SteamUGCDetails, ValidGreenworksChannels } from './steamworks';
+import { ModConfig, Mod, ModCollection, ModType } from '../model';
+import Steamworks, { EResult, SteamID, SteamUGCDetails, ValidGreenworksChannels } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import { ModConfig, Mod, ModCollection, ModType } from './model';
 
 const psList = require('ps-list');
 
@@ -184,12 +184,67 @@ interface PathParams {
 	path: string;
 }
 
-ipcMain.on('open-mod-steam', async (event, workshopID: string) => {
+ipcMain.on('open-mod-steam', async (event, workshopID: bigint) => {
 	shell.openExternal(`steam://url/CommunityFilePage/${workshopID}`);
 });
 
-ipcMain.on('open-mod-browser', async (event, workshopID: string) => {
+ipcMain.on('open-mod-browser', async (event, workshopID: bigint) => {
 	shell.openExternal(`https://steamcommunity.com/sharedfiles/filedetails/?id=${workshopID}`);
+});
+
+ipcMain.on('subscribe-mod', async (event, workshopID: bigint) => {
+	Steamworks.ugcSubscribe(
+		workshopID,
+		(result: EResult) => {
+			if (result === EResult.k_EResultOK) {
+				event.reply('subscribe-mod-result', true);
+			} else {
+				log.error(`Failed to subscribe to mod ${workshopID}. Status ${result.toString()}`);
+				event.reply('subscribe-mod-result', false);
+			}
+		},
+		(err: Error) => {
+			log.error(`Failed to subscribe to mod ${workshopID}`);
+			log.error(err);
+			event.reply('subscribe-mod-result', false);
+		}
+	);
+});
+ipcMain.on('unsubscribe-mod', async (event, workshopID: bigint) => {
+	Steamworks.ugcUnsubscribe(
+		workshopID,
+		(result: EResult) => {
+			if (result === EResult.k_EResultOK) {
+				event.reply('unsubscribe-mod-result', true);
+			} else {
+				log.error(`Failed to unsubscribe from mod ${workshopID}. Status ${result.toString()}`);
+				event.reply('unsubscribe-mod-result', false);
+			}
+		},
+		(err: Error) => {
+			log.error(`Failed to unsubscribe from mod ${workshopID}`);
+			log.error(err);
+			event.reply('unsubscribe-mod-result', false);
+		}
+	);
+});
+ipcMain.on('download-mod', async (event, workshopID: bigint) => {
+	Steamworks.ugcUnsubscribe(
+		workshopID,
+		(result: EResult) => {
+			if (result === EResult.k_EResultOK) {
+				event.reply('download-mod-result', true);
+			} else {
+				log.error(`Failed to download mod ${workshopID}. Status ${result.toString()}`);
+				event.reply('download-mod-result', false);
+			}
+		},
+		(err: Error) => {
+			log.error(`Failed to download mod ${workshopID}`);
+			log.error(err);
+			event.reply('download-mod-result', false);
+		}
+	);
 });
 
 /*
@@ -233,7 +288,7 @@ function getDetailsForLocalMod(
 					UID: `local:${tempID}`,
 					ID: tempID,
 					type: ModType.LOCAL,
-					WorkshopID: null,
+					WorkshopID: undefined,
 					config: { hasCode: false },
 					path: ''
 				};
@@ -329,13 +384,13 @@ async function getDetailsForWorkshopModChunk(
 				for (let i = 0; i < steamDetails.length; i++) {
 					const steamUGCDetails = steamDetails[i];
 					try {
-						const workshopID: string = steamUGCDetails.publishedFileId;
+						const workshopID: bigint = steamUGCDetails.publishedFileId;
 						const tempID = workshopID ? `${workshopID}` : '';
 						const potentialMod: Mod = {
 							UID: `workshop:${workshopID}`,
 							ID: tempID,
 							type: ModType.WORKSHOP,
-							WorkshopID: workshopID,
+							WorkshopID: BigInt(workshopID),
 							config: { hasCode: false },
 							path: ''
 						};
@@ -399,7 +454,7 @@ async function getDetailsForWorkshopModChunk(
 							}
 						}
 						if (validMod) {
-							log.debug(JSON.stringify(potentialMod, null, 2));
+							log.debug(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 							modDetails.push(potentialMod);
 						}
 					} catch (e) {
@@ -484,7 +539,7 @@ ipcMain.on('read-mod-metadata', async (event, localDir: string, knownWorkshopMod
 	} catch (e) {
 		log.error(`Failed to read local mods in ${localModDirs}`);
 	}
-	let subscribedWorkshopIDs: string[] = [];
+	let subscribedWorkshopIDs: bigint[] = [];
 	try {
 		subscribedWorkshopIDs = Steamworks.getSubscribedItems();
 		Atomics.add(COUNTS_ARRAY, 0, subscribedWorkshopIDs.length);

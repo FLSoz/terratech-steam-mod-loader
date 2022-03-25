@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppState } from 'renderer/model/AppState';
+import { AppState } from 'model';
 import { Outlet, useOutletContext } from 'react-router-dom';
 
 export default () => {

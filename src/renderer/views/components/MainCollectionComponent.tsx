@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Layout, Table, Tag, Space, Tooltip, Image } from 'antd';
+import { Layout, Table, Tag, Space, Tooltip, Image, Typography } from 'antd';
+import { ClockCircleTwoTone, StopTwoTone, WarningTwoTone } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
 import dateFormat from 'dateformat';
 import { TableRowSelection } from 'antd/lib/table/interface';
-import { api } from 'renderer/model/Api';
-import { ModData, ModError, ModErrorType, ModType } from 'renderer/model/Mod';
-import { ModCollectionProps } from 'renderer/model/ModCollection';
+import { api } from 'renderer/Api';
+import { ModData, ModError, ModErrorType, ModType, ModCollectionProps } from 'model';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
@@ -20,6 +20,7 @@ import Corp_Icon_RR from '../../../../assets/Corp_Icon_EXP.png';
 import Corp_Icon_SPE from '../../../../assets/Corp_Icon_SPE.png';
 
 const { Content } = Layout;
+const { Text, Title } = Typography;
 
 function getImageSrcFromType(type: ModType, size = 15) {
 	switch (type) {
@@ -230,7 +231,25 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				title: 'Name',
 				dataIndex: 'name',
 				defaultSortOrder: 'ascend',
-				sorter: (a, b) => (a.name > b.name ? 1 : -1)
+				sorter: (a, b) => (a.name > b.name ? 1 : -1),
+				render: (name: string, record: ModData) => {
+					let updateIcon = null;
+					if (record.needsUpdate) {
+						updateIcon = <WarningTwoTone twoToneColor="red" />;
+						if (record.downloadPending) {
+							updateIcon = <ClockCircleTwoTone twoToneColor="orange" />;
+						}
+						if (record.downloading) {
+							updateIcon = <StopTwoTone spin twoToneColor="orange" />;
+						}
+					}
+					return (
+						<span>
+							{updateIcon}
+							<Text strong={record.needsUpdate}>{` ${name}`}</Text>
+						</span>
+					);
+				}
 			},
 			{
 				title: 'Authors',
@@ -279,7 +298,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				render: (errors: ModError[] | undefined, record: ModData) => {
 					const selectedMods = collection.mods;
 					if (!selectedMods.includes(record.uid)) {
-						if (!record.subscribed && record.workshopId && record.workshopId.length > 0) {
+						if (!record.subscribed && record.workshopId && record.workshopId > 0) {
 							return <Tag key="notSubscribed">Not subscribed</Tag>;
 						}
 						if (record.subscribed && !record.installed) {

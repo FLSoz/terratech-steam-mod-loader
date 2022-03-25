@@ -77,7 +77,7 @@ export interface SteamUGCDetails {
 	consumerAppID: number;
 	creatorAppID: number;
 	/** UGCHandle_t of the ID in string format */
-	publishedFileId: string;
+	publishedFileId: bigint;
 	title: string;
 	description: string;
 	URL: string;
@@ -89,7 +89,7 @@ export interface SteamUGCDetails {
 	timeUpdated: number;
 	votesDown: number;
 	votesUp: number;
-	children?: string[];
+	children?: bigint[];
 	metadata: string;
 	tags: string[];
 	tagsDisplayNames: string[];

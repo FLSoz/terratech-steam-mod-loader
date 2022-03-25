@@ -1,3 +1,5 @@
+import { AppConfig } from 'model';
+
 export const { platform } = window.electron;
 export const DEFAULT_WORKSHOP_ID = '2655051786';
 export const TT_APP_ID = '285920';
@@ -29,3 +31,21 @@ function getDefaultWorkshopDir(): string {
 	}
 }
 export const DEFAULT_WORKSHOP_DIR = getDefaultWorkshopDir();
+
+export const DEFAULT_CONFIG: AppConfig = {
+	// localDir: 'E:\\Steam\\steamapps\\common\\TerraTech\\LocalMods',
+	// workshopDir: `E:\\Steam\\steamapps\\workshop\\content\\285920`,
+
+	localDir: DEFAULT_LOCAL_DIR,
+	gameExec: '',
+	workshopID: DEFAULT_WORKSHOP_ID,
+
+	logsDir: '',
+
+	closeOnLaunch: false,
+	language: 'english',
+	activeCollection: undefined,
+	steamMaxConcurrency: 5,
+
+	currentPath: 'collections/main'
+};
