@@ -230,7 +230,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		rows.forEach((mod: ModData) => modIdToModDataMap.set(mod.uid, mod));
 		this.setState(
 			{
-				rows
+				rows,
+				filteredRows: filterRows(rows, appState.searchString)
 			},
 			() => {
 				this.validateActiveCollection(false);
