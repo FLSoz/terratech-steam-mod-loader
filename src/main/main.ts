@@ -29,7 +29,7 @@ const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBU
 
 export default class AppUpdater {
 	constructor() {
-		log.transports.file.level = isDevelopment ? 'debug' : 'warn';
+		log.transports.file.level = isDevelopment ? 'debug' : 'info';
 		autoUpdater.logger = log;
 		autoUpdater.checkForUpdatesAndNotify();
 	}
@@ -711,11 +711,11 @@ interface ProcessDetails {
 ipcMain.on('game-running', async (event) => {
 	let running = false;
 	await psList().then((processes: ProcessDetails[]) => {
-		const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod.*manager)/.test(process.name));
+		const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod)/.test(process.name));
 		running = matches.length > 0;
 		if (running) {
-			log.info('Detected TT is running. Currently running processes:');
-			log.info(matches);
+			log.warn('Detected TT is running. Currently running processes:');
+			log.warn(matches);
 		}
 		event.reply('game-running', running);
 		return running;
