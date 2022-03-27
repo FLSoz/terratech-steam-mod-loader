@@ -355,6 +355,14 @@ export default class ModFetcher {
 			});
 			pageNum += 1;
 		}
+		// After this round has been added to the mod map, check if any items are missing
+		[...workshopMap.values()].forEach((modData: ModData) => {
+			if (modData.steamDependencies) {
+				modData.steamDependencies
+					.filter((dependency) => !workshopMap.has(dependency))
+					.forEach((missingDependency) => this.knownWorkshopMods.add(missingDependency));
+			}
+		});
 
 		// don't expect this to ever trigger
 		if (workshopMap.size < numProcessedWorkshop) {

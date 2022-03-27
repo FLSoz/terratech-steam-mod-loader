@@ -419,10 +419,6 @@ ipcMain.on(ValidChannel.GAME_RUNNING, async (event) => {
 		.then((processes: ProcessDetails[]) => {
 			const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod)/.test(process.name));
 			running = matches.length > 0;
-			if (running) {
-				log.warn('Detected TT is running. Currently running processes:');
-				log.warn(matches);
-			}
 			event.reply(ValidChannel.GAME_RUNNING, running);
 			return running;
 		})
