@@ -5,23 +5,24 @@ import { Layout, Button, Popover, Modal, notification, Checkbox, Typography } fr
 
 import { SizeMe } from 'react-sizeme';
 import {
-	convertToModData,
-	filterRows,
-	Mod,
 	ModData,
-	ModError,
+	CollectionErrors,
 	ModErrors,
-	ModErrorType,
 	AppState,
 	ModCollection,
 	ModCollectionProps,
 	AppConfig,
-	ValidChannel
+	ValidChannel,
+	ModDescriptor,
+	getRows,
+	filterRows,
+	getByUID,
+	validateCollection
 } from 'model';
 import api from 'renderer/Api';
-import { getIncompatibilityGroups, validateActiveCollection } from 'renderer/util/Validation';
-import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'renderer/util/Promise';
-import { pause } from 'renderer/util/Sleep';
+import { getIncompatibilityGroups } from 'util/Graph';
+import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'util/Promise';
+import { pause } from 'util/Sleep';
 import CollectionManagerToolbar from './CollectionManagementToolbar';
 import ModLoadingView from './ModLoadingComponent';
 
@@ -41,20 +42,17 @@ enum ModalType {
 
 interface CollectionManagerState {
 	updatePromiseManager: CancellablePromiseManager;
-	validationPromise?: CancellablePromise<{ errors: ModErrors; success: boolean }>;
+	validationPromise?: CancellablePromise<CollectionErrors>;
 	savingCollection?: boolean;
 	launchGameWithErrors?: boolean;
 	gameRunning?: boolean;
 	acknowledgedEmptyModlist?: boolean;
 	validatingMods?: boolean;
 	validatedMods?: number;
-	modErrors?: ModErrors;
+	collectionErrors?: CollectionErrors;
 	overrideGameRunning?: boolean;
-	rows: ModData[];
 	filteredRows?: ModData[];
 	madeEdits: boolean;
-
-	modIdToModDataMap: Map<string, ModData>;
 
 	// modal
 	modalType: ModalType;
@@ -91,12 +89,10 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		super(props);
 		this.state = {
 			updatePromiseManager: new CancellablePromiseManager(),
-			rows: [],
-			modIdToModDataMap: new Map<string, ModData>(),
 			filteredRows: undefined,
 			gameRunning: false,
 			validatingMods: false, // we don't validate on load
-			modErrors: undefined,
+			collectionErrors: undefined,
 			modalType: ModalType.NONE, // we don't validate on load
 			madeEdits: false
 		};
@@ -142,7 +138,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		const { mods, activeCollection } = appState;
 		if (mods && activeCollection) {
 			if (event.target.checked) {
-				activeCollection.mods = [...mods.values()].map((mod) => mod.UID);
+				activeCollection.mods = getRows(mods).map((mod) => mod.uid);
 			} else {
 				activeCollection.mods = [];
 			}
@@ -182,28 +178,31 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		this.setState({ gameRunning: running });
 	}
 
-	setModErrors(modErrors: ModErrors, launchIfValid: boolean) {
-		const { rows } = this.state;
-		if (!!modErrors && Object.keys(modErrors).length > 0) {
-			const foundErrorTypes = new Set<ModErrorType>();
-			Object.values(modErrors).forEach((errors: ModError[]) => {
-				errors.forEach((error: ModError) => foundErrorTypes.add(error.errorType));
-			});
+	setModErrors(collectionErrors: CollectionErrors, launchIfValid: boolean) {
+		const { appState } = this.props;
+		const { mods } = appState;
+		const rows = getRows(mods);
 
-			const incompatibleModsFound = foundErrorTypes.has(ModErrorType.INCOMPATIBLE_MODS);
-			const invalidIdsFound = foundErrorTypes.has(ModErrorType.INVALID_ID);
-			const missingSubscriptions = foundErrorTypes.has(ModErrorType.NOT_SUBSCRIBED);
-			const missingDependenciesFound = foundErrorTypes.has(ModErrorType.MISSING_DEPENDENCY);
+		if (!!collectionErrors && Object.keys(collectionErrors).length > 0) {
+			let incompatibleModsFound = false;
+			let invalidIdsFound = false;
+			let missingSubscriptions = false;
+			let missingDependenciesFound = false;
 
 			rows.forEach((mod: ModData) => {
-				if (modErrors[mod.uid]) {
-					mod.errors = modErrors[mod.uid];
+				const thisModErrors = collectionErrors[mod.uid];
+				if (thisModErrors) {
+					mod.errors = thisModErrors;
+					incompatibleModsFound ||= !!thisModErrors.incompatibleMods && thisModErrors.incompatibleMods.length > 0;
+					invalidIdsFound ||= !!thisModErrors.invalidId;
+					missingSubscriptions ||= !!thisModErrors.notSubscribed;
+					missingDependenciesFound ||= !!thisModErrors.missingDependencies && thisModErrors.missingDependencies.length > 0;
 				} else {
 					mod.errors = undefined;
 				}
 			});
 			this.setState({
-				modErrors,
+				collectionErrors,
 				incompatibleModsFound,
 				invalidIdsFound,
 				missingSubscriptions,
@@ -219,19 +218,17 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			rows.forEach((mod: ModData) => {
 				mod.errors = undefined;
 			});
-			this.setState({ modErrors: undefined });
+			this.setState({ collectionErrors: undefined });
 		}
 	}
 
 	recalculateModData() {
 		const { appState } = this.props;
-		const { modIdToModDataMap } = this.state;
-		const rows: ModData[] = appState.mods ? convertToModData(appState.mods) : [];
-		rows.forEach((mod: ModData) => modIdToModDataMap.set(mod.uid, mod));
+		const { mods } = appState;
+
 		this.setState(
 			{
-				rows,
-				filteredRows: filterRows(rows, appState.searchString)
+				filteredRows: filterRows(mods, appState.searchString)
 			},
 			() => {
 				this.validateActiveCollection(false);
@@ -543,7 +540,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			});
 	}
 
-	baseLaunchGame(mods: Mod[]) {
+	baseLaunchGame(mods: ModData[]) {
 		const { updatePromiseManager: promiseManager } = this.state;
 		const { appState } = this.props;
 		const { config, updateState } = appState;
@@ -578,21 +575,23 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		if (lastValidationStatus && !madeEdits) {
 			const collectionMods = [...activeCollection!.mods];
 			const modDataList = collectionMods.map((modUID: string) => {
-				return mods.get(modUID) as Mod;
+				return getByUID(mods, modUID) as ModData;
 			});
 			this.baseLaunchGame(modDataList);
 		} else {
-			this.setState({ validatingMods: true, modErrors: undefined }, () => {
+			this.setState({ validatingMods: true, collectionErrors: undefined }, () => {
 				this.validateActiveCollection(true);
 			});
 		}
 	}
 
-	processValidationResult(result: { errors: ModErrors; success: boolean }, launchIfValid: boolean) {
+	processValidationResult(errors: CollectionErrors, launchIfValid: boolean) {
 		const { updatePromiseManager } = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods } = appState;
-		const { success, errors } = result;
+
+		const success = !errors || Object.keys(errors).length === 0;
+
 		setTimeout(() => this.setState({ validatingMods: false }), 100);
 		if (activeCollection) {
 			this.setModErrors(errors, launchIfValid);
@@ -602,7 +601,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				api.logger.debug(`To launch game?: ${launchIfValid}`);
 				if (success && launchIfValid) {
 					const modDataList = collectionMods.map((modUID: string) => {
-						return mods.get(modUID) as Mod;
+						return getByUID(mods, modUID) as ModData;
 					});
 					this.baseLaunchGame(modDataList);
 				}
@@ -648,9 +647,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	validateActiveCollection(launchIfValid: boolean) {
-		const { modIdToModDataMap } = this.state;
 		const { appState } = this.props;
-		const { activeCollection, mods, workshopToModID } = appState;
+		const { activeCollection, mods } = appState;
 		this.setState(
 			{
 				validatingMods: true,
@@ -665,13 +663,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					const collectionMods = [...activeCollection!.mods];
 					api.logger.debug(`Selected mods: ${collectionMods}`);
 
-					const validationPromise: CancellablePromise<{ errors: ModErrors; success: boolean }> = cancellablePromise(
-						validateActiveCollection({
-							modList: collectionMods.map((uid: string) => modIdToModDataMap.get(uid) as ModData),
-							allMods: mods,
-							workshopToModID
-						})
-					);
+					const validationPromise: CancellablePromise<CollectionErrors> = cancellablePromise(validateCollection(mods, activeCollection));
 
 					validationPromise.promise
 						.then(async (result) => {
@@ -715,501 +707,25 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	// We allow you to load multiple mods with the same ID (bundle name), but only the local mod will be used
 	// If multiple workshop mods have the same ID, and you select multiple, then we will force you to choose one to use
 	renderModal() {
-		const { modalType, launchGameWithErrors, modErrors, modIdToModDataMap } = this.state;
+		const { modalType, launchGameWithErrors, collectionErrors: modErrors } = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods, workshopToModID, updateState } = appState;
 
 		const launchAnyway = () => {
 			this.setState({ launchGameWithErrors: true });
-			const modList: Mod[] = (activeCollection ? [...activeCollection!.mods].map((mod) => mods!.get(mod)) : []) as Mod[];
+			const modList: ModData[] = (activeCollection ? [...activeCollection!.mods].map((mod) => getByUID(mods, mod)) : []) as ModData[];
 			this.baseLaunchGame(modList);
 		};
 
-		switch (modalType) {
-			case ModalType.NONE:
-				return null;
-			case ModalType.VALIDATING: {
-				return null;
-				/* let progressPercent = 0;
-				let currentMod: Mod | undefined;
-				if (!activeCollection?.mods) {
-					progressPercent = 100;
-				} else {
-					const currentlyValidatedMods = validatedMods || 0;
-					progressPercent = Math.round((100 * currentlyValidatedMods) / activeCollection.mods.length);
-					if (progressPercent < 100) {
-						const collectionMods = [...activeCollection.mods];
-						currentMod = mods?.get(collectionMods[currentlyValidatedMods]);
-					}
-				}
-				let status: 'active' | 'exception' | 'success' = 'active';
-				if (modErrors) {
-					status = 'exception';
-				} else if (progressPercent >= 100) {
-					status = 'success';
-				}
-				return (
-					<Modal title={`Validating Mod Collection ${activeCollection ? activeCollection!.name : 'default'}`} visible closable={false} footer={null}>
-						<div>
-							<Space
-								direction="vertical"
-								size="large"
-								style={{
-									display: 'flex',
-									justifyContent: 'center',
-									alignItems: 'center',
-									flexDirection: 'column'
-								}}
-							>
-								<Progress type="circle" percent={progressPercent} status={status} />
-								{currentMod ? (
-									<p>Validating mod {currentMod.config?.name ? currentMod.config!.name : currentMod.ID}</p>
-								) : progressPercent >= 100 ? (
-									<p>Validation complete!</p>
-								) : null}
-							</Space>
-						</div>
-					</Modal>
-				); */
-			}
-			case ModalType.REMOVE_INVALID: {
-				const badMods: string[] = [];
-				Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
-					const isThisError = errors.filter((error: ModError) => error.errorType === ModErrorType.INVALID_ID).length > 0;
-					if (isThisError) {
-						badMods.push(mod);
-					}
-				});
-				return (
-					<Modal
-						title="Invalid Mods Found"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="auto-fix"
-								danger
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									const currentMods: Set<string> = new Set(activeCollection!.mods);
-									badMods.forEach((mod: string) => {
-										delete modErrors![mod];
-										currentMods.delete(mod);
-									});
-									activeCollection!.mods = [...currentMods].sort();
-									this.setState({ invalidIdsFound: false, madeEdits: true }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Remove
-							</Button>,
-							<Button
-								key="cancel"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ invalidIdsFound: false }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Keep
-							</Button>
-						]}
-					>
-						<p>
-							One or more mods are marked as invalid. This means that we are unable to locate the mods either locally, or on the workshop.
-						</p>
-						<p>Do you want to remove them from the collection?</p>
-						<table key="invalid_mods">
-							<thead>
-								<tr>
-									<td>Invalid Mods:</td>
-								</tr>
-							</thead>
-							<tbody>
-								{badMods.map((modUID: string) => {
-									return (
-										<tr key={modUID}>
-											<td>{modUID}</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-						<p>
-							NOTE: Invalid local mods will do nothing, but invalid workshop mods will still be loaded by 0ModManager, even though you
-							haven&apos;t subscribed to them.
-						</p>
-					</Modal>
-				);
-			}
-			case ModalType.SUBSCRIBE_DEPENDENCIES: {
-				const badMods: Set<string> = new Set();
-				const missingDependencies: Set<string> = new Set();
-				Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
-					const thisError = errors.filter((error: ModError) => error.errorType === ModErrorType.MISSING_DEPENDENCY);
-					if (thisError.length > 0) {
-						thisError[0].values!.forEach((missingDependency: string) => {
-							missingDependencies.add(missingDependency);
-							badMods.add(mod);
-						});
-					}
-				});
-				return (
-					<Modal
-						title="Missing Dependencies Detected"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="auto-fix"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									const missingDependencyUIDs = [...missingDependencies].map((badDependency: string) => {
-										let foundDependency = false;
-										let dependencyWorkshopID = badDependency;
-										workshopToModID.forEach((modID: string, workshopID: bigint) => {
-											let parsedDependency = null;
-											try {
-												parsedDependency = BigInt(badDependency);
-											} catch (e) {
-												// we failed to parse - means we know the mod ID
-											}
-											if (!foundDependency && (badDependency === modID || parsedDependency === workshopID)) {
-												foundDependency = true;
-												dependencyWorkshopID = workshopID.toString();
-											}
-										});
-										return `workshop:${dependencyWorkshopID}`;
-									});
-
-									const currentMods: Set<string> = new Set(activeCollection!.mods);
-									missingDependencyUIDs.forEach((modUID: string) => {
-										currentMods.add(modUID);
-									});
-									badMods.forEach((modUID: string) => {
-										let errors: ModError[] = modErrors![modUID];
-										errors = errors.filter((error: ModError) => error.errorType !== ModErrorType.MISSING_DEPENDENCY);
-										const modData = modIdToModDataMap.get(modUID);
-										if (errors.length > 0) {
-											modErrors![modUID] = errors;
-											modData!.errors = errors;
-										} else {
-											delete modErrors![modUID];
-											modData!.errors = undefined;
-										}
-									});
-									activeCollection!.mods = [...currentMods].sort();
-									this.setState({ missingDependenciesFound: false, madeEdits: true }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Add dependencies
-							</Button>,
-							<Button
-								key="ignore"
-								type="primary"
-								danger
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ missingDependenciesFound: false }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Ignore dependencies
-							</Button>
-						]}
-					>
-						<p>
-							One or more mods are missing their dependencies. There is a high chance the game will break if they are not subscribed to.
-						</p>
-						<p>Do you want to continue anyway?</p>
-						<table key="missing_items">
-							<thead>
-								<tr>
-									<td>Missing Dependencies:</td>
-								</tr>
-							</thead>
-							<tbody>
-								{[...missingDependencies].map((modUID: string) => {
-									return (
-										<tr key={modUID}>
-											<td>{modUID}</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-					</Modal>
-				);
-			}
-			case ModalType.SUBSCRIBE_REMOTE: {
-				const badMods: string[] = [];
-				Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
-					const isThisError = errors.filter((error: ModError) => error.errorType === ModErrorType.NOT_SUBSCRIBED).length > 0;
-					if (isThisError) {
-						badMods.push(mod);
-					}
-				});
-				return (
-					<Modal
-						title="Unsubscribed Mods Detected"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="auto-fix"
-								danger
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									const currentMods: Set<string> = new Set(activeCollection!.mods);
-									badMods.forEach((modUID: string) => {
-										let errors: ModError[] = modErrors![modUID];
-										errors = errors.filter((error: ModError) => error.errorType !== ModErrorType.NOT_SUBSCRIBED);
-										const modData = modIdToModDataMap.get(modUID);
-										if (errors.length > 0) {
-											modErrors![modUID] = errors;
-											modData!.errors = errors;
-										} else {
-											delete modErrors![modUID];
-											modData!.errors = undefined;
-										}
-										currentMods.delete(modUID);
-									});
-									activeCollection!.mods = [...currentMods].sort();
-									this.setState({ missingSubscriptions: false, madeEdits: true }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Remove
-							</Button>,
-							<Button
-								key="cancel"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ missingSubscriptions: false }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Keep
-							</Button>
-						]}
-					>
-						<p>
-							One or more mods are selected that you are not subscribed to. Steam may not update them properly unless you subscribe to them.
-						</p>
-						<p>Do you want to keep them in your collection?</p>
-						<table key="unsubscribed_items">
-							<thead>
-								<tr>
-									<td>Unsubscribed Mods:</td>
-								</tr>
-							</thead>
-							<tbody>
-								{badMods.map((modUID: string) => {
-									let modString = modUID;
-									const modData = modIdToModDataMap.get(modUID);
-									if (modData) {
-										modString = `(${modData.id}) ${modData.name}`;
-									}
-									return (
-										<tr key={modUID}>
-											<td>{modString}</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-
-						<p>NOTE: If they are kept in your collection, they will still appear in-game, even though you have not subscribed to them.</p>
-					</Modal>
-				);
-			}
-			case ModalType.INCOMPATIBLE_MOD: {
-				const badMods: string[] = [];
-				const incompatibilities: { [modUID: string]: string[] } = {};
-				Object.entries(modErrors!).forEach(([mod, errors]: [string, ModError[]]) => {
-					const thisError = errors.filter((error: ModError) => error.errorType === ModErrorType.INCOMPATIBLE_MODS);
-					if (thisError.length > 0) {
-						badMods.push(mod);
-						incompatibilities[mod] = thisError[0].values!;
-					}
-				});
-				const incompatibilityGroups: string[][] = getIncompatibilityGroups(incompatibilities);
-				let allValid = true;
-				const groupProps: { values: string[]; valid: boolean; currentSelected: string[] }[] = [];
-				incompatibilityGroups.forEach((group: string[]) => {
-					const currentSelected = group.filter((modUID: string) => activeCollection!.mods.includes(modUID));
-					const groupValid = currentSelected.length <= 1;
-					if (!groupValid) {
-						allValid = false;
-					}
-					groupProps.push({ values: group, currentSelected, valid: groupValid });
-				});
-				return (
-					<Modal
-						title="Incompatible Mods Detected"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="cancel"
-								danger={!allValid}
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({ incompatibleModsFound: false }, this.checkNextErrorModal);
-									updateState({ launchingGame: false });
-								}}
-							>
-								Accept Changes
-							</Button>
-						]}
-					>
-						<p>You have selected several mods which are incompatible with each other.</p>
-						<p>Modify your selected mods here and decide which ones to keep.</p>
-						{groupProps.map((group: { values: string[]; valid: boolean; currentSelected: string[] }) => {
-							const { values, currentSelected, valid } = group;
-							return (
-								<Checkbox.Group
-									options={values.map((modUID: string) => {
-										const modData = modIdToModDataMap.get(modUID);
-										return {
-											value: modUID,
-											label: `${modData!.name} (${modUID})`
-										};
-									})}
-									value={currentSelected}
-									onChange={(checkedValue: any) => {
-										console.log(checkedValue);
-									}}
-								/>
-							);
-						})}
-					</Modal>
-				);
-			}
-			case ModalType.ERRORS_FOUND:
-				return (
-					<Modal
-						title="Errors Found in Configuration"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="cancel"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({
-										modalType: ModalType.NONE,
-										invalidIdsFound: false,
-										incompatibleModsFound: false,
-										missingDependenciesFound: false,
-										missingSubscriptions: false
-									});
-									updateState({ launchingGame: false });
-								}}
-							>
-								Manually Fix
-							</Button>,
-							/* <Button
-								key="auto-fix"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.checkNextErrorModal();
-									updateState({ launchingGame: false });
-								}}
-							>
-								Guided Fix
-							</Button>, */
-							<Button
-								key="launch"
-								danger
-								type="primary"
-								disabled={launchGameWithErrors}
-								loading={launchGameWithErrors}
-								onClick={launchAnyway}
-							>
-								Launch Anyway
-							</Button>
-						]}
-					>
-						<p>One or more mods have either missing dependencies, or is selected alongside incompatible mods.</p>
-						<p>Launching the game with this mod list may lead to crashes, or even save game corruption.</p>
-						<p>
-							Mods that share the same Mod ID (Not the same as Workshop ID) are explicitly incompatible, and only the first one TerraTech
-							loads will be used. All others will be ignored.
-						</p>
-
-						<p>Do you want to continue anyway?</p>
-					</Modal>
-				);
-			case ModalType.WARNINGS_FOUND:
-				return (
-					<Modal
-						title="Minor Errors Found in Configuration"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="cancel"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({
-										modalType: ModalType.NONE,
-										invalidIdsFound: false,
-										incompatibleModsFound: false,
-										missingDependenciesFound: false,
-										missingSubscriptions: false
-									});
-									updateState({ launchingGame: false });
-								}}
-							>
-								Manually Fix
-							</Button>,
-							/* <Button
-								key="auto-fix"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.checkNextErrorModal();
-									updateState({ launchingGame: false });
-								}}
-							>
-								Guided Fix
-							</Button>, */
-							<Button
-								key="launch"
-								danger
-								type="primary"
-								disabled={launchGameWithErrors}
-								loading={launchGameWithErrors}
-								onClick={launchAnyway}
-							>
-								Launch Anyway
-							</Button>
-						]}
-					>
-						<p>Unable to validate one or more mods in the collection.</p>
-						<p>This is probably because you are not subscribed to them.</p>
-						<p>Do you want to continue anyway?</p>
-					</Modal>
-				);
-			default:
-				return null;
-		}
+		return null;
 	}
 
 	renderContent() {
-		const { rows, filteredRows, madeEdits, lastValidationStatus } = this.state;
+		const { filteredRows, madeEdits, lastValidationStatus } = this.state;
 		const { appState } = this.props;
+		const { mods } = appState;
+
+		const rows = getRows(mods);
 
 		return (
 			<SizeMe monitorHeight monitorWidth refreshMode="debounce">
@@ -1240,8 +756,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						setDisabledCallback: (id: string) => {
 							this.handleClick(false, id);
 						},
-						getModContextMenu: (id: string, data: ModData) => {},
-						getModDetails: (id: string, data: ModData) => {}
+						getModContextMenu: () => {},
+						getModDetails: () => {}
 					};
 
 					return (
@@ -1293,7 +809,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							this.setState({});
 						}}
 						validateCollectionCallback={() => {
-							this.setState({ modErrors: undefined, validatingMods: true }, () => {
+							this.setState({ collectionErrors: undefined, validatingMods: true }, () => {
 								this.validateActiveCollection(false);
 							});
 						}}
@@ -1301,8 +817,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						lastValidationStatus={lastValidationStatus}
 						onSearchCallback={(search) => {
 							if (search && search.length > 0) {
-								const { rows } = this.state;
-								const newFilteredRows = filterRows(rows, search);
+								const newFilteredRows = filterRows(appState.mods, search);
 								this.setState({ filteredRows: newFilteredRows });
 							} else {
 								this.setState({ filteredRows: undefined });
@@ -1314,7 +829,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							appState.activeCollection = allCollections.get(name)!;
 							this.setState({});
 						}}
-						numResults={filteredRows ? filteredRows.length : undefined}
+						numResults={filteredRows ? filteredRows.length : appState.mods.modIdToModDataMap.size}
 						newCollectionCallback={this.createNewCollection}
 						duplicateCollectionCallback={this.duplicateCollection}
 						renameCollectionCallback={this.renameCollection}

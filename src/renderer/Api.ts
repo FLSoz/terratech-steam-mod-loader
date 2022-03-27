@@ -2,7 +2,7 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { AppConfig, ModCollection, Mod, ValidChannel, PathParams } from 'model';
+import { AppConfig, ModCollection, ModData, ValidChannel, PathParams } from 'model';
 
 interface ElectronInterface {
 	platform: string;
@@ -81,11 +81,10 @@ class API {
 		return ipcRenderer.exit(code);
 	}
 
-	launchGame(gameExec: string, workshopID: string, closeOnLaunch: boolean, modList: Mod[]): Promise<any> {
+	launchGame(gameExec: string, workshopID: string, closeOnLaunch: boolean, modList: ModData[]): Promise<any> {
 		const modListStr: string = modList
-			.map((mod: Mod) => {
-				const modID = mod.WorkshopID ? mod.WorkshopID : mod.ID;
-				return mod ? `[${mod.type}:${mod.type === 'local' ? modID.toString().replace(' ', ':/%20') : modID}]` : '';
+			.map((mod: ModData) => {
+				return mod ? `[${mod.uid.toString().replace(' ', ':/%20')}]` : '';
 			})
 			.join(',');
 		const args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
@@ -200,16 +199,12 @@ class API {
 		return ipcRenderer.invoke(ValidChannel.RENAME_COLLECTION, collection, newName);
 	}
 
-	openModBrowser(workshopID: string) {
+	openModBrowser(workshopID: bigint) {
 		ipcRenderer.send(ValidChannel.OPEN_MOD_BROWSER, workshopID);
 	}
 
-	openModSteam(workshopID: string) {
+	openModSteam(workshopID: bigint) {
 		ipcRenderer.send(ValidChannel.OPEN_MOD_STEAM, workshopID);
-	}
-
-	getSubscribedMods(): Promise<string[]> {
-		return ipcRenderer.invoke(ValidChannel.QUERY_STEAM_SUBSCRIBED);
 	}
 }
 export default new API(window);

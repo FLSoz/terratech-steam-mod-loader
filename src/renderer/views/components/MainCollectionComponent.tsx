@@ -7,7 +7,7 @@ import { ColumnType } from 'antd/lib/table';
 import dateFormat from 'dateformat';
 import { TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
-import { ModData, ModError, ModErrorType, ModType, ModCollectionProps } from 'model';
+import { ModData, ModType, ModCollectionProps, ModErrors } from 'model';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
@@ -142,14 +142,6 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 		this.setState({});
 	}
 
-	componentDidUpdate() {
-		const { rows, filteredRows } = this.props;
-		api.logger.info('Updated state. New rows:');
-		const handleBigint = (_: unknown, v: unknown) => (typeof v === 'bigint' ? v.toString() : v);
-		api.logger.info(JSON.stringify(rows, handleBigint));
-		api.logger.info(JSON.stringify(filteredRows, handleBigint));
-	}
-
 	render() {
 		const { collection, rows, filteredRows, lastValidationStatus, launchingGame } = this.props;
 		// <img src={cellData} height="50px" width="50px" />
@@ -239,7 +231,18 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 				title: 'Name',
 				dataIndex: 'name',
 				defaultSortOrder: 'ascend',
-				sorter: (a, b) => (a.name > b.name ? 1 : -1),
+				sorter: (a, b) => {
+					if (a.name) {
+						if (b.name) {
+							return a.name > b.name ? 1 : -1;
+						}
+						return 1;
+					}
+					if (b.name) {
+						return -1;
+					}
+					return 0;
+				},
 				render: (name: string, record: ModData) => {
 					let updateIcon = null;
 					if (record.needsUpdate) {
@@ -303,10 +306,10 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 			{
 				title: 'State',
 				dataIndex: 'errors',
-				render: (errors: ModError[] | undefined, record: ModData) => {
+				render: (errors: ModErrors | undefined, record: ModData) => {
 					const selectedMods = collection.mods;
 					if (!selectedMods.includes(record.uid)) {
-						if (!record.subscribed && record.workshopId && record.workshopId > 0) {
+						if (!record.subscribed && record.workshopID && record.workshopID > 0) {
 							return <Tag key="notSubscribed">Not subscribed</Tag>;
 						}
 						if (record.subscribed && !record.installed) {
@@ -314,32 +317,50 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 						}
 						return null;
 					}
-					if (errors && errors.length > 0) {
-						return errors.map((modError: ModError) => {
-							let errorText = modError.errorType.toString();
-							let errorColor: string | undefined = 'red';
-							switch (modError.errorType) {
-								case ModErrorType.INCOMPATIBLE_MODS:
-									errorText = 'Conflicts';
-									break;
-								case ModErrorType.INVALID_ID:
-									errorText = 'Invalid';
-									errorColor = 'volcano';
-									break;
-								case ModErrorType.MISSING_DEPENDENCY:
-									errorText = 'Missing dependencies';
-									errorColor = 'orange';
-									break;
-								case ModErrorType.NOT_SUBSCRIBED:
-									errorText = 'Not subscribed';
-									errorColor = 'yellow';
-									break;
-								default:
-									break;
-							}
+					const errorTags: { text: string; color: string }[] = [];
+					if (errors) {
+						if (errors.incompatibleMods && errors.incompatibleMods.length > 0) {
+							errorTags.push({
+								text: 'Conflicts',
+								color: 'red'
+							});
+						}
+						if (errors.invalidId) {
+							errorTags.push({
+								text: 'Invalid ID',
+								color: 'volcano'
+							});
+						}
+						if (errors.missingDependencies && errors.missingDependencies.length > 0) {
+							errorTags.push({
+								text: 'Missing dependencies',
+								color: 'orange'
+							});
+						}
+
+						// Installation status errors
+						if (errors.notSubscribed) {
+							errorTags.push({
+								text: 'Not subscribed',
+								color: 'yellow'
+							});
+						} else if (errors.notInstalled) {
+							errorTags.push({
+								text: 'Not installed',
+								color: 'yellow'
+							});
+						} else if (errors.needsUpdate) {
+							errorTags.push({
+								text: 'Needs update',
+								color: 'yellow'
+							});
+						}
+					}
+					if (errorTags.length > 0) {
+						return errorTags.map((tagConfig) => {
 							return (
-								<Tag key={modError.errorType} color={errorColor}>
-									{errorText}
+								<Tag key={tagConfig.text} color={tagConfig.color}>
+									{tagConfig.text}
 								</Tag>
 							);
 						});
@@ -359,7 +380,18 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 			{
 				title: 'ID',
 				dataIndex: 'id',
-				sorter: (a, b) => (a.id > b.id ? 1 : -1)
+				sorter: (a, b) => {
+					if (a.id) {
+						if (b.id) {
+							return a.id > b.id ? 1 : -1;
+						}
+						return 1;
+					}
+					if (b.id) {
+						return -1;
+					}
+					return 0;
+				}
 			},
 			{
 				title: 'Size',

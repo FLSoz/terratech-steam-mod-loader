@@ -43,7 +43,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 	}
 
 	componentDidMount() {
-		api.on(ValidChannel.SELECT_PATH_RESULT, this.setSelectedPath.bind(this));
+		api.on(ValidChannel.SELECT_PATH, this.setSelectedPath.bind(this));
 		this.formRef.current!.resetFields();
 		this.formRef.current!.validateFields();
 	}
@@ -51,7 +51,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 	componentDidUpdate() {}
 
 	componentWillUnmount() {
-		api.removeAllListeners(ValidChannel.SELECT_PATH_RESULT);
+		api.removeAllListeners(ValidChannel.SELECT_PATH);
 	}
 
 	setSelectedPath(path: string, target: 'localDir' | 'gameExec') {

@@ -1,17 +1,16 @@
 import { AppConfig } from './AppConfig';
-import { Mod } from './Mod';
 import { ModCollection } from './ModCollection';
+import { SessionMods } from './SessionMods';
 
 export interface AppState {
 	config: AppConfig;
 	userDataPath: string;
-	mods: Map<string, Mod>;
+	mods: SessionMods;
 	workshopToModID: Map<bigint, string>;
 	allCollections: Map<string, ModCollection>;
 	allCollectionNames: Set<string>;
 	activeCollection?: ModCollection;
 	firstModLoad?: boolean;
-	targetPathAfterLoad: string;
 	sidebarCollapsed: boolean;
 	searchString: string;
 	launchingGame?: boolean;

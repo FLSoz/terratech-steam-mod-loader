@@ -9,7 +9,8 @@ export function cancellablePromise<Type>(promise: Promise<Type>): CancellablePro
 	const wrappedPromise: Promise<Type> = new Promise((resolve, reject) => {
 		promise
 			.then((d) => {
-				return isCancelled.value ? reject(isCancelled) : resolve(d);
+				// eslint-disable-next-line prefer-promise-reject-errors
+				return isCancelled.value ? reject({ cancelled: true }) : resolve(d);
 			})
 			.catch((e) => {
 				// eslint-disable-next-line prefer-promise-reject-errors
@@ -51,4 +52,8 @@ export class CancellablePromiseManager {
 	cancelAllPromises() {
 		this.isCancelled.value = true;
 	}
+}
+
+export function isSuccessful<T>(response: PromiseSettledResult<T>): response is PromiseFulfilledResult<T> {
+	return 'value' in response;
 }

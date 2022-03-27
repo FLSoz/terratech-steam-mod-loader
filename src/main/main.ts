@@ -12,17 +12,18 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, protocol, dialog, IpcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, protocol, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import fs, { Dirent } from 'fs';
+import fs from 'fs';
 import child_process from 'child_process';
 import psList from 'ps-list';
 
-import { ModConfig, Mod, ModCollection, ModType } from '../model';
-import Steamworks, { EResult, SteamID, SteamUGCDetails, ValidGreenworksChannels } from './steamworks';
+import { ModData, ModCollection, ModType, SessionMods, ValidChannel } from '../model';
+import Steamworks, { EResult } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import ModFetcher from './mod-fetcher';
 
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
@@ -121,7 +122,7 @@ const createWindow = async () => {
 	});
 
 	mainWindow.webContents.on('did-finish-load', () => {
-		const name = 'TerraTech Steam Mod Loader';
+		const name = 'TerraTech Steam ModData Loader';
 		log.info(`App Version: ${app.getVersion()}`);
 		log.info(`App Name: ${app.getName()}`);
 		const version = app.getVersion();
@@ -163,12 +164,12 @@ app
 	.catch(log.error);
 
 // close and exit with error code
-ipcMain.on('exit', (_event, code) => {
+ipcMain.on(ValidChannel.EXIT, (_event, code) => {
 	app.exit(code);
 });
 
 // close all windows
-ipcMain.on('close', () => {
+ipcMain.on(ValidChannel.CLOSE, () => {
 	log.info('Trying to close mm');
 	if (mainWindow) {
 		mainWindow.close();
@@ -183,65 +184,65 @@ interface PathParams {
 	path: string;
 }
 
-ipcMain.on('open-mod-steam', async (event, workshopID: bigint) => {
+ipcMain.on(ValidChannel.OPEN_MOD_STEAM, async (event, workshopID: bigint) => {
 	shell.openExternal(`steam://url/CommunityFilePage/${workshopID}`);
 });
 
-ipcMain.on('open-mod-browser', async (event, workshopID: bigint) => {
+ipcMain.on(ValidChannel.OPEN_MOD_BROWSER, async (event, workshopID: bigint) => {
 	shell.openExternal(`https://steamcommunity.com/sharedfiles/filedetails/?id=${workshopID}`);
 });
 
-ipcMain.on('subscribe-mod', async (event, workshopID: bigint) => {
+ipcMain.on(ValidChannel.SUBSCRIBE_MOD, async (event, workshopID: bigint) => {
 	Steamworks.ugcSubscribe(
 		workshopID,
 		(result: EResult) => {
 			if (result === EResult.k_EResultOK) {
-				event.reply('subscribe-mod-result', true);
+				event.reply(ValidChannel.SUBSCRIBE_MOD, true);
 			} else {
 				log.error(`Failed to subscribe to mod ${workshopID}. Status ${result.toString()}`);
-				event.reply('subscribe-mod-result', false);
+				event.reply(ValidChannel.SUBSCRIBE_MOD, false);
 			}
 		},
 		(err: Error) => {
 			log.error(`Failed to subscribe to mod ${workshopID}`);
 			log.error(err);
-			event.reply('subscribe-mod-result', false);
+			event.reply(ValidChannel.SUBSCRIBE_MOD, false);
 		}
 	);
 });
-ipcMain.on('unsubscribe-mod', async (event, workshopID: bigint) => {
+ipcMain.on(ValidChannel.UNSUBSCRIBE_MOD, async (event, workshopID: bigint) => {
 	Steamworks.ugcUnsubscribe(
 		workshopID,
 		(result: EResult) => {
 			if (result === EResult.k_EResultOK) {
-				event.reply('unsubscribe-mod-result', true);
+				event.reply(ValidChannel.UNSUBSCRIBE_MOD, true);
 			} else {
 				log.error(`Failed to unsubscribe from mod ${workshopID}. Status ${result.toString()}`);
-				event.reply('unsubscribe-mod-result', false);
+				event.reply(ValidChannel.UNSUBSCRIBE_MOD, false);
 			}
 		},
 		(err: Error) => {
 			log.error(`Failed to unsubscribe from mod ${workshopID}`);
 			log.error(err);
-			event.reply('unsubscribe-mod-result', false);
+			event.reply(ValidChannel.UNSUBSCRIBE_MOD, false);
 		}
 	);
 });
-ipcMain.on('download-mod', async (event, workshopID: bigint) => {
+ipcMain.on(ValidChannel.DOWNLOAD_MOD, async (event, workshopID: bigint) => {
 	Steamworks.ugcUnsubscribe(
 		workshopID,
 		(result: EResult) => {
 			if (result === EResult.k_EResultOK) {
-				event.reply('download-mod-result', true);
+				event.reply(ValidChannel.DOWNLOAD_MOD, true);
 			} else {
 				log.error(`Failed to download mod ${workshopID}. Status ${result.toString()}`);
-				event.reply('download-mod-result', false);
+				event.reply(ValidChannel.DOWNLOAD_MOD, false);
 			}
 		},
 		(err: Error) => {
 			log.error(`Failed to download mod ${workshopID}`);
 			log.error(err);
-			event.reply('download-mod-result', false);
+			event.reply(ValidChannel.DOWNLOAD_MOD, false);
 		}
 	);
 });
@@ -268,352 +269,53 @@ else if (type === 'ttqmm') {
 					}
 */
 
-function getDetailsForLocalMod(
-	event: Electron.IpcMainEvent,
-	resolveExternal: (value: unknown) => void,
-	rejectExternal: (reason?: any) => void,
-	modPath: string
-) {
-	log.info(`Reading mod metadata for ${modPath}`);
-	fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
-		try {
-			if (err) {
-				log.error(`fs.readdir failed on path ${modPath}`);
-				log.error(err);
-				rejectExternal(err);
-			} else {
-				const tempID = '';
-				const potentialMod: Mod = {
-					UID: `local:${tempID}`,
-					ID: tempID,
-					type: ModType.LOCAL,
-					WorkshopID: undefined,
-					config: { hasCode: false },
-					path: ''
-				};
-				let validMod = false;
-				const config: ModConfig = potentialMod.config as ModConfig;
+ipcMain.on(ValidChannel.READ_MOD_METADATA, async (event, localDir: string, allKnownMods: Set<string>) => {
+	// load workshop mods
+	const knownWorkshopMods: bigint[] = [];
+	allKnownMods.forEach((uid: string) => {
+		const parts: string[] = uid.split(':');
+		if (parts.length === 2) {
+			if (parts[0] === ModType.WORKSHOP) {
 				try {
-					const stats = fs.statSync(modPath);
-					config.lastUpdate = stats.mtime;
-					config.dateAdded = stats.birthtime;
+					const workshopID = BigInt(parts[1]);
+					knownWorkshopMods.push(workshopID);
 				} catch (e) {
-					log.error(`Failed to get file details for path ${modPath}`);
+					log.error(`Unable to parse workshop ID for mod ${uid}`);
 					log.error(e);
 				}
-				const fileSizes = files.map((file) => {
-					let size = 0;
-					if (file.isFile()) {
-						try {
-							const stats = fs.statSync(path.join(modPath, file.name));
-							size = stats.size;
-							if (!config.lastUpdate || stats.mtime > config.lastUpdate) {
-								config.lastUpdate = stats.mtime;
-							}
-						} catch (e) {
-							log.error(`Failed to get file details for ${file.name} under ${modPath}`);
-						}
-						if (file.name === 'preview.png') {
-							config.preview = `image://${path.join(modPath, file.name)}`;
-						} else if (file.name.match(/^(.*)\.dll$/)) {
-							config.hasCode = true;
-						} else if (file.name === 'ttsm_config.json') {
-							Object.assign(potentialMod.config, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
-						} else {
-							const matches = file.name.match(/^(.*)_bundle$/);
-							if (matches && matches.length > 1) {
-								// eslint-disable-next-line prefer-destructuring
-								potentialMod.ID = matches[1];
-								potentialMod.UID = `local:${potentialMod.ID}`;
-								if (!config.name) {
-									// eslint-disable-next-line prefer-destructuring
-									config.name = matches[1];
-								}
-								potentialMod.path = modPath;
-								validMod = true;
-							}
-							log.debug(`Found file: ${file.name} under mod path ${modPath}`);
-						}
-					}
-					return size;
-				});
-
-				if (validMod) {
-					// log.debug(JSON.stringify(potentialMod, null, 2));
-					config.size = fileSizes.reduce((acc: number, curr: number) => acc + curr, 0);
-					event.reply('mod-metadata-results', potentialMod);
-					resolveExternal(potentialMod);
-				} else {
-					rejectExternal('Path does not contain a mod');
-				}
 			}
-		} catch (e) {
-			log.error(e);
-			rejectExternal(e);
 		}
 	});
-}
 
-function chunk<Type>(arr: Type[], size: number): Type[][] {
-	return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
-}
-
-function updateModLoadingProgress(event: Electron.IpcMainEvent, size: number) {
-	Atomics.add(COUNTS_ARRAY, 1, size);
-	const newValue = Atomics.load(COUNTS_ARRAY, 1);
-	const total = Atomics.load(COUNTS_ARRAY, 0);
-	event.reply('progress-change', 'mod-load', newValue / total, 'Loading mod details');
-}
-
-// Read workshop mod metadata
-async function getDetailsForWorkshopModChunk(
-	event: Electron.IpcMainEvent,
-	resolveExternal: (value: unknown) => void,
-	rejectExternal: (reason?: any) => void,
-	workshopIDs: bigint[]
-) {
-	Steamworks.getUGCDetails(
-		workshopIDs.map((workshopID) => workshopID.toString()),
-		// eslint-disable-next-line consistent-return
-		async (steamDetails: SteamUGCDetails[]) => {
-			try {
-				const modDetails: Mod[] = [];
-
-				// eslint-disable-next-line no-plusplus
-				for (let i = 0; i < steamDetails.length; i++) {
-					const steamUGCDetails = steamDetails[i];
-					try {
-						const workshopID: bigint = steamUGCDetails.publishedFileId;
-						const tempID = workshopID ? `${workshopID}` : '';
-						const potentialMod: Mod = {
-							UID: `workshop:${workshopID}`,
-							ID: tempID,
-							type: ModType.WORKSHOP,
-							WorkshopID: BigInt(workshopID),
-							config: { hasCode: false },
-							path: ''
-						};
-						const config: ModConfig = potentialMod.config as ModConfig;
-						config.dependsOn = steamUGCDetails.children;
-						config.description = steamUGCDetails.description;
-						config.name = steamUGCDetails.title;
-						config.tags = steamUGCDetails.tagsDisplayNames;
-						config.size = steamUGCDetails.fileSize;
-						config.dateAdded = new Date(steamUGCDetails.timeAddedToUserList * 1000);
-						config.lastUpdate = new Date(steamUGCDetails.timeUpdated * 1000);
-						config.state = Steamworks.ugcGetItemState(workshopID);
-						let validMod =
-							config.tags
-								?.map((tag: string) => tag.toLowerCase())
-								.filter((tag) => tag.includes('mod') || tag.includes('block') || tag.includes('skin') || tag.includes('corp')).length > 0;
-
-						try {
-							if (Steamworks.requestUserInformation(steamUGCDetails.steamIDOwner, true)) {
-								// eslint-disable-next-line no-await-in-loop
-								await new Promise((resolve) => setTimeout(resolve, 5000)); // sleep until done (hopefully)
-							}
-							config.authors = [Steamworks.getFriendPersonaName(steamUGCDetails.steamIDOwner)];
-						} catch (err) {
-							console.error(`Failed to get username for Author ${steamUGCDetails.steamIDOwner}`);
-							console.error(err);
-							config.authors = [steamUGCDetails.steamIDOwner];
-						}
-
-						const installInfo = Steamworks.ugcGetItemInstallInfo(workshopID);
-						if (installInfo) {
-							// augment workshop mod with data
-							config.lastUpdate = new Date(installInfo.timestamp * 1000);
-							config.size = parseInt(installInfo.sizeOnDisk, 10);
-							try {
-								const modPath = installInfo.folder;
-								potentialMod.path = modPath;
-								const files: Dirent[] = fs.readdirSync(modPath, { withFileTypes: true });
-								files.forEach((file) => {
-									if (file.isFile()) {
-										if (file.name === 'preview.png') {
-											config.preview = `image://${path.join(modPath, file.name)}`;
-										} else if (file.name.match(/^(.*)\.dll$/)) {
-											config.hasCode = true;
-										} else if (file.name === 'ttsm_config.json') {
-											Object.assign(potentialMod.config, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
-										} else {
-											const matches = file.name.match(/^(.*)_bundle$/);
-											if (matches && matches.length > 1) {
-												// eslint-disable-next-line prefer-destructuring
-												potentialMod.ID = matches[1];
-												if (!config.name || config.name.length <= 0) {
-													// eslint-disable-next-line prefer-destructuring
-													config.name = matches[1];
-												}
-												validMod = true; // override filtering
-											}
-											log.debug(`Found file: ${file.name} under mod path ${modPath}`);
-										}
-									}
-								});
-							} catch (error: any) {
-								log.error(`Error parsing mod info for ${workshopID}`);
-								log.error(error);
-							}
-						}
-						if (validMod) {
-							log.info(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
-							modDetails.push(potentialMod);
-						}
-					} catch (e) {
-						log.error('Error processing local mod');
-						log.error(e);
-					}
-					updateModLoadingProgress(event, 1);
-				}
-				const numFailedMods = workshopIDs.length - steamDetails.length;
-				if (numFailedMods > 0) {
-					updateModLoadingProgress(event, numFailedMods);
-				}
-				event.reply('batch-mod-metadata-results', modDetails, workshopIDs.length);
-				resolveExternal(modDetails);
-			} catch (err) {
-				log.error(`Error while processing Steam results`);
-				log.error(err);
-				rejectExternal(err);
-			}
-		},
-		(err: Error) => {
-			log.error(`Failed to fetch mod details for mods ${workshopIDs}`);
-			log.error(err);
-			event.reply('batch-mod-metadata-results', [], workshopIDs.length);
-			rejectExternal(err);
-		}
-	);
-}
-
-const MAX_MODS_PER_PAGE = 50;
-
-async function processWorkshopModChunk(
-	event: Electron.IpcMainEvent,
-	processedMods: Set<bigint>,
-	knownInvalidMods: Set<bigint>,
-	missingKnownWorkshopMods: Set<bigint>,
-	modChunks: bigint[][]
-) {
-	// eslint-disable-next-line no-plusplus
-	for (let i = 0; i < modChunks.length; i++) {
-		try {
-			// eslint-disable-next-line no-await-in-loop
-			await new Promise((resolve, reject) => {
-				getDetailsForWorkshopModChunk(event, resolve, reject, modChunks[i]);
-				// eslint-disable-next-line promise/always-return
-			}).then((modDetails) => {
-				const castModDetails: Mod[] = modDetails as Mod[];
-				castModDetails.forEach((mod: Mod) => {
-					const modID = BigInt(mod.WorkshopID!);
-					missingKnownWorkshopMods.delete(modID);
-					knownInvalidMods.delete(modID);
-					if (mod.config?.dependsOn) {
-						// Add missing dependencies. We assume processedMods has been handled before
-						mod.config?.dependsOn
-							.map((idString) => BigInt(idString))
-							.filter((dependency) => !processedMods.has(dependency))
-							.forEach((missingDependency) => missingKnownWorkshopMods.add(missingDependency));
-					}
-				});
-				if (missingKnownWorkshopMods.size === 0) {
-					event.reply('progress-change', 'mod-load', 2.0, 'Finished loading mods'); // Return a value > 1.0 to signal we are done
-				}
-				return missingKnownWorkshopMods.size === 0;
-			});
-		} catch (e) {
-			log.error('Error processing chunk');
-		}
-	}
-}
-
-ipcMain.on('read-mod-metadata', async (event, localDir: string, knownWorkshopMods: bigint[]) => {
-	// get counts fist
-	Atomics.store(COUNTS_ARRAY, 0, 0);
-	Atomics.store(COUNTS_ARRAY, 1, 0);
-	let localModDirs: string[] = [];
-	try {
-		localModDirs = fs
-			.readdirSync(localDir, { withFileTypes: true })
-			.filter((dirent) => dirent.isDirectory())
-			.map((dirent) => dirent.name);
-		Atomics.add(COUNTS_ARRAY, 0, localModDirs.length);
-	} catch (e) {
-		log.error(`Failed to read local mods in ${localModDirs}`);
-	}
-	let subscribedWorkshopIDs: bigint[] = [];
-	try {
-		subscribedWorkshopIDs = Steamworks.getSubscribedItems();
-		Atomics.add(COUNTS_ARRAY, 0, subscribedWorkshopIDs.length);
-	} catch (e) {
-		log.error(`Failed to get subscribed workshop mods`);
-	}
-
-	let hasModsToLoad = false;
-	// load local mods
-	if (localModDirs.length > 0) {
-		hasModsToLoad = true;
-		// eslint-disable-next-line no-plusplus
-		for (let i = 0; i < localModDirs.length; i++) {
-			try {
-				// eslint-disable-next-line no-await-in-loop
-				await new Promise((resolve, reject) => {
-					getDetailsForLocalMod(event, resolve, reject, path.join(localDir, localModDirs[i]));
-				});
-			} catch (e) {
-				log.error('Error processing local mod');
-				log.error(e);
-			}
-			updateModLoadingProgress(event, 1);
-		}
-	}
-	// load workshop mods
-	if (subscribedWorkshopIDs.length > 0 || knownWorkshopMods.length > 0) {
-		hasModsToLoad = true;
-		const subscribedWorkshopIDsList = subscribedWorkshopIDs.map((idString) => BigInt(idString));
-		const allWorkshopIDsList = subscribedWorkshopIDsList.concat(knownWorkshopMods);
-		const processedMods: Set<bigint> = new Set(allWorkshopIDsList);
-		const knownInvalidMods: Set<bigint> = new Set(allWorkshopIDsList);
-		const missingKnownWorkshopMods: Set<bigint> = new Set(knownWorkshopMods);
-
-		const chunks = chunk(allWorkshopIDsList, MAX_MODS_PER_PAGE);
-		await processWorkshopModChunk(event, processedMods, knownInvalidMods, missingKnownWorkshopMods, chunks);
-
-		// continue to query steam until all dependencies are met via BFS search
-		while (missingKnownWorkshopMods.size > 0) {
-			Atomics.add(COUNTS_ARRAY, 0, missingKnownWorkshopMods.size);
-			const missingModChunks: bigint[][] = chunk([...missingKnownWorkshopMods], MAX_MODS_PER_PAGE);
-			missingKnownWorkshopMods.forEach((workshopID) => {
-				processedMods.add(workshopID);
-				knownInvalidMods.add(workshopID);
-			});
-			missingKnownWorkshopMods.clear();
-			// eslint-disable-next-line no-await-in-loop
-			await processWorkshopModChunk(event, processedMods, knownInvalidMods, missingKnownWorkshopMods, missingModChunks);
-		}
-	}
-
-	// If no mods - we return immediately. We assume the awaits will enforce that all processing will be done by the time we get here
-	if (!hasModsToLoad) {
-		event.reply('progress-change', 'mod-load', 2.0, 'Finished loading mods'); // Return a value > 1.0 to signal we are done
-	}
+	const modFetcher = new ModFetcher(event, localDir, knownWorkshopMods);
+	modFetcher
+		.fetchMods()
+		.then((modsList: ModData[]) => {
+			const sessionMods = new SessionMods(localDir, modsList);
+			event.reply(ValidChannel.READ_MOD_METADATA, sessionMods);
+			return sessionMods;
+		})
+		.catch((e) => {
+			log.error('Failed to get mod info:');
+			log.error(e);
+			event.reply(ValidChannel.READ_MOD_METADATA, null);
+		});
 });
 
-ipcMain.on('read-collection', async (event, collection) => {
+ipcMain.on(ValidChannel.READ_COLLECTION, async (event, collection) => {
 	const collectionString = fs.readFileSync(path.join(app.getPath('userData'), 'collections', `${collection}.json`));
 	try {
 		const data = JSON.parse(collectionString.toString());
 		data.name = collection;
-		event.reply('collection-results', data as ModCollection);
+		event.reply(ValidChannel.READ_COLLECTION, data as ModCollection);
 	} catch (error) {
 		log.info(`Failed to read collection: ${collection}`);
 		log.error(error);
-		event.reply('collection-results', null);
+		event.reply(ValidChannel.READ_COLLECTION, null);
 	}
 });
 
-ipcMain.handle('read-collections-list', async () => {
+ipcMain.handle(ValidChannel.READ_COLLECTIONS, async () => {
 	const dirpath = path.join(app.getPath('userData'), 'collections');
 	try {
 		if (!fs.existsSync(dirpath)) {
@@ -635,7 +337,7 @@ ipcMain.handle('read-collections-list', async () => {
 	}
 });
 
-ipcMain.handle('update-collection', async (_event, collection: ModCollection) => {
+ipcMain.handle(ValidChannel.UPDATE_COLLECTION, async (_event, collection: ModCollection) => {
 	const filepath = path.join(app.getPath('userData'), 'collections', `${collection.name}.json`);
 	try {
 		fs.writeFileSync(filepath, JSON.stringify({ ...collection, mods: [...collection.mods] }, null, 4), { encoding: 'utf8', flag: 'w' });
@@ -647,7 +349,7 @@ ipcMain.handle('update-collection', async (_event, collection: ModCollection) =>
 });
 
 // Rename a file
-ipcMain.handle('rename-collection', async (_event, collection: ModCollection, newName: string) => {
+ipcMain.handle(ValidChannel.RENAME_COLLECTION, async (_event, collection: ModCollection, newName: string) => {
 	const oldName = collection.name;
 	const oldpath = path.join(app.getPath('userData'), 'collections', `${oldName}.json`);
 	const newpath = path.join(app.getPath('userData'), 'collections', `${newName}.json`);
@@ -666,7 +368,7 @@ ipcMain.handle('rename-collection', async (_event, collection: ModCollection, ne
 });
 
 // Delete a json file
-ipcMain.handle('delete-collection', async (_event, collection: string) => {
+ipcMain.handle(ValidChannel.DELETE_COLLECTION, async (_event, collection: string) => {
 	const filepath = path.join(app.getPath('userData'), 'collections', `${collection}.json`);
 	log.info(`Deleting file ${filepath}`);
 	try {
@@ -679,7 +381,7 @@ ipcMain.handle('delete-collection', async (_event, collection: string) => {
 });
 
 // return config
-ipcMain.handle('read-config', async () => {
+ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
 	try {
 		return JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
@@ -690,7 +392,7 @@ ipcMain.handle('read-config', async () => {
 });
 
 // Attempt to write the config file
-ipcMain.handle('update-config', async (_event, config) => {
+ipcMain.handle(ValidChannel.UPDATE_CONFIG, async (_event, config) => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
 	try {
 		log.info('updated config');
@@ -711,7 +413,7 @@ interface ProcessDetails {
 	ppid: number;
 	name: string;
 }
-ipcMain.on('game-running', async (event) => {
+ipcMain.on(ValidChannel.GAME_RUNNING, async (event) => {
 	let running = false;
 	psList()
 		.then((processes: ProcessDetails[]) => {
@@ -721,18 +423,18 @@ ipcMain.on('game-running', async (event) => {
 				log.warn('Detected TT is running. Currently running processes:');
 				log.warn(matches);
 			}
-			event.reply('game-running', running);
+			event.reply(ValidChannel.GAME_RUNNING, running);
 			return running;
 		})
 		.catch((e) => {
 			log.error('Failed to get game running status. Defaulting to not running');
 			log.error(e);
-			event.reply('game-running', false);
+			event.reply(ValidChannel.GAME_RUNNING, false);
 		});
 });
 
 // Launch steam as separate process
-ipcMain.handle('launch-game', async (_event, gameExec, workshopID, closeOnLaunch, args) => {
+ipcMain.handle(ValidChannel.LAUNCH_GAME, async (_event, gameExec, workshopID, closeOnLaunch, args) => {
 	log.info('Launching game with custom args:');
 	const allArgs = ['+custom_mod_list', `[workshop:${workshopID}]`, ...args];
 	log.info(allArgs);
@@ -749,13 +451,8 @@ ipcMain.handle('launch-game', async (_event, gameExec, workshopID, closeOnLaunch
 	return true;
 });
 
-// Handle querying steam and parsing the result for a mod page
-ipcMain.handle('query-steam-subscribed', async (_event) => {
-	return Steamworks.getSubscribedItems();
-});
-
 // Write a json file to a certain location
-ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
+ipcMain.handle(ValidChannel.WRITE_FILE, async (_event, pathParams: PathParams, data) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Writing json file ${filepath}`);
 	log.info(`Writing ${data} to file ${filepath}`);
@@ -769,7 +466,7 @@ ipcMain.handle('write-file', async (_event, pathParams: PathParams, data) => {
 });
 
 // Update a json file
-ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) => {
+ipcMain.handle(ValidChannel.UPDATE_FILE, async (_event, pathParams: PathParams, newData) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Updating json file ${filepath}`);
 	const raw: string = fs.readFileSync(filepath) as unknown as string;
@@ -799,7 +496,7 @@ ipcMain.handle('update-file', async (_event, pathParams: PathParams, newData) =>
 });
 
 // Delete a json file
-ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
+ipcMain.handle(ValidChannel.DELETE_FILE, async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Deleting file ${filepath}`);
 	try {
@@ -812,7 +509,7 @@ ipcMain.handle('delete-file', async (_event, pathParams: PathParams) => {
 });
 
 // see what's in a directory
-ipcMain.handle('list-dir', async (_event, pathParams: PathParams) => {
+ipcMain.handle(ValidChannel.LIST_DIR, async (_event, pathParams: PathParams) => {
 	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Listing dir contents ${dirpath}`);
 	try {
@@ -824,7 +521,7 @@ ipcMain.handle('list-dir', async (_event, pathParams: PathParams) => {
 });
 
 // see sub-directories
-ipcMain.handle('list-subdirs', async (_event, pathParams: PathParams) => {
+ipcMain.handle(ValidChannel.LIST_SUBDIRS, async (_event, pathParams: PathParams) => {
 	const dirpath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Listing subdirs ${dirpath}`);
 	try {
@@ -839,7 +536,7 @@ ipcMain.handle('list-subdirs', async (_event, pathParams: PathParams) => {
 });
 
 // Check if path exists
-ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {
+ipcMain.handle(ValidChannel.MKDIR, async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Mkdir ${filepath}`);
 	try {
@@ -852,7 +549,7 @@ ipcMain.handle('mkdir', async (_event, pathParams: PathParams) => {
 });
 
 // Read json file
-ipcMain.handle('read-file', async (_event, pathParams: PathParams) => {
+ipcMain.handle(ValidChannel.READ_FILE, async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Reading file ${filepath}`);
 	try {
@@ -864,7 +561,7 @@ ipcMain.handle('read-file', async (_event, pathParams: PathParams) => {
 });
 
 // Check if path exists
-ipcMain.handle('path-exists', async (_event, pathParams: PathParams) => {
+ipcMain.handle(ValidChannel.PATH_EXISTS, async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	try {
 		return fs.existsSync(filepath);
@@ -875,7 +572,7 @@ ipcMain.handle('path-exists', async (_event, pathParams: PathParams) => {
 });
 
 // Check if have access to path
-ipcMain.handle('path-access', async (_event, pathParams: PathParams) => {
+ipcMain.handle(ValidChannel.PATH_ACCESS, async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Checking access to ${filepath}`);
 	try {
@@ -890,11 +587,11 @@ ipcMain.handle('path-access', async (_event, pathParams: PathParams) => {
 
 // get user data
 // const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-ipcMain.handle('user-data-path', async () => {
+ipcMain.handle(ValidChannel.USER_DATA_PATH, async () => {
 	return app.getPath('userData');
 });
 
-ipcMain.on('select-path', async (event, target: string, directory: boolean, title: string) => {
+ipcMain.on(ValidChannel.SELECT_PATH, async (event, target: string, directory: boolean, title: string) => {
 	log.info(`Selecting path: ${target}`);
 
 	dialog
@@ -904,14 +601,14 @@ ipcMain.on('select-path', async (event, target: string, directory: boolean, titl
 		})
 		.then((result) => {
 			if (result.canceled) {
-				event.reply('select-path-result', null, target);
+				event.reply(ValidChannel.SELECT_PATH, null, target);
 			} else {
-				event.reply('select-path-result', result.filePaths[0], target);
+				event.reply(ValidChannel.SELECT_PATH, result.filePaths[0], target);
 			}
 			return null;
 		})
 		.catch((error) => {
 			log.error(error);
-			event.reply('select-path-result', null, target);
+			event.reply(ValidChannel.SELECT_PATH, null, target);
 		});
 });

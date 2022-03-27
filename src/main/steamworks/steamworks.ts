@@ -28,8 +28,8 @@ import {
 
 const greenworks: any = require('greenworks');
 
-function wrapCallbackForWorkshopIDConversion(callback: (items: SteamUGCDetails[]) => void) {
-	return (results: unknown[]) => {
+function wrapCallbackForWorkshopIDConversion(callback: (items: SteamUGCDetails[], total_items: number, returned_items: number) => void) {
+	return (results: unknown[], total_items: number, returned_items: number) => {
 		callback(
 			results.map((result: any) => {
 				return {
@@ -37,7 +37,9 @@ function wrapCallbackForWorkshopIDConversion(callback: (items: SteamUGCDetails[]
 					publishedFileId: BigInt(result.publishedFileId),
 					children: result.children ? result.children.map((stringID: string) => BigInt(stringID)) : undefined
 				};
-			})
+			}),
+			total_items,
+			returned_items
 		);
 	};
 }
@@ -197,6 +199,9 @@ class SteamworksAPI {
 				page_num: 1
 			};
 		}
+		if (!actualOptions!.required_tag) {
+			actualOptions!.required_tag = '';
+		}
 		greenworks._ugcGetItems(
 			options,
 			ugc_matching_type,
@@ -214,6 +219,9 @@ class SteamworksAPI {
 				app_id: greenworks.getAppId(),
 				page_num: 1
 			};
+		}
+		if (!actualOptions!.required_tag) {
+			actualOptions!.required_tag = '';
 		}
 		greenworks._ugcGetUserItems(
 			options,

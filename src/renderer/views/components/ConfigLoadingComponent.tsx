@@ -1,12 +1,39 @@
 import React, { Component } from 'react';
 import api from 'renderer/Api';
 import { AppConfig, ModCollection, AppState, ValidChannel } from 'model';
-import { validateAppConfig } from 'renderer/util/Validation';
 import { Layout, Progress } from 'antd';
 import { useNavigate, NavigateFunction, useOutletContext } from 'react-router-dom';
 import { DEFAULT_CONFIG } from 'renderer/Constants';
 
 const { Footer, Content } = Layout;
+
+async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
+	const errors: { [field: string]: string } = {};
+	const fields: ('gameExec' | 'localDir')[] = ['gameExec', 'localDir'];
+	const paths = ['Steam executable', 'TerraTech Steam Workshop directory', 'TerraTech Local Mods directory'];
+	let failed = false;
+	await Promise.allSettled(
+		fields.map((field) => {
+			return api.pathExists(config[field]);
+		})
+	).then((results) => {
+		results.forEach((result, index) => {
+			if (result.status !== 'fulfilled') {
+				errors[fields[index]] = `Unexpected error checking ${fields[index]} path (${paths[index]})`;
+				failed = true;
+			} else if (!result.value) {
+				errors[fields[index]] = `Path to ${fields[index]} (${paths[index]}) was invalid`;
+				failed = true;
+			}
+		});
+		return failed;
+	});
+
+	if (failed) {
+		return errors;
+	}
+	return {};
+}
 
 interface ConfigLoadingState {
 	loadingConfig?: boolean;
@@ -32,7 +59,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 	}
 
 	componentDidMount() {
-		api.on(ValidChannel.COLLECTION_RESULTS, this.loadCollectionCallback);
+		api.on(ValidChannel.READ_COLLECTION, this.loadCollectionCallback);
 		this.readUserDataPath();
 		this.readConfig();
 		this.loadCollections();
@@ -40,7 +67,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 	}
 
 	componentWillUnmount() {
-		api.removeAllListeners(ValidChannel.COLLECTION_RESULTS);
+		api.removeListener(ValidChannel.READ_COLLECTION, this.loadCollectionCallback);
 	}
 
 	setStateCallback(update: AppState) {

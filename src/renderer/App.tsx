@@ -3,7 +3,7 @@
 import React, { Component } from 'react';
 import { Layout } from 'antd';
 
-import { AppState, Mod, ModCollection } from 'model';
+import { AppState, SessionMods, ModCollection } from 'model';
 import { Outlet, useLocation, Location, useNavigate, NavigateFunction } from 'react-router-dom';
 import MenuBar from './views/components/MenuBar';
 import { DEFAULT_CONFIG } from './Constants';
@@ -16,8 +16,7 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 		this.state = {
 			config: DEFAULT_CONFIG,
 			userDataPath: '',
-			targetPathAfterLoad: '/collections/main',
-			mods: new Map<string, Mod>(),
+			mods: new SessionMods('', []),
 			workshopToModID: new Map<bigint, string>(),
 			allCollections: new Map<string, ModCollection>(),
 			allCollectionNames: new Set<string>(),

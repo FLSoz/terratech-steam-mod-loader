@@ -1,4 +1,8 @@
 export enum ValidChannel {
+	// app management
+	EXIT = 'exit',
+	CLOSE = 'close',
+
 	// Check if game is running
 	GAME_RUNNING = 'game-running',
 	LAUNCH_GAME = 'launch-game',
@@ -22,16 +26,9 @@ export enum ValidChannel {
 
 	// Mod management
 	READ_MOD_METADATA = 'read-mod-metadata',
-	MOD_METADATA_RESULTS = 'mod-metadata-results',
-	BATCH_MOD_METADATA_RESULTS = 'batch-mod-metadata-results',
-	QUERY_STEAM_SUBSCRIBED = 'query-steam-subscribed',
 	SUBSCRIBE_MOD = 'subscribe-mod',
 	UNSUBSCRIBE_MOD = 'unsubscribe-mod',
-	SUBSCRIBE_MOD_RESULT = 'subscribe-mod-result',
-	UNSUBSCRIBE_MOD_RESULT = 'unsubscribe-mod-result',
 	DOWNLOAD_MOD = 'download-mod',
-	DOWNLOAD_MOD_RESULT = 'download-mod-result',
-	MOD_INSTALL_RESULT = 'mod-install-result',
 
 	// Config management
 	READ_CONFIG = 'read-config',
@@ -41,13 +38,11 @@ export enum ValidChannel {
 	READ_COLLECTION = 'read-collection',
 	DELETE_COLLECTION = 'delete-collection',
 	RENAME_COLLECTION = 'rename-collection',
-	COLLECTION_RESULTS = 'collection-results',
 	READ_COLLECTIONS = 'read-collections-list',
 	UPDATE_COLLECTION = 'update-collection',
 
 	// File Explorer management
 	SELECT_PATH = 'select-path',
-	SELECT_PATH_RESULT = 'select-path-result',
 
 	// External go to mod details
 	OPEN_MOD_PATH = 'open-mod-path',
