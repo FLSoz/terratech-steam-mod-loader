@@ -23,24 +23,26 @@ import {
 
 	// IFriends
 	SteamID,
-	SteamUGCDetails
+	SteamUGCDetails,
+	SteamPageResults
 } from './types';
 
 const greenworks: any = require('greenworks');
 
-function wrapCallbackForWorkshopIDConversion(callback: (items: SteamUGCDetails[], total_items: number, returned_items: number) => void) {
-	return (results: unknown[], total_items: number, returned_items: number) => {
-		callback(
-			results.map((result: any) => {
+function wrapCallbackForWorkshopIDConversion(callback: (results: SteamPageResults) => void) {
+	return (apiResults: SteamPageResults) => {
+		const { items, totalItems, numReturned } = apiResults;
+		callback({
+			items: items.map((result: any) => {
 				return {
 					...result,
 					publishedFileId: BigInt(result.publishedFileId),
 					children: result.children ? result.children.map((stringID: string) => BigInt(stringID)) : undefined
 				};
 			}),
-			total_items,
-			returned_items
-		);
+			totalItems,
+			numReturned
+		});
 	};
 }
 
@@ -187,7 +189,13 @@ class SteamworksAPI {
 	}
 
 	getUGCDetails(workshop_ids: string[], success_callback: (items: SteamUGCDetails[]) => void, error_callback?: SteamErrorCallback) {
-		greenworks.getUGCDetails(workshop_ids, wrapCallbackForWorkshopIDConversion(success_callback), error_callback);
+		greenworks.getUGCDetails(
+			workshop_ids,
+			(items: SteamUGCDetails[]) => {
+				return success_callback(items);
+			},
+			error_callback
+		);
 	}
 
 	ugcGetItems(props: GetItemsProps) {

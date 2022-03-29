@@ -158,12 +158,18 @@ export function invalidUpdateHandle(updateHandle: string) {
 	return updateHandle === k_UGCUpdateHandleInvalid;
 }
 
+export interface SteamPageResults {
+	items: SteamUGCDetails[];
+	totalItems: number;
+	numReturned: number;
+}
+
 // API Props
 export interface GetItemsProps extends SteamworksAPIProps {
 	options?: { page_num: number; app_id: number; required_tag?: string };
 	ugc_matching_type: UGCMatchingType;
 	ugc_query_type: UGCQueryType;
-	success_callback: (items: SteamUGCDetails[], total_items: number, returned_items: number) => void;
+	success_callback: (results: SteamPageResults) => void;
 }
 
 export interface GetUserItemsProps extends SteamworksAPIProps {
@@ -171,7 +177,7 @@ export interface GetUserItemsProps extends SteamworksAPIProps {
 	ugc_matching_type: UGCMatchingType;
 	ugc_list_sort_order: UserUGCListSortOrder;
 	ugc_list: UserUGCList;
-	success_callback: (items: SteamUGCDetails[], total_items: number, returned_items: number) => void;
+	success_callback: (results: SteamPageResults) => void;
 }
 
 export interface PublishWorkshopFileProps extends SteamworksAPIProps {

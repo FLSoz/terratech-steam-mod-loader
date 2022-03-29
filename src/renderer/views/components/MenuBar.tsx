@@ -3,6 +3,7 @@ import { AppState } from 'model';
 import { Menu } from 'antd';
 import { AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate, NavigateFunction } from 'react-router-dom';
+import api from 'renderer/Api';
 
 interface MenuProps {
 	disableNavigation?: boolean;
@@ -31,7 +32,16 @@ class MenuBar extends Component<MenuProps, never> {
 				onClick={(e) => {
 					if (e.key !== config.currentPath) {
 						config.currentPath = e.key;
-						updateState({});
+						updateState({ savingConfig: true });
+						api
+							.updateConfig(config)
+							.catch((error) => {
+								api.logger.error(error);
+								updateState({ config });
+							})
+							.finally(() => {
+								updateState({ savingConfig: false });
+							});
 						if (loadModsOnNavigate) {
 							updateState({ loadingMods: true });
 						}

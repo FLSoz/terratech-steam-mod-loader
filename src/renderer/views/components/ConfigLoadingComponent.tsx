@@ -94,7 +94,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 				return null;
 			})
 			.catch((error) => {
-				console.error(error);
+				api.logger.error(error);
 				this.setState({ configLoadError: error.toString() });
 				this.validateConfig(DEFAULT_CONFIG);
 			});
@@ -111,7 +111,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 				return path;
 			})
 			.catch((error) => {
-				console.error(error);
+				api.logger.error(error);
 				this.setState({ userDataPathError: error.toString() });
 			});
 	}
@@ -134,7 +134,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 				return null;
 			})
 			.catch((error) => {
-				console.error(error);
+				api.logger.error(error);
 				throw error;
 			});
 	}
@@ -160,7 +160,7 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 					return result;
 				})
 				.catch((error) => {
-					console.error(error);
+					api.logger.error(error);
 					updateState({
 						configErrors: {
 							undefined: `Internal exception while validating AppConfig:\n${error.toString()}`

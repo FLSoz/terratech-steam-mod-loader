@@ -375,7 +375,7 @@ switch (modalType) {
 							})}
 							value={currentSelected}
 							onChange={(checkedValue: any) => {
-								console.log(checkedValue);
+								api.logger.log(checkedValue);
 							}}
 						/>
 					);
@@ -541,7 +541,7 @@ export default class CollectionErrorFixer extends Component<ErrorFixerProps, Err
 				return true;
 			})
 			.catch((error) => {
-				console.error(error);
+				api.logger.error(error);
 				updateState({ config });
 			})
 			.finally(() => {

@@ -85,7 +85,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 				return true;
 			})
 			.catch((error) => {
-				console.error(error);
+				api.logger.error(error);
 				updateState({ config });
 			})
 			.finally(() => {
@@ -108,7 +108,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 			return api
 				.pathExists(value)
 				.catch((error) => {
-					console.error(error);
+					api.logger.error(error);
 					configErrors[field] = error.toString();
 					updateState({});
 					throw new Error(`Error while validating path:\n${error.toString()}`);
