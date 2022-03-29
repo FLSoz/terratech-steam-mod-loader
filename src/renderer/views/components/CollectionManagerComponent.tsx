@@ -17,7 +17,8 @@ import {
 	getRows,
 	filterRows,
 	getByUID,
-	validateCollection
+	validateCollection,
+	ModType
 } from 'model';
 import api from 'renderer/Api';
 import { getIncompatibilityGroups } from 'util/Graph';
@@ -31,13 +32,10 @@ const { Text, Title } = Typography;
 
 enum ModalType {
 	NONE = 0,
+	DESELCTING_MOD_MANAGER = 1,
 	VALIDATING = 'validating',
 	ERRORS_FOUND = 'errors_found',
-	WARNINGS_FOUND = 'warnings_found',
-	REMOVE_INVALID = 'remove_invalid_mods',
-	SUBSCRIBE_DEPENDENCIES = 'subscribe_dependencies',
-	SUBSCRIBE_REMOTE = 'subscribe_remote',
-	INCOMPATIBLE_MOD = 'incompatible'
+	WARNINGS_FOUND = 'warnings_found'
 }
 
 interface CollectionManagerState {
@@ -56,12 +54,9 @@ interface CollectionManagerState {
 
 	// modal
 	modalType: ModalType;
-	invalidIdsFound?: boolean;
-	missingDependenciesFound?: boolean;
-	incompatibleModsFound?: boolean;
-	missingSubscriptions?: boolean;
 
 	lastValidationStatus?: boolean;
+	guidedFixActive?: boolean;
 }
 
 interface NotificationProps {
@@ -97,7 +92,6 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			madeEdits: false
 		};
 
-		this.handleSelectAllClick = this.handleSelectAllClick.bind(this);
 		this.handleClick = this.handleClick.bind(this);
 		this.setGameRunningCallback = this.setGameRunningCallback.bind(this);
 		this.launchGame = this.launchGame.bind(this);
@@ -133,41 +127,36 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	handleSelectAllClick(event: any) {
-		const { appState } = this.props;
-		const { mods, activeCollection } = appState;
-		if (mods && activeCollection) {
-			if (event.target.checked) {
-				activeCollection.mods = getRows(mods).map((mod) => mod.uid);
-			} else {
-				activeCollection.mods = [];
-			}
-		}
-		const { validationPromise } = this.state;
-		if (validationPromise) {
-			validationPromise.cancel();
-		}
-		this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	handleClick(checked: boolean, id: string) {
+	handleClick(checked: boolean, uid: string) {
 		const { appState } = this.props;
 		const { activeCollection } = appState;
 		if (activeCollection) {
+			let changed = false;
 			if (checked) {
-				if (!activeCollection.mods.includes(id)) {
-					activeCollection.mods.push(id);
+				if (!activeCollection.mods.includes(uid)) {
+					changed = true;
+					activeCollection.mods.push(uid);
 				}
+			} else if (uid !== this.getModManagerUID()) {
+				activeCollection.mods = activeCollection.mods.filter((mod) => mod !== uid);
+				changed = true;
 			} else {
-				activeCollection.mods = activeCollection.mods.filter((mod) => mod !== id);
+				// display modal
+				this.setState({ modalType: ModalType.DESELCTING_MOD_MANAGER });
 			}
-			const { validationPromise } = this.state;
-			if (validationPromise) {
-				validationPromise.cancel();
+			if (changed) {
+				const { validationPromise } = this.state;
+				if (validationPromise) {
+					validationPromise.cancel();
+				}
+				this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
 			}
-			this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
 		}
+	}
+
+	getModManagerUID() {
+		const { appState } = this.props;
+		return `${ModType.WORKSHOP}:${appState.config.workshopID}`;
 	}
 
 	setGameRunningCallback(running: boolean) {
@@ -202,11 +191,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				}
 			});
 			this.setState({
-				collectionErrors,
-				incompatibleModsFound,
-				invalidIdsFound,
-				missingSubscriptions,
-				missingDependenciesFound
+				collectionErrors
 			});
 			if (launchIfValid) {
 				this.setState({
@@ -622,7 +607,10 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							}, 500);
 						}
 						setTimeout(() => {
-							this.setState({ modalType: ModalType.NONE });
+							const { modalType } = this.state;
+							if (modalType !== ModalType.DESELCTING_MOD_MANAGER) {
+								this.setState({ modalType: ModalType.NONE });
+							}
 						}, 500);
 						return updateSuccess;
 					})
@@ -651,11 +639,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		const { activeCollection, mods } = appState;
 		this.setState(
 			{
-				validatingMods: true,
-				invalidIdsFound: false,
-				incompatibleModsFound: false,
-				missingDependenciesFound: false,
-				missingSubscriptions: false
+				validatingMods: true
 			},
 			() => {
 				// Guarantee validation runs after state update
@@ -689,27 +673,12 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		);
 	}
 
-	checkNextErrorModal() {
-		const { invalidIdsFound, missingDependenciesFound, missingSubscriptions, incompatibleModsFound } = this.state;
-		if (invalidIdsFound) {
-			this.setState({ modalType: ModalType.REMOVE_INVALID });
-		} else if (incompatibleModsFound) {
-			this.setState({ modalType: ModalType.INCOMPATIBLE_MOD });
-		} else if (missingDependenciesFound) {
-			this.setState({ modalType: ModalType.SUBSCRIBE_DEPENDENCIES });
-		} else if (missingSubscriptions) {
-			this.setState({ modalType: ModalType.SUBSCRIBE_REMOTE });
-		} else {
-			this.setState({ modalType: ModalType.NONE });
-		}
-	}
-
 	// We allow you to load multiple mods with the same ID (bundle name), but only the local mod will be used
 	// If multiple workshop mods have the same ID, and you select multiple, then we will force you to choose one to use
 	renderModal() {
-		const { modalType, launchGameWithErrors, collectionErrors: modErrors } = this.state;
+		const { modalType, launchGameWithErrors } = this.state;
 		const { appState } = this.props;
-		const { activeCollection, mods, workshopToModID, updateState } = appState;
+		const { activeCollection, mods, updateState, config } = appState;
 
 		const launchAnyway = () => {
 			this.setState({ launchGameWithErrors: true });
@@ -717,11 +686,142 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			this.baseLaunchGame(modList);
 		};
 
-		return null;
+		switch (modalType) {
+			case ModalType.DESELCTING_MOD_MANAGER: {
+				const managerUID = this.getModManagerUID();
+				const managerData: ModData = getByUID(mods, managerUID)!;
+				return (
+					<Modal
+						title="Useless Operation"
+						visible
+						closable={false}
+						footer={[
+							<Button
+								key="launch"
+								type="primary"
+								onClick={() => {
+									this.setState({ modalType: ModalType.NONE });
+								}}
+							>
+								OK
+							</Button>
+						]}
+					>
+						<p>You are attempting to deselect the mod manager.</p>
+						<p>An external mod manager is current required for TerraTech to load some mods properly.</p>
+						<p>Your current selected manager is {`${managerData.name} (${config.workshopID})`}</p>
+						<p>If you would like to change your manager, do so by entering the workshop file ID in the settings tab.</p>
+					</Modal>
+				);
+			}
+			case ModalType.ERRORS_FOUND:
+				return (
+					<Modal
+						title="Errors Found in Configuration"
+						visible
+						closable={false}
+						footer={[
+							<Button
+								key="cancel"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									this.setState({
+										modalType: ModalType.NONE
+									});
+									updateState({ launchingGame: false });
+								}}
+							>
+								Manually Fix
+							</Button>,
+							/* <Button
+								key="auto-fix"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									updateState({ launchingGame: false });
+									this.setState({ guidedFixActive: true });
+								}}
+							>
+								Guided Fix
+							</Button>, */
+							<Button
+								key="launch"
+								danger
+								type="primary"
+								disabled={launchGameWithErrors}
+								loading={launchGameWithErrors}
+								onClick={launchAnyway}
+							>
+								Launch Anyway
+							</Button>
+						]}
+					>
+						<p>One or more mods have either missing dependencies, or is selected alongside incompatible mods.</p>
+						<p>Launching the game with this mod list may lead to crashes, or even save game corruption.</p>
+						<p>
+							Mods that share the same Mod ID (Not the same as Workshop ID) are explicitly incompatible, and only the first one TerraTech
+							loads will be used. All others will be ignored.
+						</p>
+
+						<p>Do you want to continue anyway?</p>
+					</Modal>
+				);
+			case ModalType.WARNINGS_FOUND:
+				return (
+					<Modal
+						title="Minor Errors Found in Configuration"
+						visible
+						closable={false}
+						footer={[
+							<Button
+								key="cancel"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									this.setState({
+										modalType: ModalType.NONE
+									});
+									updateState({ launchingGame: false });
+								}}
+							>
+								Manually Fix
+							</Button>,
+							/* <Button
+								key="auto-fix"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									updateState({ launchingGame: false });
+									this.setState({ guidedFixActive: true });
+								}}
+							>
+								Guided Fix
+							</Button>, */
+							<Button
+								key="launch"
+								danger
+								type="primary"
+								disabled={launchGameWithErrors}
+								loading={launchGameWithErrors}
+								onClick={launchAnyway}
+							>
+								Launch Anyway
+							</Button>
+						]}
+					>
+						<p>Unable to validate one or more mods in the collection.</p>
+						<p>This is probably because you are not subscribed to them.</p>
+						<p>Do you want to continue anyway?</p>
+					</Modal>
+				);
+			default:
+				return null;
+		}
 	}
 
 	renderContent() {
-		const { filteredRows, madeEdits, lastValidationStatus } = this.state;
+		const { filteredRows, madeEdits, lastValidationStatus, guidedFixActive } = this.state;
 		const { appState } = this.props;
 		const { mods } = appState;
 
@@ -730,48 +830,56 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		return (
 			<SizeMe monitorHeight monitorWidth refreshMode="debounce">
 				{({ size }) => {
-					const collectionComponentProps: ModCollectionProps = {
-						madeEdits,
-						lastValidationStatus,
-						rows,
-						filteredRows: filteredRows || rows,
-						height: size.height as number,
-						width: size.width as number,
-						collection: appState.activeCollection as ModCollection,
-						launchingGame: appState.launchingGame,
-						setEnabledModsCallback: (enabledMods: Set<string>) => {
-							api.logger.debug(`Setting active mods: ${[...enabledMods]}`);
-							if (appState.activeCollection) {
-								appState.activeCollection.mods = [...enabledMods].sort();
-								const { validationPromise } = this.state;
-								if (validationPromise) {
-									validationPromise.cancel();
+					let actualContent = null;
+					if (appState.loadingMods) {
+						actualContent = (
+							<ModLoadingView
+								appState={appState}
+								modLoadCompleteCallback={() => {
+									this.recalculateModData();
+								}}
+							/>
+						);
+					} else if (guidedFixActive) {
+						actualContent = null;
+					} else {
+						const collectionComponentProps: ModCollectionProps = {
+							madeEdits,
+							lastValidationStatus,
+							rows,
+							filteredRows: filteredRows || rows,
+							height: size.height as number,
+							width: size.width as number,
+							collection: appState.activeCollection as ModCollection,
+							launchingGame: appState.launchingGame,
+							setEnabledModsCallback: (enabledMods: Set<string>) => {
+								const managerUID = this.getModManagerUID();
+								enabledMods.add(managerUID);
+								api.logger.debug(`Setting active mods: ${[...enabledMods]}`);
+								if (appState.activeCollection) {
+									appState.activeCollection.mods = [...enabledMods].sort();
+									const { validationPromise } = this.state;
+									if (validationPromise) {
+										validationPromise.cancel();
+									}
+									this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
 								}
-								this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
-							}
-						},
-						setEnabledCallback: (id: string) => {
-							this.handleClick(true, id);
-						},
-						setDisabledCallback: (id: string) => {
-							this.handleClick(false, id);
-						},
-						getModContextMenu: () => {},
-						getModDetails: () => {}
-					};
+							},
+							setEnabledCallback: (id: string) => {
+								this.handleClick(true, id);
+							},
+							setDisabledCallback: (id: string) => {
+								this.handleClick(false, id);
+							},
+							getModContextMenu: () => {},
+							getModDetails: () => {}
+						};
+						actualContent = <Outlet context={{ ...collectionComponentProps }} />;
+					}
 
 					return (
 						<Content key="collection" style={{ padding: '0px', overflowY: 'clip', overflowX: 'clip' }}>
-							{appState.loadingMods ? (
-								<ModLoadingView
-									appState={appState}
-									modLoadCompleteCallback={() => {
-										this.recalculateModData();
-									}}
-								/>
-							) : (
-								<Outlet context={{ ...collectionComponentProps }} />
-							)}
+							{actualContent}
 						</Content>
 					);
 				}}

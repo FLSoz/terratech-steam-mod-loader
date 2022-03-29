@@ -83,6 +83,7 @@ class API {
 
 	launchGame(gameExec: string, workshopID: string, closeOnLaunch: boolean, modList: ModData[]): Promise<any> {
 		const modListStr: string = modList
+			.filter((modData) => modData.workshopID !== BigInt(workshopID))
 			.map((mod: ModData) => {
 				return mod ? `[${mod.uid.toString().replace(' ', ':/%20')}]` : '';
 			})

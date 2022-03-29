@@ -496,3 +496,137 @@ switch (modalType) {
 		return null;
 }
 */
+
+import React, { Component } from 'react';
+import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader } from 'antd';
+
+import { CollectionErrors } from 'model';
+
+const { Content } = Layout;
+const { Search } = Input;
+
+interface ErrorFixerProps {
+	collectionErrors: CollectionErrors;
+}
+
+interface ErrorFixerState {
+	collectionErrors: CollectionErrors;
+}
+
+/*
+export default class CollectionErrorFixer extends Component<ErrorFixerProps, ErrorFixerState> {
+	formRef = React.createRef<FormInstance>();
+
+	constructor(props: ErrorFixerProps) {
+		super(props);
+		const { collectionErrors } = this.props;
+		this.state = {
+			collectionErrors
+		};
+
+		this.saveChanges = this.saveChanges.bind(this);
+	}
+
+	saveChanges() {
+		const { editingConfig } = this.state;
+		const { config, updateState } = this.props;
+		updateState({ savingConfig: true });
+		api
+			.updateConfig(editingConfig!)
+			.then(() => {
+				updateState({
+					config: { ...(editingConfig as AppConfig) },
+					madeConfigEdits: false
+				});
+				return true;
+			})
+			.catch((error) => {
+				console.error(error);
+				updateState({ config });
+			})
+			.finally(() => {
+				updateState({ savingConfig: false });
+			});
+	}
+
+	render() {
+		const { collectionErrors } = this.state;
+		const { madeConfigEdits, savingConfig, configErrors, updateState } = this.props;
+		return (
+			<Layout style={{ width: '100%' }}>
+				<Content className="Settings">
+					<PageHeader className="site-page-header" title="Settings" />
+					<Form
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						ref={this.formRef}
+						onFinish={this.saveChanges}
+						labelCol={{ span: 10, lg: 8, xl: 6, xxl: 4 }}
+						wrapperCol={{ span: 14 }}
+						initialValues={{ remember: true }}
+						autoComplete="off"
+						style={{
+							margin: 40,
+							alignContent: 'center',
+							justifyContent: 'center'
+						}}
+						name="control-ref"
+					>
+						<Form.Item
+							name="localDir"
+							label="Local Mods Directory"
+							tooltip={{
+								overlayInnerStyle: { minWidth: 300 },
+								title: (
+									<div>
+										<p>Path to TT Local Mods directory</p>
+										<p>It will be called &quot;LocalMods&quot;, and be under Steam/steamapps/common/TerraTech</p>
+									</div>
+								)
+							}}
+							initialValue={editingConfig!.localDir}
+							rules={[
+								{
+									required: true,
+									validator: (_, value) => {
+										return this.validateFile('localDir', value);
+									}
+								}
+							]}
+							help={configErrors && configErrors.localDir ? configErrors.localDir : undefined}
+							validateStatus={configErrors && configErrors.localDir ? 'error' : undefined}
+						>
+							<Search
+								disabled={selectingDirectory}
+								value={editingConfig!.localDir}
+								enterButton={<FolderOutlined />}
+								onChange={(event) => {
+									editingConfig!.localDir = event.target.value;
+									updateState({ madeConfigEdits: true });
+								}}
+								onSearch={() => {
+									if (!selectingDirectory) {
+										api.send(ValidChannel.SELECT_PATH, 'localDir', true, 'Select TerraTech LocalMods directory');
+										this.setState({ selectingDirectory: true });
+									}
+								}}
+							/>
+						</Form.Item>
+						<Form.Item wrapperCol={{ offset: 10 }}>
+							<Space size="large" align="center">
+								<Button
+									loading={savingConfig}
+									disabled={!madeConfigEdits || (!!configErrors && Object.keys(configErrors).length > 0)}
+									type="primary"
+									htmlType="submit"
+								>
+									Save Changes
+								</Button>
+							</Space>
+						</Form.Item>
+					</Form>
+				</Content>
+			</Layout>
+		);
+	}
+}
+*/

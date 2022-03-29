@@ -49,6 +49,7 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 				})
 				.flat()
 		);
+		allKnownMods.add(`${ModType.WORKSHOP}:${config.workshopID}}`);
 		api.send(ValidChannel.READ_MOD_METADATA, config.localDir, allKnownMods);
 	}
 
