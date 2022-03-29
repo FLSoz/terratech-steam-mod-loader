@@ -1,4 +1,5 @@
 import { app, Menu, shell, BrowserWindow, MenuItemConstructorOptions } from 'electron';
+import checkForUpdates from './updater';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
 	selector?: string;
@@ -42,17 +43,17 @@ export default class MenuBuilder {
 
 	buildDarwinTemplate(): MenuItemConstructorOptions[] {
 		const subMenuAbout: DarwinMenuItemConstructorOptions = {
-			label: 'Electron',
+			label: 'TTSMM',
 			submenu: [
 				{
-					label: 'About ElectronReact',
+					label: 'About TTSMM',
 					selector: 'orderFrontStandardAboutPanel:'
 				},
 				{ type: 'separator' },
 				{ label: 'Services', submenu: [] },
 				{ type: 'separator' },
 				{
-					label: 'Hide ElectronReact',
+					label: 'Hide TTSMM',
 					accelerator: 'Command+H',
 					selector: 'hide:'
 				},
@@ -77,18 +78,10 @@ export default class MenuBuilder {
 			submenu: [
 				{ label: 'Undo', accelerator: 'Command+Z', selector: 'undo:' },
 				{ label: 'Redo', accelerator: 'Shift+Command+Z', selector: 'redo:' },
-				{ type: 'separator' },
-				{ label: 'Cut', accelerator: 'Command+X', selector: 'cut:' },
-				{ label: 'Copy', accelerator: 'Command+C', selector: 'copy:' },
-				{ label: 'Paste', accelerator: 'Command+V', selector: 'paste:' },
-				{
-					label: 'Select All',
-					accelerator: 'Command+A',
-					selector: 'selectAll:'
-				}
+				{ type: 'separator' }
 			]
 		};
-		const subMenuViewDev: MenuItemConstructorOptions = {
+		const subMenuView: MenuItemConstructorOptions = {
 			label: 'View',
 			submenu: [
 				{
@@ -107,21 +100,9 @@ export default class MenuBuilder {
 				},
 				{
 					label: 'Toggle Developer Tools',
-					accelerator: 'Alt+Command+I',
+					accelerator: 'F12',
 					click: () => {
 						this.mainWindow.webContents.toggleDevTools();
-					}
-				}
-			]
-		};
-		const subMenuViewProd: MenuItemConstructorOptions = {
-			label: 'View',
-			submenu: [
-				{
-					label: 'Toggle Full Screen',
-					accelerator: 'Ctrl+Command+F',
-					click: () => {
-						this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
 					}
 				}
 			]
@@ -143,117 +124,106 @@ export default class MenuBuilder {
 			label: 'Help',
 			submenu: [
 				{
-					label: 'Learn More',
+					label: 'TerraTech Forums',
 					click() {
-						shell.openExternal('https://electronjs.org');
+						shell.openExternal('https://forum.terratechgame.com/index.php');
+					}
+				},
+				{
+					label: `TerraTech Discord`,
+					click() {
+						shell.openExternal('https://discord.com/invite/terratechgame');
 					}
 				},
 				{
 					label: 'Documentation',
 					click() {
-						shell.openExternal('https://github.com/electron/electron/tree/main/docs#readme');
-					}
-				},
-				{
-					label: 'Community Discussions',
-					click() {
-						shell.openExternal('https://www.electronjs.org/community');
+						shell.openExternal('https://github.com/FLSoz/terratech-steam-mod-loader/#readme');
 					}
 				},
 				{
 					label: 'Search Issues',
 					click() {
-						shell.openExternal('https://github.com/electron/electron/issues');
+						shell.openExternal('https://github.com/FLSoz/terratech-steam-mod-loader/issues');
 					}
 				}
 			]
 		};
-
-		const subMenuView = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true' ? subMenuViewDev : subMenuViewProd;
-
 		return [subMenuAbout, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
 	}
 
-	buildDefaultTemplate() {
-		const templateDefault = [
+	buildDefaultTemplate(): MenuItemConstructorOptions[] {
+		const templateDefault: MenuItemConstructorOptions[] = [
 			{
-				label: '&File',
+				label: '&Edit',
 				submenu: [
 					{
-						label: '&Open',
-						accelerator: 'Ctrl+O'
+						label: '&Undo',
+						accelerator: 'Ctrl+Z',
+						click: () => {}
 					},
 					{
-						label: '&Close',
-						accelerator: 'Ctrl+W',
-						click: () => {
-							this.mainWindow.close();
-						}
+						label: '&Redo',
+						accelerator: 'Ctrl+Y',
+						click: () => {}
 					}
 				]
 			},
 			{
 				label: '&View',
-				submenu:
-					process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true'
-						? [
-								{
-									label: '&Reload',
-									accelerator: 'Ctrl+R',
-									click: () => {
-										this.mainWindow.webContents.reload();
-									}
-								},
-								{
-									label: 'Toggle &Full Screen',
-									accelerator: 'F11',
-									click: () => {
-										this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
-									}
-								},
-								{
-									label: 'Toggle &Developer Tools',
-									accelerator: 'Alt+Ctrl+I',
-									click: () => {
-										this.mainWindow.webContents.toggleDevTools();
-									}
-								}
-						  ]
-						: [
-								{
-									label: 'Toggle &Full Screen',
-									accelerator: 'F11',
-									click: () => {
-										this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
-									}
-								}
-						  ]
+				submenu: [
+					{
+						label: '&Reload',
+						accelerator: 'Ctrl+R',
+						click: () => {
+							this.mainWindow.webContents.reload();
+						}
+					},
+					{
+						label: 'Toggle &Full Screen',
+						accelerator: 'F11',
+						click: () => {
+							this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+						}
+					},
+					{
+						label: 'Toggle &Developer Tools',
+						accelerator: 'F12',
+						click: () => {
+							this.mainWindow.webContents.toggleDevTools();
+						}
+					}
+				]
+			},
+			{
+				label: 'Check for Updates',
+				click: checkForUpdates
 			},
 			{
 				label: 'Help',
 				submenu: [
 					{
-						label: 'Learn More',
+						label: 'TerraTech Forums',
 						click() {
-							shell.openExternal('https://electronjs.org');
+							shell.openExternal('https://forum.terratechgame.com/index.php');
+						}
+					},
+					{
+						label: `TerraTech Discord`,
+						click() {
+							shell.openExternal('https://discord.com/invite/terratechgame');
 						}
 					},
 					{
 						label: 'Documentation',
 						click() {
-							shell.openExternal('https://github.com/electron/electron/tree/main/docs#readme');
-						}
-					},
-					{
-						label: 'Community Discussions',
-						click() {
-							shell.openExternal('https://www.electronjs.org/community');
+							shell.openExternal('https://github.com/FLSoz/terratech-steam-mod-loader/#readme');
 						}
 					},
 					{
 						label: 'Search Issues',
 						click() {
-							shell.openExternal('https://github.com/electron/electron/issues');
+							shell.openExternal('https://github.com/FLSoz/terratech-steam-mod-loader/issues');
 						}
 					}
 				]

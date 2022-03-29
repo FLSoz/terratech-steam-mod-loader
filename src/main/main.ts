@@ -13,7 +13,6 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, protocol, dialog } from 'electron';
-import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 import child_process from 'child_process';
@@ -27,11 +26,9 @@ import ModFetcher from './mod-fetcher';
 
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
-export default class AppUpdater {
+class App {
 	constructor() {
 		log.transports.file.level = 'debug'; // isDevelopment ? 'debug' : 'info';
-		autoUpdater.logger = log;
-		autoUpdater.checkForUpdatesAndNotify();
 	}
 }
 
@@ -135,7 +132,7 @@ const createWindow = async () => {
 
 	// Remove this if your app does not use auto updates
 	// eslint-disable-next-line
-	new AppUpdater();
+	new App();
 };
 
 /**
