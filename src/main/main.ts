@@ -29,7 +29,7 @@ const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBU
 
 export default class AppUpdater {
 	constructor() {
-		log.transports.file.level = isDevelopment ? 'debug' : 'info';
+		log.transports.file.level = 'debug'; // isDevelopment ? 'debug' : 'info';
 		autoUpdater.logger = log;
 		autoUpdater.checkForUpdatesAndNotify();
 	}
@@ -58,7 +58,7 @@ const installExtensions = async () => {
 			extensions.map((name) => installer[name]),
 			forceDownload
 		)
-		.catch(log.info);
+		.catch(log.error);
 };
 
 const createWindow = async () => {
@@ -309,7 +309,7 @@ ipcMain.on(ValidChannel.READ_COLLECTION, async (event, collection) => {
 		data.name = collection;
 		event.reply(ValidChannel.READ_COLLECTION, data as ModCollection);
 	} catch (error) {
-		log.info(`Failed to read collection: ${collection}`);
+		log.error(`Failed to read collection: ${collection}`);
 		log.error(error);
 		event.reply(ValidChannel.READ_COLLECTION, null);
 	}
@@ -451,7 +451,7 @@ ipcMain.handle(ValidChannel.LAUNCH_GAME, async (_event, gameExec, workshopID, cl
 ipcMain.handle(ValidChannel.WRITE_FILE, async (_event, pathParams: PathParams, data) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Writing json file ${filepath}`);
-	log.info(`Writing ${data} to file ${filepath}`);
+	log.debug(`Writing ${data} to file ${filepath}`);
 	try {
 		fs.writeFileSync(filepath, data, 'utf8');
 		return true;
@@ -475,11 +475,11 @@ ipcMain.handle(ValidChannel.UPDATE_FILE, async (_event, pathParams: PathParams, 
 				data[key] = value;
 			}
 		});
-		log.info(`Writing ${JSON.stringify(data)} to file ${filepath}`);
+		log.debug(`Writing ${JSON.stringify(data)} to file ${filepath}`);
 		fs.writeFileSync(filepath, JSON.stringify(data, null, 4), 'utf8');
 		return true;
 	} catch (error) {
-		log.info(`Unable to parse file ${filepath} contents into json: ${raw}`);
+		log.error(`Unable to parse file ${filepath} contents into json: ${raw}`);
 		log.error(error);
 		try {
 			fs.writeFileSync(filepath, JSON.stringify(newData, null, 4), 'utf8');

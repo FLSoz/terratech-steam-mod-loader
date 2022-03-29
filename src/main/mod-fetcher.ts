@@ -179,7 +179,7 @@ async function processSteamModResults(steamDetails: SteamUGCDetails[]): Promise<
 				}
 			}
 			if (validMod) {
-				log.info(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
+				log.debug(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 				return potentialMod;
 			}
 			return null;
@@ -333,6 +333,9 @@ export default class ModFetcher {
 		let lastProcessed = 1;
 		const workshopMap: Map<bigint, ModData> = new Map();
 
+		const allSubscribedItems: bigint[] = Steamworks.getSubscribedItems();
+		log.debug(`All subscribed items: [${allSubscribedItems}]`);
+
 		// We make 2 assumptions:
 		//	1. We are done if and only if reading a page returns 0 results
 		//	2. The subscription list will not change mid-pull
@@ -345,6 +348,7 @@ export default class ModFetcher {
 			this.loadedMods += numReturned;
 			numProcessedWorkshop += numReturned;
 			lastProcessed = numReturned;
+			log.debug(`Total items: ${totalItems}, Returned by Steam: ${numReturned}, Processed this chunk: ${items.length}`);
 
 			// eslint-disable-next-line no-await-in-loop
 			const data: ModData[] = await processSteamModResults(items);
