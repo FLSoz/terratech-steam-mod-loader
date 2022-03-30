@@ -53,7 +53,7 @@ autoUpdater.on('update-downloaded', () => {
 	dialog
 		.showMessageBox({
 			title: 'Install Updates',
-			message: 'Updates downloaded, application will be quit for update...'
+			message: 'Updates downloaded, application will quit for update...'
 		})
 		// eslint-disable-next-line promise/always-return
 		.then(() => {
