@@ -11,19 +11,6 @@ export interface ModDescriptor {
 	name?: string;
 }
 
-export interface ModErrors {
-	notSubscribed?: boolean;
-	notInstalled?: boolean;
-	needsUpdate?: boolean;
-	invalidId?: boolean;
-	missingDependencies?: ModDescriptor[];
-	incompatibleMods?: string[];
-}
-
-export interface CollectionErrors {
-	[id: string]: ModErrors;
-}
-
 export interface ModData {
 	uid: string;
 	id: string | null;
@@ -38,7 +25,6 @@ export interface ModData {
 	hasCode?: boolean;
 	isDependencyFor?: ModDescriptor[]; // Mod IDs it's dependency for. Workshop IDs if mod ID unknown
 	tags?: string[];
-	errors?: ModErrors;
 
 	// For managing of non-subscribed mods
 	subscribed?: boolean;

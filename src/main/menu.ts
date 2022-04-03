@@ -1,6 +1,8 @@
 import { app, Menu, shell, BrowserWindow, MenuItemConstructorOptions } from 'electron';
 import checkForUpdates from './updater';
 
+import { ValidChannel } from '../model';
+
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
 	selector?: string;
 	submenu?: DarwinMenuItemConstructorOptions[] | Menu;
@@ -23,21 +25,20 @@ export default class MenuBuilder {
 		return menu;
 	}
 
-	setupDevelopmentEnvironment(): void {
-		this.mainWindow.webContents.on('context-menu', (_, props) => {
-			const { x, y } = props;
-			Menu.buildFromTemplate([
-				{
-					label: 'Inspect element',
-					click: () => {
-						this.mainWindow.webContents.inspectElement(x, y);
-					}
-				}
-			]).popup({ window: this.mainWindow });
-		});
-	}
+	setupDevelopmentEnvironment(): void {}
 
 	buildDefaultTemplate(): MenuItemConstructorOptions[] {
+		const subMenuFile: MenuItemConstructorOptions = {
+			label: '&File',
+			submenu: [
+				{
+					label: 'Refresh mod information',
+					click: () => {
+						this.mainWindow.webContents.send(ValidChannel.MOD_REFRESH_REQUESTED);
+					}
+				}
+			]
+		};
 		const subMenuAboutDarwin: DarwinMenuItemConstructorOptions = {
 			label: 'TTSMM',
 			submenu: [
@@ -171,7 +172,7 @@ export default class MenuBuilder {
 		};
 
 		return process.platform === 'darwin'
-			? [subMenuAboutDarwin, subMenuEditDarwin, subMenuView, subMenuWindowDarwin, subMenuUpdates, subMenuHelp]
-			: [subMenuEdit, subMenuView, subMenuUpdates, subMenuHelp];
+			? [subMenuFile, subMenuAboutDarwin, subMenuEditDarwin, subMenuView, subMenuWindowDarwin, subMenuUpdates, subMenuHelp]
+			: [subMenuFile, subMenuEdit, subMenuView, subMenuUpdates, subMenuHelp];
 	}
 }

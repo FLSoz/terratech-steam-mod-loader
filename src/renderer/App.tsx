@@ -3,8 +3,10 @@
 import React, { Component } from 'react';
 import { Layout } from 'antd';
 
-import { AppState, SessionMods, ModCollection } from 'model';
+import { AppState, SessionMods, ModCollection, ValidChannel } from 'model';
 import { Outlet, useLocation, Location, useNavigate, NavigateFunction } from 'react-router-dom';
+
+import api from 'renderer/Api';
 import MenuBar from './views/components/MenuBar';
 import { DEFAULT_CONFIG } from './Constants';
 
@@ -31,6 +33,8 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 			updateState: this.updateState.bind(this),
 			navigate: this.navigate.bind(this)
 		};
+
+		this.onModLoadRequested = this.onModLoadRequested.bind(this);
 	}
 
 	componentDidMount() {
@@ -41,6 +45,15 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 				navigate('/loading/config');
 			});
 		}
+		api.on(ValidChannel.MOD_REFRESH_REQUESTED, this.onModLoadRequested);
+	}
+
+	componentWillUnmount() {
+		api.removeListener(ValidChannel.MOD_REFRESH_REQUESTED, this.onModLoadRequested);
+	}
+
+	onModLoadRequested() {
+		this.setState({ loadingMods: true });
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any

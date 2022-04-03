@@ -29,6 +29,7 @@ export enum ValidChannel {
 	SUBSCRIBE_MOD = 'subscribe-mod',
 	UNSUBSCRIBE_MOD = 'unsubscribe-mod',
 	DOWNLOAD_MOD = 'download-mod',
+	MOD_REFRESH_REQUESTED = 'refresh-mod-info',
 
 	// Config management
 	READ_CONFIG = 'read-config',

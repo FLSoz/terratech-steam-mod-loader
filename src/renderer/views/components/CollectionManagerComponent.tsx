@@ -1,8 +1,8 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component, CSSProperties, ReactNode } from 'react';
 import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
-import { Layout, Button, Popover, Modal, notification, Checkbox, Typography } from 'antd';
-
+import { Layout, Button, Popover, Modal, notification, Checkbox, Typography, Col, Row, Tabs, Image } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
 import { SizeMe } from 'react-sizeme';
 import {
 	ModData,
@@ -10,7 +10,7 @@ import {
 	ModErrors,
 	AppState,
 	ModCollection,
-	ModCollectionProps,
+	CollectionViewProps,
 	AppConfig,
 	ValidChannel,
 	ModDescriptor,
@@ -18,7 +18,9 @@ import {
 	filterRows,
 	getByUID,
 	validateCollection,
-	ModType
+	ModType,
+	DisplayModData,
+	CollectionViewType
 } from 'model';
 import api from 'renderer/Api';
 import { getIncompatibilityGroups } from 'util/Graph';
@@ -27,8 +29,15 @@ import { pause } from 'util/Sleep';
 import CollectionManagerToolbar from './CollectionManagementToolbar';
 import ModLoadingView from './ModLoadingComponent';
 
+import missing from '../../../../assets/missing.png';
+
 const { Header, Footer, Content } = Layout;
 const { Text, Title } = Typography;
+const { TabPane } = Tabs;
+
+function getImagePreview(path?: string) {
+	return <Image src={path} fallback={missing} />;
+}
 
 enum ModalType {
 	NONE = 0,
@@ -57,6 +66,9 @@ interface CollectionManagerState {
 
 	lastValidationStatus?: boolean;
 	guidedFixActive?: boolean;
+
+	currentRecord?: ModData;
+	bigDetails?: boolean;
 }
 
 interface NotificationProps {
@@ -178,7 +190,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			let missingSubscriptions = false;
 			let missingDependenciesFound = false;
 
-			rows.forEach((mod: ModData) => {
+			rows.forEach((mod: DisplayModData) => {
 				const thisModErrors = collectionErrors[mod.uid];
 				if (thisModErrors) {
 					mod.errors = thisModErrors;
@@ -200,7 +212,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				});
 			}
 		} else {
-			rows.forEach((mod: ModData) => {
+			rows.forEach((mod: DisplayModData) => {
 				mod.errors = undefined;
 			});
 			this.setState({ collectionErrors: undefined });
@@ -821,13 +833,19 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	renderContent() {
-		const { filteredRows, madeEdits, lastValidationStatus, guidedFixActive } = this.state;
+		const { filteredRows, madeEdits, lastValidationStatus, guidedFixActive, bigDetails } = this.state;
 		const { appState } = this.props;
-		const { mods } = appState;
+		const { mods, config } = appState;
+		const { currentPath, viewConfigs } = config;
+		let currentView: CollectionViewType = CollectionViewType.MAIN;
+		if (currentPath) {
+			const pathSplit = currentPath.split('collections/');
+			currentView = pathSplit[pathSplit.length - 1] as CollectionViewType;
+		}
 
 		const rows = getRows(mods);
 
-		return (
+		return bigDetails ? null : (
 			<SizeMe monitorHeight monitorWidth refreshMode="debounce">
 				{({ size }) => {
 					let actualContent = null;
@@ -843,10 +861,11 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					} else if (guidedFixActive) {
 						actualContent = null;
 					} else {
-						const collectionComponentProps: ModCollectionProps = {
+						const collectionComponentProps: CollectionViewProps = {
 							madeEdits,
 							lastValidationStatus,
 							rows,
+							viewType: currentView,
 							filteredRows: filteredRows || rows,
 							height: size.height as number,
 							width: size.width as number,
@@ -871,9 +890,18 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							setDisabledCallback: (id: string) => {
 								this.handleClick(false, id);
 							},
-							getModContextMenu: () => {},
-							getModDetails: () => {}
+							getModDetails: (uid: string, record: ModData, showBigDetails?: boolean) => {
+								const { currentRecord } = this.state;
+								if (!currentRecord || currentRecord.uid !== uid) {
+									this.setState({ currentRecord: record, bigDetails: showBigDetails });
+								} else {
+									this.setState({ currentRecord: undefined, bigDetails: false });
+								}
+							}
 						};
+						if (viewConfigs) {
+							collectionComponentProps.config = viewConfigs[currentView];
+						}
 						actualContent = <Outlet context={{ ...collectionComponentProps }} />;
 					}
 
@@ -887,11 +915,56 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		);
 	}
 
-	render() {
-		const { madeEdits, filteredRows, gameRunning, overrideGameRunning, modalType, savingCollection, validatingMods, lastValidationStatus } =
-			this.state;
+	renderInfoTab(record: ModData) {
+		return record.description;
+	}
+
+	renderInspectTab(record: ModData) {
+		return JSON.stringify(record, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
+	}
+
+	renderDependenciesTab(record: ModData) {
+		return JSON.stringify(record.dependsOn, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
+	}
+
+	renderFooter() {
+		const { currentRecord, bigDetails } = this.state;
+		if (currentRecord) {
+			const normalStyle = { height: 400, width: '100%' };
+			const bigStyle = { height: '100%', width: '100%' };
+			return (
+				<Row key="mod-details" justify="space-between" gutter={16} style={bigDetails ? bigStyle : normalStyle}>
+					<Col span={2}>{getImagePreview(currentRecord.preview)}</Col>
+					<Col span={22}>
+						<Tabs
+							defaultActiveKey="info"
+							tabBarExtraContent={
+								<Button
+									icon={<CloseOutlined />}
+									type="text"
+									onClick={() => {
+										this.setState({ bigDetails: false, currentRecord: undefined });
+									}}
+								/>
+							}
+						>
+							<TabPane tab="Info" key="info">
+								{this.renderInfoTab(currentRecord)}
+							</TabPane>
+							<TabPane tab="Inspect" key="inspect">
+								{this.renderInspectTab(currentRecord)}
+							</TabPane>
+							<TabPane tab="Dependencies" key="dependencies">
+								{this.renderDependenciesTab(currentRecord)}
+							</TabPane>
+						</Tabs>
+					</Col>
+				</Row>
+			);
+		}
+		const { gameRunning, overrideGameRunning, modalType } = this.state;
 		const { appState } = this.props;
-		const { allCollections, searchString, launchingGame } = appState;
+		const { launchingGame } = appState;
 
 		const launchGameButton = (
 			<Button
@@ -903,6 +976,19 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				Launch Game
 			</Button>
 		);
+		if (launchingGame) {
+			return <Popover content="Already launching game">{launchGameButton}</Popover>;
+		}
+		if (gameRunning || !!overrideGameRunning) {
+			return <Popover content="Game already running">{launchGameButton}</Popover>;
+		}
+		return launchGameButton;
+	}
+
+	render() {
+		const { madeEdits, filteredRows, savingCollection, validatingMods, lastValidationStatus } = this.state;
+		const { appState } = this.props;
+		const { allCollections, searchString } = appState;
 
 		return (
 			<Layout>
@@ -949,14 +1035,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				</Header>
 				{this.renderModal()}
 				{this.renderContent()}
-				<Footer className="MainFooter" style={{ justifyContent: 'center', display: 'flex' }}>
-					{launchingGame ? (
-						<Popover content="Already launching game">{launchGameButton}</Popover>
-					) : gameRunning || !!overrideGameRunning ? (
-						<Popover content="Game already running">{launchGameButton}</Popover>
-					) : (
-						launchGameButton
-					)}
+				<Footer className="MainFooter" style={{ justifyContent: 'center', display: 'flex', padding: 10 }}>
+					{this.renderFooter()}
 				</Footer>
 			</Layout>
 		);

@@ -119,7 +119,7 @@ const createWindow = async () => {
 	});
 
 	mainWindow.webContents.on('did-finish-load', () => {
-		const name = 'TerraTech Steam ModData Loader';
+		const name = 'TerraTech Steam Mod Loader';
 		log.info(`App Version: ${app.getVersion()}`);
 		log.info(`App Name: ${app.getName()}`);
 		const version = app.getVersion();

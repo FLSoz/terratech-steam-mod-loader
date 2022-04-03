@@ -1,3 +1,4 @@
+import { CollectionConfig } from './AppConfig';
 import { ModData } from './Mod';
 
 export interface ModCollection {
@@ -6,7 +7,12 @@ export interface ModCollection {
 	mods: string[];
 }
 
-export interface ModCollectionProps {
+export enum CollectionViewType {
+	MAIN = 'main',
+	RAW_MODS = 'rawMods'
+}
+
+export interface CollectionViewProps {
 	rows: ModData[];
 	filteredRows: ModData[];
 	collection: ModCollection;
@@ -15,9 +21,10 @@ export interface ModCollectionProps {
 	madeEdits?: boolean;
 	lastValidationStatus?: boolean;
 	launchingGame?: boolean;
+	viewType: CollectionViewType;
+	config?: CollectionConfig;
 	setEnabledModsCallback: (mods: Set<string>) => any;
 	setEnabledCallback: (mod: string) => any;
 	setDisabledCallback: (mod: string) => any;
-	getModDetails: (mod: string, modData: ModData) => void;
-	getModContextMenu: (mod: string, modData: ModData) => void;
+	getModDetails: (mod: string, modData: ModData, bigData?: boolean) => void;
 }

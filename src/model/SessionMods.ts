@@ -1,6 +1,7 @@
 import { ElectronLog } from 'electron-log';
-import { ModData, ModDescriptor, CollectionErrors, ModErrors, ModType } from './Mod';
+import { ModData, ModDescriptor, ModType } from './Mod';
 import { ModCollection } from './ModCollection';
+import { CollectionErrors, ModErrors } from './CollectionValidation';
 
 export class SessionMods {
 	localPath: string;

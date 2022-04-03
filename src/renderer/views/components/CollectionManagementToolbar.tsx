@@ -8,8 +8,6 @@ import {
 	PlusOutlined,
 	SaveOutlined,
 	DeleteOutlined,
-	UndoOutlined,
-	RedoOutlined,
 	SyncOutlined,
 	CheckCircleOutlined,
 	CopyOutlined,
@@ -239,7 +237,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 								loading={savingCollection}
 							>
 								Import
-							</Button>
+							</Button>{' '}
 							<Button
 								shape="round"
 								key="export"
@@ -312,8 +310,6 @@ export default class CollectionManagementToolbarComponent extends Component<
 					</Col>
 					<Col key="tools" style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
 						<Space align="center" style={{ lineHeight: '32px' }}>
-							<Button key="undo" shape="circle" icon={<UndoOutlined />} disabled={disabledFeatures || true} />
-							<Button key="redo" shape="circle" icon={<RedoOutlined />} disabled={disabledFeatures || true} />
 							<Button
 								shape="round"
 								key="validate"
@@ -327,19 +323,6 @@ export default class CollectionManagementToolbarComponent extends Component<
 								onClick={validateCollectionCallback}
 							>
 								Validate
-							</Button>
-							<Button
-								danger
-								shape="round"
-								key="refresh"
-								type="primary"
-								icon={<SyncOutlined spin={loadingMods} />}
-								disabled={disabledFeatures}
-								onClick={() => {
-									appState.updateState({ targetPathAfterLoad: '/collections/main', loadingMods: true });
-								}}
-							>
-								Refresh
 							</Button>
 						</Space>
 					</Col>

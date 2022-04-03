@@ -34,7 +34,7 @@ render(
 				{/* The actual collection management components */}
 				<Route path="collections" element={<CollectionManagerComponent />}>
 					<Route path="main" element={<MainCollectionComponent />} />
-					<Route path="raw-mods" element={<RawCollectionComponent />} />
+					<Route path="rawMods" element={<RawCollectionComponent />} />
 				</Route>
 				{/* Experimental mods browser: DISABLED */}
 				<Route path="browse" element={<ModsBrowserView />}>

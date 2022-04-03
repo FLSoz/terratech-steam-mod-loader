@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Layout, Table, Tag, Space, Tooltip, Image, Typography } from 'antd';
+import { Layout, Table, Tag, Space, Tooltip, Image, Typography, Row, Col, Tabs } from 'antd';
 import { ClockCircleTwoTone, StopTwoTone, WarningTwoTone } from '@ant-design/icons';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
+import { CompareFn, TableRowSelection } from 'antd/lib/table/interface';
 import dateFormat from 'dateformat';
-import { TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
-import { ModData, ModType, ModCollectionProps, ModErrors } from 'model';
+import { ModType, CollectionViewProps, ModErrors, DisplayModData, MainCollectionConfig } from 'model';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
@@ -21,6 +21,7 @@ import Corp_Icon_SPE from '../../../../assets/Corp_Icon_SPE.png';
 
 const { Content } = Layout;
 const { Text } = Typography;
+const { TabPane } = Tabs;
 
 function getImageSrcFromType(type: ModType, size = 15) {
 	switch (type) {
@@ -135,28 +136,363 @@ function getCorpType(tag: string): CorpType | null {
 	return null;
 }
 
-class MainCollectionComponent extends Component<ModCollectionProps, never> {
-	ZERO_DATE: Date = new Date(0);
+const ZERO_DATE: Date = new Date(0);
 
-	componentDidMount() {
-		this.setState({});
+interface ColumnSchema<T> {
+	title: string;
+	dataIndex: string;
+	width?: number;
+	align?: 'center';
+	defaultSortOrder?: 'ascend';
+	sorter?:
+		| boolean
+		| CompareFn<DisplayModData>
+		| {
+				compare?: CompareFn<DisplayModData> | undefined;
+				multiple?: number | undefined;
+		  }
+		| undefined;
+	renderSetup?: (props: CollectionViewProps) => (value: any, record: T, index: number) => React.ReactNode;
+}
+
+const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
+	{
+		title: 'Type',
+		dataIndex: 'type',
+		renderSetup: (props: CollectionViewProps) => {
+			const { config } = props;
+			const small = (config as MainCollectionConfig | undefined)?.smallRows;
+			return (type: ModType) => getImageSrcFromType(type, small ? 20 : 35);
+		},
+		width: 65,
+		align: 'center'
+	},
+	{
+		title: 'Name',
+		dataIndex: 'name',
+		defaultSortOrder: 'ascend',
+		sorter: (a, b) => {
+			if (a.name) {
+				if (b.name) {
+					return a.name > b.name ? 1 : -1;
+				}
+				return 1;
+			}
+			if (b.name) {
+				return -1;
+			}
+			return 0;
+		},
+		renderSetup: () => {
+			return (name: string, record: DisplayModData) => {
+				let updateIcon = null;
+				let updateType: 'danger' | 'warning' | undefined;
+				if (record.needsUpdate) {
+					updateIcon = (
+						<Tooltip title="Needs update">
+							<WarningTwoTone twoToneColor="red" />
+						</Tooltip>
+					);
+					updateType = 'danger';
+					if (record.downloadPending) {
+						updateIcon = (
+							<Tooltip title="Download pending">
+								<ClockCircleTwoTone twoToneColor="orange" />
+							</Tooltip>
+						);
+						updateType = 'warning';
+					}
+					if (record.downloading) {
+						updateIcon = (
+							<Tooltip title="Downloading">
+								<StopTwoTone spin twoToneColor="orange" />
+							</Tooltip>
+						);
+						updateType = 'warning';
+					}
+				}
+				return (
+					<span>
+						{updateIcon}
+						<Text strong={record.needsUpdate} type={updateType}>{` ${name}`}</Text>
+					</span>
+				);
+			};
+		}
+	},
+	{
+		title: 'Authors',
+		dataIndex: 'authors',
+		width: 150,
+		defaultSortOrder: 'ascend',
+		sorter: (a, b) => {
+			const v1 = a;
+			const v2 = b;
+			if (v1.authors) {
+				if (v2.authors) {
+					const l1 = v1.authors.length;
+					const l2 = v2.authors.length;
+					let ind = 0;
+					while (ind < l1 && ind < l2) {
+						if (v1.authors[ind] > v2.authors[ind]) {
+							return 1;
+						}
+						if (v1.authors[ind] < v2.authors[ind]) {
+							return -1;
+						}
+						ind += 1;
+					}
+					if (l1 > l2) {
+						return 1;
+					}
+					if (l1 < l2) {
+						return -1;
+					}
+					return 0;
+				}
+				return 1;
+			}
+			return -1;
+		},
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		renderSetup: () => {
+			return (authors: string[] | undefined) => {
+				return (authors || []).map((author) => {
+					return <Tag key={author}>{author}</Tag>;
+				});
+			};
+		}
+	},
+	{
+		title: 'State',
+		dataIndex: 'errors',
+		renderSetup: (props: CollectionViewProps) => {
+			const { lastValidationStatus, collection } = props;
+			return (errors: ModErrors | undefined, record: DisplayModData) => {
+				const selectedMods = collection.mods;
+				if (!selectedMods.includes(record.uid)) {
+					if (!record.subscribed && record.workshopID && record.workshopID > 0) {
+						return <Tag key="notSubscribed">Not subscribed</Tag>;
+					}
+					if (record.subscribed && !record.installed) {
+						return <Tag key="notInstalled">Not installed</Tag>;
+					}
+					return null;
+				}
+				const errorTags: { text: string; color: string }[] = [];
+				if (errors) {
+					if (errors.incompatibleMods && errors.incompatibleMods.length > 0) {
+						errorTags.push({
+							text: 'Conflicts',
+							color: 'red'
+						});
+					}
+					if (errors.invalidId) {
+						errorTags.push({
+							text: 'Invalid ID',
+							color: 'volcano'
+						});
+					}
+					if (errors.missingDependencies && errors.missingDependencies.length > 0) {
+						errorTags.push({
+							text: 'Missing dependencies',
+							color: 'orange'
+						});
+					}
+
+					// Installation status errors
+					if (errors.notSubscribed) {
+						errorTags.push({
+							text: 'Not subscribed',
+							color: 'yellow'
+						});
+					} else if (errors.notInstalled) {
+						errorTags.push({
+							text: 'Not installed',
+							color: 'yellow'
+						});
+					} else if (errors.needsUpdate) {
+						errorTags.push({
+							text: 'Needs update',
+							color: 'yellow'
+						});
+					}
+				}
+				if (errorTags.length > 0) {
+					return errorTags.map((tagConfig) => {
+						return (
+							<Tag key={tagConfig.text} color={tagConfig.color}>
+								{tagConfig.text}
+							</Tag>
+						);
+					});
+				}
+
+				// If everything is fine, only return OK if we have actually validated it
+				if (lastValidationStatus !== undefined && !!errors) {
+					return (
+						<Tag key="OK" color="green">
+							OK
+						</Tag>
+					);
+				}
+				return null;
+			};
+		}
+	},
+	{
+		title: 'ID',
+		dataIndex: 'id',
+		sorter: (a, b) => {
+			if (a.id) {
+				if (b.id) {
+					return a.id > b.id ? 1 : -1;
+				}
+				return 1;
+			}
+			if (b.id) {
+				return -1;
+			}
+			return 0;
+		}
+	},
+	{
+		title: 'Size',
+		dataIndex: 'size',
+		renderSetup: () => {
+			return (size?: number) => {
+				if (size && size > 0) {
+					// return 3 points of precision
+					const strNum = `${size}`;
+					const power = strNum.length;
+					const digit1 = strNum[0];
+					const digit2 = strNum[1];
+					let digit3 = strNum[2];
+					const digit4 = strNum[3];
+					let sizeStr = '';
+					if (!digit4) {
+						sizeStr = `${strNum} B`;
+					} else {
+						digit3 = parseInt(digit4, 10) >= 5 ? `${parseInt(digit3, 10) + 1}` : digit3;
+
+						let descriptor = ' B';
+						if (power > 3) {
+							if (power > 6) {
+								if (power > 9) {
+									descriptor = ' GB';
+								} else {
+									descriptor = ' MB';
+								}
+							} else {
+								descriptor = ' KB';
+							}
+						}
+
+						let value = `${digit1}${digit2}${digit3}`;
+						const decimal = power % 3;
+						if (decimal === 1) {
+							value = `${digit1}.${digit2}${digit3}`;
+						} else if (decimal === 2) {
+							value = `${digit1}${digit2}.${digit3}`;
+						}
+						sizeStr = value + descriptor;
+					}
+					let color = 'green'; // under 1 MB is green
+					if (size > 1000000) {
+						if (size < 5000000) {
+							// under 5 MB is cyan
+							color = 'cyan';
+						} else if (size < 50000000) {
+							// under 50 MB is blue
+							color = 'blue';
+						} else if (size < 1000000000) {
+							// under 1 GB is geekblue
+							color = 'geekblue';
+						} else if (size < 5000000000) {
+							// under 5 GB is purple
+							color = 'purple';
+						} else {
+							color = 'magenta';
+						}
+					}
+					return (
+						<Tag color={color} key="size">
+							{sizeStr}
+						</Tag>
+					);
+				}
+				return null;
+			};
+		}
+	},
+	{
+		title: 'Last Update',
+		dataIndex: 'lastUpdate',
+		renderSetup: () => {
+			return (date: Date) => {
+				return date && date > ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
+			};
+		}
+	},
+	{
+		title: 'Date Added',
+		dataIndex: 'dateAdded',
+		renderSetup: () => {
+			return (date: Date) => {
+				return date && date > ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
+			};
+		}
+	},
+	{
+		title: 'Tags',
+		dataIndex: 'tags',
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		renderSetup: (props: CollectionViewProps) => {
+			const { config } = props;
+			const small = (config as MainCollectionConfig | undefined)?.smallRows;
+			return (tags: string[] | undefined) => {
+				const iconTags: CorpType[] = [];
+				const actualTags: string[] = [];
+				(tags || [])
+					.filter((tag) => tag.toLowerCase() !== 'mods')
+					.forEach((tag: string) => {
+						const corp = getCorpType(tag);
+						if (corp) {
+							iconTags.push(corp);
+						} else {
+							actualTags.push(tag);
+						}
+					});
+				return [
+					...actualTags.map((tag) => (
+						<Tag color="blue" key={tag}>
+							{tag}
+						</Tag>
+					)),
+					...iconTags.map((corp) => getCorpIcon(corp, small ? 20 : 35))
+				];
+			};
+		}
+	}
+];
+
+interface MainCollectionState {
+	currentRecord?: DisplayModData;
+	bigDetails?: boolean;
+}
+
+class MainCollectionComponent extends Component<CollectionViewProps, MainCollectionState> {
+	constructor(props: CollectionViewProps) {
+		super(props);
+		this.state = {};
 	}
 
-	render() {
-		const { collection, rows, filteredRows, lastValidationStatus, launchingGame } = this.props;
-		// <img src={cellData} height="50px" width="50px" />
-		// <div>
-		/*
-		{cellData === ModType.WORKSHOP
-			? steam
-			: cellData === ModType.TTQMM
-			? ttmm
-			: local}
-			*/
+	getRowSelection() {
+		const { collection, rows, filteredRows } = this.props;
 		const { setEnabledModsCallback, setEnabledCallback, setDisabledCallback } = this.props;
 
 		// eslint-disable-next-line @typescript-eslint/ban-types
-		const rowSelection: TableRowSelection<ModData> = {
+		const rowSelection: TableRowSelection<DisplayModData> = {
 			selections: [Table.SELECTION_INVERT],
 			selectedRowKeys: collection.mods,
 			onChange: (selectedRowKeys: React.Key[]) => {
@@ -169,7 +505,7 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 					});
 				setEnabledModsCallback(new Set(newSelection));
 			},
-			onSelect: (record: ModData, selected: boolean) => {
+			onSelect: (record: DisplayModData, selected: boolean) => {
 				api.logger.debug(`selecting ${record.uid}: ${selected}`);
 				if (selected) {
 					if (!collection.mods.includes(record.uid)) {
@@ -217,291 +553,45 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 			}
 		};
 
-		const small = true;
+		return rowSelection;
+	}
+
+	getColumnSchema(): ColumnType<DisplayModData>[] {
+		const { config } = this.props;
+		let activeColumns: ColumnSchema<DisplayModData>[] = COLUMN_SCHEMA;
+		const columnActiveConfig = (config as MainCollectionConfig | undefined)?.columnActiveConfig;
+		if (columnActiveConfig) {
+			activeColumns = activeColumns.filter(
+				(colSchema) => columnActiveConfig[colSchema.title] || columnActiveConfig[colSchema.title] === undefined
+			);
+		}
+		return activeColumns.map((colSchema: ColumnSchema<DisplayModData>) => {
+			const { title, dataIndex, width, defaultSortOrder, sorter, align, renderSetup } = colSchema;
+			return {
+				title,
+				dataIndex,
+				width,
+				defaultSortOrder,
+				sorter,
+				align,
+				render: renderSetup ? renderSetup(this.props) : undefined
+			};
+		});
+	}
+
+	render() {
+		const { filteredRows, launchingGame } = this.props;
+		// <img src={cellData} height="50px" width="50px" />
+		// <div>
+		/*
+		{cellData === ModType.WORKSHOP
+			? steam
+			: cellData === ModType.TTQMM
+			? ttmm
+			: local}
+			*/
+
 		// eslint-disable-next-line @typescript-eslint/ban-types
-		const columns: ColumnType<ModData>[] = [
-			{
-				title: 'Type',
-				dataIndex: 'type',
-				render: (type: ModType) => getImageSrcFromType(type, small ? 20 : 35),
-				width: 65,
-				align: 'center'
-			},
-			{
-				title: 'Name',
-				dataIndex: 'name',
-				defaultSortOrder: 'ascend',
-				sorter: (a, b) => {
-					if (a.name) {
-						if (b.name) {
-							return a.name > b.name ? 1 : -1;
-						}
-						return 1;
-					}
-					if (b.name) {
-						return -1;
-					}
-					return 0;
-				},
-				render: (name: string, record: ModData) => {
-					let updateIcon = null;
-					if (record.needsUpdate) {
-						updateIcon = <WarningTwoTone twoToneColor="red" />;
-						if (record.downloadPending) {
-							updateIcon = <ClockCircleTwoTone twoToneColor="orange" />;
-						}
-						if (record.downloading) {
-							updateIcon = <StopTwoTone spin twoToneColor="orange" />;
-						}
-					}
-					return (
-						<span>
-							{updateIcon}
-							<Text strong={record.needsUpdate}>{` ${name}`}</Text>
-						</span>
-					);
-				}
-			},
-			{
-				title: 'Authors',
-				dataIndex: 'authors',
-				width: 150,
-				defaultSortOrder: 'ascend',
-				sorter: (a, b) => {
-					const v1 = a;
-					const v2 = b;
-					if (v1.authors) {
-						if (v2.authors) {
-							const l1 = v1.authors.length;
-							const l2 = v2.authors.length;
-							let ind = 0;
-							while (ind < l1 && ind < l2) {
-								if (v1.authors[ind] > v2.authors[ind]) {
-									return 1;
-								}
-								if (v1.authors[ind] < v2.authors[ind]) {
-									return -1;
-								}
-								ind += 1;
-							}
-							if (l1 > l2) {
-								return 1;
-							}
-							if (l1 < l2) {
-								return -1;
-							}
-							return 0;
-						}
-						return 1;
-					}
-					return -1;
-				},
-				// eslint-disable-next-line @typescript-eslint/ban-types
-				render: (authors: string[] | undefined) => {
-					return (authors || []).map((author) => {
-						return <Tag key={author}>{author}</Tag>;
-					});
-				}
-			},
-			{
-				title: 'State',
-				dataIndex: 'errors',
-				render: (errors: ModErrors | undefined, record: ModData) => {
-					const selectedMods = collection.mods;
-					if (!selectedMods.includes(record.uid)) {
-						if (!record.subscribed && record.workshopID && record.workshopID > 0) {
-							return <Tag key="notSubscribed">Not subscribed</Tag>;
-						}
-						if (record.subscribed && !record.installed) {
-							return <Tag key="notInstalled">Not installed</Tag>;
-						}
-						return null;
-					}
-					const errorTags: { text: string; color: string }[] = [];
-					if (errors) {
-						if (errors.incompatibleMods && errors.incompatibleMods.length > 0) {
-							errorTags.push({
-								text: 'Conflicts',
-								color: 'red'
-							});
-						}
-						if (errors.invalidId) {
-							errorTags.push({
-								text: 'Invalid ID',
-								color: 'volcano'
-							});
-						}
-						if (errors.missingDependencies && errors.missingDependencies.length > 0) {
-							errorTags.push({
-								text: 'Missing dependencies',
-								color: 'orange'
-							});
-						}
-
-						// Installation status errors
-						if (errors.notSubscribed) {
-							errorTags.push({
-								text: 'Not subscribed',
-								color: 'yellow'
-							});
-						} else if (errors.notInstalled) {
-							errorTags.push({
-								text: 'Not installed',
-								color: 'yellow'
-							});
-						} else if (errors.needsUpdate) {
-							errorTags.push({
-								text: 'Needs update',
-								color: 'yellow'
-							});
-						}
-					}
-					if (errorTags.length > 0) {
-						return errorTags.map((tagConfig) => {
-							return (
-								<Tag key={tagConfig.text} color={tagConfig.color}>
-									{tagConfig.text}
-								</Tag>
-							);
-						});
-					}
-
-					// If everything is fine, only return OK if we have actually validated it
-					if (lastValidationStatus !== undefined && !!errors) {
-						return (
-							<Tag key="OK" color="green">
-								OK
-							</Tag>
-						);
-					}
-					return null;
-				}
-			},
-			{
-				title: 'ID',
-				dataIndex: 'id',
-				sorter: (a, b) => {
-					if (a.id) {
-						if (b.id) {
-							return a.id > b.id ? 1 : -1;
-						}
-						return 1;
-					}
-					if (b.id) {
-						return -1;
-					}
-					return 0;
-				}
-			},
-			{
-				title: 'Size',
-				dataIndex: 'size',
-				render: (size?: number) => {
-					if (size && size > 0) {
-						// return 3 points of precision
-						const strNum = `${size}`;
-						const power = strNum.length;
-						const digit1 = strNum[0];
-						const digit2 = strNum[1];
-						let digit3 = strNum[2];
-						const digit4 = strNum[3];
-						let sizeStr = '';
-						if (!digit4) {
-							sizeStr = `${strNum} B`;
-						} else {
-							digit3 = parseInt(digit4, 10) >= 5 ? `${parseInt(digit3, 10) + 1}` : digit3;
-
-							let descriptor = ' B';
-							if (power > 3) {
-								if (power > 6) {
-									if (power > 9) {
-										descriptor = ' GB';
-									} else {
-										descriptor = ' MB';
-									}
-								} else {
-									descriptor = ' KB';
-								}
-							}
-
-							let value = `${digit1}${digit2}${digit3}`;
-							const decimal = power % 3;
-							if (decimal === 1) {
-								value = `${digit1}.${digit2}${digit3}`;
-							} else if (decimal === 2) {
-								value = `${digit1}${digit2}.${digit3}`;
-							}
-							sizeStr = value + descriptor;
-						}
-						let color = 'green'; // under 1 MB is green
-						if (size > 1000000) {
-							if (size < 5000000) {
-								// under 5 MB is cyan
-								color = 'cyan';
-							} else if (size < 50000000) {
-								// under 50 MB is blue
-								color = 'blue';
-							} else if (size < 1000000000) {
-								// under 1 GB is geekblue
-								color = 'geekblue';
-							} else if (size < 5000000000) {
-								// under 5 GB is purple
-								color = 'purple';
-							} else {
-								color = 'magenta';
-							}
-						}
-						return (
-							<Tag color={color} key="size">
-								{sizeStr}
-							</Tag>
-						);
-					}
-					return null;
-				}
-			},
-			{
-				title: 'Last Update',
-				dataIndex: 'lastUpdate',
-				render: (date: Date) => {
-					return date && date > this.ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
-				}
-			},
-			{
-				title: 'Date Added',
-				dataIndex: 'dateAdded',
-				render: (date: Date) => {
-					return date && date > this.ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
-				}
-			},
-			{
-				title: 'Tags',
-				dataIndex: 'tags',
-				// eslint-disable-next-line @typescript-eslint/ban-types
-				render: (tags: string[] | undefined) => {
-					const iconTags: CorpType[] = [];
-					const actualTags: string[] = [];
-					(tags || [])
-						.filter((tag) => tag.toLowerCase() !== 'mods')
-						.forEach((tag: string) => {
-							const corp = getCorpType(tag);
-							if (corp) {
-								iconTags.push(corp);
-							} else {
-								actualTags.push(tag);
-							}
-						});
-					return [
-						...actualTags.map((tag) => (
-							<Tag color="blue" key={tag}>
-								{tag}
-							</Tag>
-						)),
-						...iconTags.map((corp) => getCorpIcon(corp, small ? 20 : 35))
-					];
-				}
-			}
-		];
 
 		return (
 			// eslint-disable-next-line react/destructuring-assignment
@@ -513,10 +603,25 @@ class MainCollectionComponent extends Component<ModCollectionProps, never> {
 						loading={launchingGame}
 						size="small"
 						rowKey="uid"
-						rowSelection={rowSelection}
-						columns={columns}
+						rowSelection={this.getRowSelection()}
+						columns={this.getColumnSchema()}
 						sticky
 						tableLayout="fixed"
+						onRow={(record, rowIndex) => {
+							return {
+								onClick: (event) => {
+									api.logger.debug(`On Click for ${record.uid}, ${event}`);
+									this.props.getModDetails(record.uid, record);
+								},
+								onDoubleClick: (event) => {
+									api.logger.debug(`Double clicking ${record.uid}, ${event}`);
+									// this.props.getModDetails(record.uid, record, true);
+								},
+								onContextMenu: (event) => {
+									api.logger.debug(`Showing context menu for ${record.uid}, ${event}`);
+								}
+							};
+						}}
 					/>
 				</Content>
 			</Layout>

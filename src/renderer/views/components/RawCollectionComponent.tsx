@@ -2,11 +2,11 @@
 import { Layout, Skeleton } from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
-import { ModCollectionProps } from 'model';
+import { CollectionViewProps } from 'model';
 
 const { Content } = Layout;
 
-class RawCollectionComponent extends Component<ModCollectionProps, never> {
+class RawCollectionComponent extends Component<CollectionViewProps, never> {
 	componentDidMount() {
 		this.setState({});
 	}
@@ -35,5 +35,5 @@ class RawCollectionComponent extends Component<ModCollectionProps, never> {
 }
 
 export default () => {
-	return <RawCollectionComponent {...useOutletContext<ModCollectionProps>()} />;
+	return <RawCollectionComponent {...useOutletContext<CollectionViewProps>()} />;
 };
