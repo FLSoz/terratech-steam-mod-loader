@@ -156,7 +156,6 @@ export default class CollectionManagementToolbarComponent extends Component<
 			lastValidationStatus
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
-		const { loadingMods } = appState;
 		return (
 			<div id="mod-collection-toolbar">
 				{this.renderModal()}
