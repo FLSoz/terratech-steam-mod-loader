@@ -134,7 +134,7 @@ export default class ModFetcher {
 								} catch (e) {
 									log.error(`Failed to get file details for ${file.name} under ${modPath}`);
 								}
-								if (file.name === 'preview.png') {
+								if (file.name === 'preview.png' && !potentialMod.preview) {
 									potentialMod.preview = `image://${path.join(modPath, file.name)}`;
 								} else if (file.name.match(/^(.*)\.dll$/)) {
 									potentialMod.hasCode = true;
@@ -280,6 +280,7 @@ export default class ModFetcher {
 				potentialMod.dateAdded = new Date(steamUGCDetails.timeAddedToUserList * 1000);
 				potentialMod.dateCreated = new Date(steamUGCDetails.timeCreated * 1000);
 				potentialMod.lastUpdate = new Date(steamUGCDetails.timeUpdated * 1000);
+				potentialMod.preview = steamUGCDetails.previewURL;
 
 				const state: UGCItemState = Steamworks.ugcGetItemState(workshopid);
 				if (state) {

@@ -57,8 +57,9 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 				<Descriptions.Item label="Installed">{formatDateStr(currentRecord.dateAdded)}</Descriptions.Item>
 				<Descriptions.Item label="Description">
 					<div>
-						{descriptionLines.map((line) => (
-							<Paragraph>{line}</Paragraph>
+						{descriptionLines.map((line, index) => (
+							// eslint-disable-next-line react/no-array-index-key
+							<Paragraph key={index}>{line}</Paragraph>
 						))}
 					</div>
 				</Descriptions.Item>

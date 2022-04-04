@@ -70,6 +70,7 @@ export interface SteamUGCDetails {
 	fileName: string;
 	fileSize: number;
 	/** UGCHandle_t of preview in string format */
+	previewURL: string;
 	previewFile: string;
 	previewFileSize: number;
 	/** uint64 of creator's Steam ID in string format */
