@@ -12,33 +12,35 @@ export interface ModDescriptor {
 }
 
 export interface ModData {
+	// Mod Info
+	name?: string;
+	authors?: string[];
+	description?: string;
 	uid: string;
 	id: string | null;
 	workshopID?: bigint;
+	tags?: string[];
+
+	// Mod properties
+	lastUpdate?: Date;
+	dateAdded?: Date;
+	dateCreated?: Date;
+	size?: number;
 	path?: string;
 	type: ModType;
 	preview?: string;
-	name?: string;
-	description?: string;
-	authors?: string[];
-	dependsOn?: ModDescriptor[];
 	hasCode?: boolean;
+	// Raw mod dependencies
+	steamDependencies?: bigint[];
+	explicitIDDependencies?: string[];
+	// Processed descriptor dependencies
+	dependsOn?: ModDescriptor[];
 	isDependencyFor?: ModDescriptor[]; // Mod IDs it's dependency for. Workshop IDs if mod ID unknown
-	tags?: string[];
 
-	// For managing of non-subscribed mods
+	// Mod status
 	subscribed?: boolean;
 	downloading?: boolean;
 	downloadPending?: boolean;
 	needsUpdate?: boolean;
 	installed?: boolean;
-
-	lastUpdate?: Date;
-	dateAdded?: Date;
-	dateCreated?: Date;
-	size?: number;
-
-	// Mod data
-	steamDependencies?: bigint[];
-	explicitIDDependencies?: string[];
 }
