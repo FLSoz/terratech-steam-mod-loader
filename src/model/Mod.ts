@@ -35,6 +35,7 @@ export interface ModData {
 
 	lastUpdate?: Date;
 	dateAdded?: Date;
+	dateCreated?: Date;
 	size?: number;
 
 	// Mod data

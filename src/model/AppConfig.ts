@@ -19,14 +19,10 @@ export interface AppConfig {
 	viewConfigs?: {
 		main?: MainCollectionConfig;
 		rawMods?: RawCollectionConfig;
+		separated?: SeparatedCollectionConfig;
 	};
 
 	ignoredValidationErrors?: Map<ModErrorType, string[]>;
-}
-
-export enum MainType {
-	SINGLE = 0,
-	DOUBLE = 1
 }
 
 export interface CollectionConfig {
@@ -38,7 +34,11 @@ export interface RawCollectionConfig extends CollectionConfig {
 }
 
 export interface MainCollectionConfig extends CollectionConfig {
-	viewType?: MainType;
 	smallRows?: boolean;
 	columnActiveConfig?: { [colID: string]: boolean };
+}
+
+export interface SeparatedCollectionConfig extends CollectionConfig {
+	smallRows?: boolean;
+	disableTableViews?: boolean;
 }

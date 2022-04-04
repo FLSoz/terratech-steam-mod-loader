@@ -1,19 +1,16 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component, CSSProperties, ReactNode } from 'react';
 import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
-import { Layout, Button, Popover, Modal, notification, Checkbox, Typography, Col, Row, Tabs, Image } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
+import { Layout, Button, Popover, Modal, notification, Typography } from 'antd';
 import { SizeMe } from 'react-sizeme';
 import {
 	ModData,
 	CollectionErrors,
-	ModErrors,
 	AppState,
 	ModCollection,
 	CollectionViewProps,
 	AppConfig,
 	ValidChannel,
-	ModDescriptor,
 	getRows,
 	filterRows,
 	getByUID,
@@ -23,21 +20,14 @@ import {
 	CollectionViewType
 } from 'model';
 import api from 'renderer/Api';
-import { getIncompatibilityGroups } from 'util/Graph';
 import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'util/Promise';
 import { pause } from 'util/Sleep';
 import CollectionManagerToolbar from './CollectionManagementToolbar';
+import ModDetailsFooter from './ModDetailsFooter';
 import ModLoadingView from './ModLoadingComponent';
-
-import missing from '../../../../assets/missing.png';
 
 const { Header, Footer, Content } = Layout;
 const { Text, Title } = Typography;
-const { TabPane } = Tabs;
-
-function getImagePreview(path?: string) {
-	return <Image src={path} fallback={missing} />;
-}
 
 enum ModalType {
 	NONE = 0,
@@ -258,6 +248,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: 'Failed to udpate config',
+							placement: 'bottomLeft',
 							duration: null
 						},
 						'error'
@@ -266,6 +257,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				openNotification(
 					{
 						message: `Created new collection ${name}`,
+						placement: 'bottomRight',
 						duration: 1
 					},
 					'success'
@@ -279,6 +271,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				openNotification(
 					{
 						message: `Failed to create new collection ${name}`,
+						placement: 'bottomRight',
 						duration: null
 					},
 					'error'
@@ -317,6 +310,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						openNotification(
 							{
 								message: 'Failed to update config',
+								placement: 'bottomLeft',
 								duration: null
 							},
 							'error'
@@ -325,6 +319,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: `Duplicated collection ${oldName}`,
+							placement: 'bottomRight',
 							duration: 1
 						},
 						'success'
@@ -335,6 +330,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: `Failed to create new collection ${name}`,
+							placement: 'bottomRight',
 							duration: null
 						},
 						'error'
@@ -347,6 +343,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				openNotification(
 					{
 						message: `Failed to duplicate collection ${oldName}`,
+						placement: 'bottomRight',
 						duration: null
 					},
 					'error'
@@ -375,6 +372,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						openNotification(
 							{
 								message: 'Failed to update config',
+								placement: 'bottomLeft',
 								duration: null
 							},
 							'error'
@@ -383,6 +381,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: `Collection ${oldName} renamed to ${name}`,
+							placement: 'bottomRight',
 							duration: 1
 						},
 						'success'
@@ -392,6 +391,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: `Failed to rename collection ${oldName} to ${name}`,
+							placement: 'bottomRight',
 							duration: null
 						},
 						'error'
@@ -404,6 +404,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				openNotification(
 					{
 						message: `Failed to rename collection ${oldName} to ${name}`,
+						placement: 'bottomRight',
 						duration: null
 					},
 					'error'
@@ -446,6 +447,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						openNotification(
 							{
 								message: 'Failed to update config',
+								placement: 'bottomLeft',
 								duration: null
 							},
 							'error'
@@ -454,6 +456,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: `Collection ${activeCollection!.name} deleted`,
+							placement: 'bottomRight',
 							duration: 1
 						},
 						'success'
@@ -464,6 +467,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: 'Failed to delete collection',
+							placement: 'bottomRight',
 							duration: null
 						},
 						'error'
@@ -476,6 +480,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				openNotification(
 					{
 						message: 'Failed to delete collection',
+						placement: 'bottomRight',
 						duration: null
 					},
 					'error'
@@ -512,6 +517,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: `Failed to save collection ${oldName}`,
+							placement: 'bottomRight',
 							duration: null
 						},
 						'error'
@@ -520,6 +526,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					openNotification(
 						{
 							message: `Saved collection ${oldName}`,
+							placement: 'bottomRight',
 							duration: 1
 						},
 						'success'
@@ -612,6 +619,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 								openNotification(
 									{
 										message: `Failed to save collection ${activeCollection.name}`,
+										placement: 'bottomRight',
 										duration: null
 									},
 									'error'
@@ -632,6 +640,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							openNotification(
 								{
 									message: `Failed to save collection ${activeCollection.name}`,
+									placement: 'bottomRight',
 									duration: null
 								},
 								'error'
@@ -687,7 +696,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 
 	// We allow you to load multiple mods with the same ID (bundle name), but only the local mod will be used
 	// If multiple workshop mods have the same ID, and you select multiple, then we will force you to choose one to use
-	renderModal() {
+	renderModal(currentView: CollectionViewType) {
 		const { modalType, launchGameWithErrors } = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods, updateState, config } = appState;
@@ -832,16 +841,11 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		}
 	}
 
-	renderContent() {
+	renderContent(currentView: CollectionViewType) {
 		const { filteredRows, madeEdits, lastValidationStatus, guidedFixActive, bigDetails } = this.state;
 		const { appState } = this.props;
 		const { mods, config } = appState;
-		const { currentPath, viewConfigs } = config;
-		let currentView: CollectionViewType = CollectionViewType.MAIN;
-		if (currentPath) {
-			const pathSplit = currentPath.split('collections/');
-			currentView = pathSplit[pathSplit.length - 1] as CollectionViewType;
-		}
+		const { viewConfigs } = config;
 
 		const rows = getRows(mods);
 
@@ -915,55 +919,31 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		);
 	}
 
-	renderInfoTab(record: ModData) {
-		return record.description;
-	}
-
-	renderInspectTab(record: ModData) {
-		return JSON.stringify(record, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
-	}
-
-	renderDependenciesTab(record: ModData) {
-		return JSON.stringify(record.dependsOn, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
-	}
-
-	renderFooter() {
+	renderFooter(currentView: CollectionViewType) {
 		const { currentRecord, bigDetails } = this.state;
-		if (currentRecord) {
-			const normalStyle = { height: 400, width: '100%' };
-			const bigStyle = { height: '100%', width: '100%' };
+		const { appState } = this.props;
+		if (currentView === CollectionViewType.MAIN && currentRecord) {
 			return (
-				<Row key="mod-details" justify="space-between" gutter={16} style={bigDetails ? bigStyle : normalStyle}>
-					<Col span={2}>{getImagePreview(currentRecord.preview)}</Col>
-					<Col span={22}>
-						<Tabs
-							defaultActiveKey="info"
-							tabBarExtraContent={
-								<Button
-									icon={<CloseOutlined />}
-									type="text"
-									onClick={() => {
-										this.setState({ bigDetails: false, currentRecord: undefined });
-									}}
-								/>
-							}
-						>
-							<TabPane tab="Info" key="info">
-								{this.renderInfoTab(currentRecord)}
-							</TabPane>
-							<TabPane tab="Inspect" key="inspect">
-								{this.renderInspectTab(currentRecord)}
-							</TabPane>
-							<TabPane tab="Dependencies" key="dependencies">
-								{this.renderDependenciesTab(currentRecord)}
-							</TabPane>
-						</Tabs>
-					</Col>
-				</Row>
+				<ModDetailsFooter
+					appState={appState}
+					bigDetails={!!bigDetails}
+					currentRecord={currentRecord}
+					closeFooterCallback={() => {
+						this.setState({ bigDetails: false, currentRecord: undefined });
+					}}
+					enableModCallback={(uid: string) => {
+						this.handleClick(true, uid);
+					}}
+					disableModCallback={(uid: string) => {
+						this.handleClick(false, uid);
+					}}
+					expandFooterCallback={(expand: boolean) => {
+						this.setState({ bigDetails: expand });
+					}}
+				/>
 			);
 		}
 		const { gameRunning, overrideGameRunning, modalType } = this.state;
-		const { appState } = this.props;
 		const { launchingGame } = appState;
 
 		const launchGameButton = (
@@ -977,18 +957,36 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			</Button>
 		);
 		if (launchingGame) {
-			return <Popover content="Already launching game">{launchGameButton}</Popover>;
+			return (
+				<Footer className="MainFooter" style={{ justifyContent: 'center', display: 'flex', padding: 10 }}>
+					<Popover content="Already launching game">{launchGameButton}</Popover>
+				</Footer>
+			);
 		}
 		if (gameRunning || !!overrideGameRunning) {
-			return <Popover content="Game already running">{launchGameButton}</Popover>;
+			return (
+				<Footer className="MainFooter" style={{ justifyContent: 'center', display: 'flex', padding: 10 }}>
+					<Popover content="Game already running">{launchGameButton}</Popover>
+				</Footer>
+			);
 		}
-		return launchGameButton;
+		return (
+			<Footer className="MainFooter" style={{ justifyContent: 'center', display: 'flex', padding: 10 }}>
+				{launchGameButton}
+			</Footer>
+		);
 	}
 
 	render() {
 		const { madeEdits, filteredRows, savingCollection, validatingMods, lastValidationStatus } = this.state;
 		const { appState } = this.props;
-		const { allCollections, searchString } = appState;
+		const { allCollections, searchString, config } = appState;
+		const { currentPath } = config;
+		let currentView: CollectionViewType = CollectionViewType.MAIN;
+		if (currentPath) {
+			const pathSplit = currentPath.split('collections/');
+			currentView = pathSplit[pathSplit.length - 1] as CollectionViewType;
+		}
 
 		return (
 			<Layout>
@@ -1033,11 +1031,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						}}
 					/>
 				</Header>
-				{this.renderModal()}
-				{this.renderContent()}
-				<Footer className="MainFooter" style={{ justifyContent: 'center', display: 'flex', padding: 10 }}>
-					{this.renderFooter()}
-				</Footer>
+				{this.renderModal(currentView)}
+				{this.renderContent(currentView)}
+				{this.renderFooter(currentView)}
 			</Layout>
 		);
 	}

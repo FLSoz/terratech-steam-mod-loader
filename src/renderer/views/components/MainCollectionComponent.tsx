@@ -5,8 +5,8 @@ import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
 import { CompareFn, TableRowSelection } from 'antd/lib/table/interface';
-import dateFormat from 'dateformat';
 import api from 'renderer/Api';
+import { formatDateStr } from 'util/Date';
 import { ModType, CollectionViewProps, ModErrors, DisplayModData, MainCollectionConfig } from 'model';
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
@@ -430,7 +430,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		dataIndex: 'lastUpdate',
 		renderSetup: () => {
 			return (date: Date) => {
-				return date && date > ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
+				return formatDateStr(date);
 			};
 		}
 	},
@@ -439,7 +439,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		dataIndex: 'dateAdded',
 		renderSetup: () => {
 			return (date: Date) => {
-				return date && date > ZERO_DATE ? dateFormat(date, 'yyyy-mm-dd h:MM TT') : '';
+				return formatDateStr(date);
 			};
 		}
 	},

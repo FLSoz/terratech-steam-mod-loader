@@ -9,6 +9,7 @@ export interface ModCollection {
 
 export enum CollectionViewType {
 	MAIN = 'main',
+	SEPARATED = 'separated',
 	RAW_MODS = 'rawMods'
 }
 
