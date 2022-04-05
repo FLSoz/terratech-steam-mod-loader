@@ -18,7 +18,7 @@ import fs from 'fs';
 import child_process from 'child_process';
 import psList from 'ps-list';
 
-import { ModData, ModCollection, ModType, SessionMods, ValidChannel } from '../model';
+import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig } from '../model';
 import Steamworks, { EResult } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
@@ -172,9 +172,6 @@ ipcMain.on(ValidChannel.CLOSE, () => {
 		mainWindow.close();
 	}
 });
-
-const COUNTS_BUFFER = new SharedArrayBuffer(16); // give 16 in case word length is 8
-const COUNTS_ARRAY = new Uint16Array(COUNTS_BUFFER);
 
 interface PathParams {
 	prefixes: string[];
@@ -381,7 +378,11 @@ ipcMain.handle(ValidChannel.DELETE_COLLECTION, async (_event, collection: string
 ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
 	try {
-		return JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
+		const appConfig: AppConfig = JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
+		if (!appConfig.viewConfigs) {
+			appConfig.viewConfigs = {};
+		}
+		return appConfig;
 	} catch (error) {
 		log.error(error);
 		return null;

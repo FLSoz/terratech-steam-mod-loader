@@ -1,6 +1,6 @@
 import { IpcMainEvent } from 'electron';
 import log from 'electron-log';
-import fs, { Dirent } from 'fs';
+import fs from 'fs';
 import path from 'path';
 import { Mutex } from 'async-mutex';
 
@@ -390,6 +390,7 @@ export default class ModFetcher {
 
 		// continue to query steam until all dependencies are met via BFS search
 		while (this.knownWorkshopMods.size > 0) {
+			this.workshopMods += missingKnownWorkshopMods.size;
 			// eslint-disable-next-line no-await-in-loop
 			missingKnownWorkshopMods = await this.processWorkshopModList(workshopMap, knownInvalidMods, missingKnownWorkshopMods);
 			this.knownWorkshopMods.forEach((workshopID) => {

@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Layout, Table, Tag, Space, Tooltip, Image, Typography, Row, Col, Tabs } from 'antd';
-import { ClockCircleTwoTone, StopTwoTone, WarningTwoTone } from '@ant-design/icons';
+import { Layout, Table, Tag, Tooltip, Typography } from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
 import { CompareFn, TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
+import { CollectionViewProps, DisplayModData, MainCollectionConfig, MainColumnTitles, ModErrors, ModType } from 'model';
+import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone } from '@ant-design/icons';
 import { formatDateStr } from 'util/Date';
-import { ModType, CollectionViewProps, ModErrors, DisplayModData, MainCollectionConfig } from 'model';
+
 import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
@@ -20,8 +21,11 @@ import Corp_Icon_RR from '../../../../assets/Corp_Icon_EXP.png';
 import Corp_Icon_SPE from '../../../../assets/Corp_Icon_SPE.png';
 
 const { Content } = Layout;
-const { Text } = Typography;
-const { TabPane } = Tabs;
+
+interface MainCollectionState {
+	currentRecord?: DisplayModData;
+	bigDetails?: boolean;
+}
 
 function getImageSrcFromType(type: ModType, size = 15) {
 	switch (type) {
@@ -136,8 +140,6 @@ function getCorpType(tag: string): CorpType | null {
 	return null;
 }
 
-const ZERO_DATE: Date = new Date(0);
-
 interface ColumnSchema<T> {
 	title: string;
 	dataIndex: string;
@@ -152,12 +154,15 @@ interface ColumnSchema<T> {
 				multiple?: number | undefined;
 		  }
 		| undefined;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	renderSetup?: (props: CollectionViewProps) => (value: any, record: T, index: number) => React.ReactNode;
 }
 
-const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
+const { Text } = Typography;
+
+const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
-		title: 'Type',
+		title: MainColumnTitles.TYPE,
 		dataIndex: 'type',
 		renderSetup: (props: CollectionViewProps) => {
 			const { config } = props;
@@ -168,10 +173,10 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		align: 'center'
 	},
 	{
-		title: 'Name',
+		title: MainColumnTitles.NAME,
 		dataIndex: 'name',
 		defaultSortOrder: 'ascend',
-		sorter: (a, b) => {
+		sorter: (a: DisplayModData, b: DisplayModData) => {
 			if (a.name) {
 				if (b.name) {
 					return a.name > b.name ? 1 : -1;
@@ -221,7 +226,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	},
 	{
-		title: 'Authors',
+		title: MainColumnTitles.AUTHORS,
 		dataIndex: 'authors',
 		width: 150,
 		defaultSortOrder: 'ascend',
@@ -264,7 +269,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	},
 	{
-		title: 'State',
+		title: MainColumnTitles.STATE,
 		dataIndex: 'errors',
 		renderSetup: (props: CollectionViewProps) => {
 			const { lastValidationStatus, collection } = props;
@@ -341,7 +346,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	},
 	{
-		title: 'ID',
+		title: MainColumnTitles.ID,
 		dataIndex: 'id',
 		sorter: (a, b) => {
 			if (a.id) {
@@ -357,7 +362,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	},
 	{
-		title: 'Size',
+		title: MainColumnTitles.SIZE,
 		dataIndex: 'size',
 		renderSetup: () => {
 			return (size?: number) => {
@@ -426,7 +431,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	},
 	{
-		title: 'Last Update',
+		title: MainColumnTitles.LAST_UPDATE,
 		dataIndex: 'lastUpdate',
 		renderSetup: () => {
 			return (date: Date) => {
@@ -435,7 +440,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	},
 	{
-		title: 'Date Added',
+		title: MainColumnTitles.DATE_ADDED,
 		dataIndex: 'dateAdded',
 		renderSetup: () => {
 			return (date: Date) => {
@@ -444,7 +449,7 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	},
 	{
-		title: 'Tags',
+		title: MainColumnTitles.TAGS,
 		dataIndex: 'tags',
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		renderSetup: (props: CollectionViewProps) => {
@@ -475,11 +480,6 @@ const COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		}
 	}
 ];
-
-interface MainCollectionState {
-	currentRecord?: DisplayModData;
-	bigDetails?: boolean;
-}
 
 class MainCollectionComponent extends Component<CollectionViewProps, MainCollectionState> {
 	constructor(props: CollectionViewProps) {
@@ -558,7 +558,7 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 
 	getColumnSchema(): ColumnType<DisplayModData>[] {
 		const { config } = this.props;
-		let activeColumns: ColumnSchema<DisplayModData>[] = COLUMN_SCHEMA;
+		let activeColumns: ColumnSchema<DisplayModData>[] = MAIN_COLUMN_SCHEMA;
 		const columnActiveConfig = (config as MainCollectionConfig | undefined)?.columnActiveConfig;
 		if (columnActiveConfig) {
 			activeColumns = activeColumns.filter(

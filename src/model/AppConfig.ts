@@ -1,4 +1,6 @@
+import { CollectionConfig } from './CollectionConfig';
 import { ModErrorType } from './CollectionValidation';
+import { MainCollectionConfig } from './MainCollectionView';
 
 export interface AppConfig {
 	closeOnLaunch: boolean;
@@ -16,7 +18,7 @@ export interface AppConfig {
 	steamMaxConcurrency: number;
 	currentPath: string;
 
-	viewConfigs?: {
+	viewConfigs: {
 		main?: MainCollectionConfig;
 		rawMods?: RawCollectionConfig;
 		separated?: SeparatedCollectionConfig;
@@ -25,17 +27,8 @@ export interface AppConfig {
 	ignoredValidationErrors?: Map<ModErrorType, string[]>;
 }
 
-export interface CollectionConfig {
-	ignoreBadValidation?: boolean;
-}
-
 export interface RawCollectionConfig extends CollectionConfig {
 	showUpdateWarning?: boolean;
-}
-
-export interface MainCollectionConfig extends CollectionConfig {
-	smallRows?: boolean;
-	columnActiveConfig?: { [colID: string]: boolean };
 }
 
 export interface SeparatedCollectionConfig extends CollectionConfig {

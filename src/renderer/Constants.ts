@@ -47,5 +47,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 	activeCollection: undefined,
 	steamMaxConcurrency: 5,
 
-	currentPath: 'collections/main'
+	currentPath: 'collections/main',
+
+	viewConfigs: {}
 };

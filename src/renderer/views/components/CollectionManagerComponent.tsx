@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import React, { Component, CSSProperties, ReactNode } from 'react';
 import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
-import { Layout, Button, Popover, Modal, notification, Typography } from 'antd';
+import { Layout, Button, Popover, notification, Typography } from 'antd';
 import { SizeMe } from 'react-sizeme';
 import {
 	ModData,
@@ -17,7 +17,9 @@ import {
 	validateCollection,
 	ModType,
 	DisplayModData,
-	CollectionViewType
+	CollectionViewType,
+	CollectionManagerModalType,
+	NotificationProps
 } from 'model';
 import api from 'renderer/Api';
 import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'util/Promise';
@@ -25,17 +27,10 @@ import { pause } from 'util/Sleep';
 import CollectionManagerToolbar from './CollectionManagementToolbar';
 import ModDetailsFooter from './ModDetailsFooter';
 import ModLoadingView from './ModLoadingComponent';
+import CollectionManagerModal from './CollectionManagerModal';
 
 const { Header, Footer, Content } = Layout;
 const { Text, Title } = Typography;
-
-enum ModalType {
-	NONE = 0,
-	DESELCTING_MOD_MANAGER = 1,
-	VALIDATING = 'validating',
-	ERRORS_FOUND = 'errors_found',
-	WARNINGS_FOUND = 'warnings_found'
-}
 
 interface CollectionManagerState {
 	updatePromiseManager: CancellablePromiseManager;
@@ -52,29 +47,13 @@ interface CollectionManagerState {
 	madeEdits: boolean;
 
 	// modal
-	modalType: ModalType;
+	modalType: CollectionManagerModalType;
 
 	lastValidationStatus?: boolean;
 	guidedFixActive?: boolean;
 
 	currentRecord?: ModData;
 	bigDetails?: boolean;
-}
-
-interface NotificationProps {
-	placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-	message: ReactNode;
-	description?: ReactNode;
-	btn?: ReactNode;
-	className?: string;
-	closeIcon?: ReactNode;
-	duration: number | null;
-	key?: string;
-	style?: CSSProperties;
-	onClick?: () => void;
-	onClose?: () => void;
-	top?: number;
-	bottom?: number;
 }
 
 const openNotification = (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => {
@@ -90,8 +69,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			gameRunning: false,
 			validatingMods: false, // we don't validate on load
 			collectionErrors: undefined,
-			modalType: ModalType.NONE, // we don't validate on load
-			madeEdits: false
+			modalType: CollectionManagerModalType.NONE, // we don't validate on load
+			madeEdits: false,
+			bigDetails: true
 		};
 
 		this.handleClick = this.handleClick.bind(this);
@@ -144,7 +124,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				changed = true;
 			} else {
 				// display modal
-				this.setState({ modalType: ModalType.DESELCTING_MOD_MANAGER });
+				this.setState({ modalType: CollectionManagerModalType.DESELECTING_MOD_MANAGER });
 			}
 			if (changed) {
 				const { validationPromise } = this.state;
@@ -198,7 +178,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			if (launchIfValid) {
 				this.setState({
 					modalType:
-						invalidIdsFound || incompatibleModsFound || missingDependenciesFound ? ModalType.ERRORS_FOUND : ModalType.WARNINGS_FOUND
+						invalidIdsFound || incompatibleModsFound || missingDependenciesFound
+							? CollectionManagerModalType.ERRORS_FOUND
+							: CollectionManagerModalType.WARNINGS_FOUND
 				});
 			}
 		} else {
@@ -565,7 +547,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				this.setState({
 					gameRunning: true,
 					launchGameWithErrors: false,
-					modalType: ModalType.NONE
+					modalType: CollectionManagerModalType.NONE
 				});
 			});
 	}
@@ -628,8 +610,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						}
 						setTimeout(() => {
 							const { modalType } = this.state;
-							if (modalType !== ModalType.DESELCTING_MOD_MANAGER) {
-								this.setState({ modalType: ModalType.NONE });
+							if (modalType !== CollectionManagerModalType.DESELECTING_MOD_MANAGER) {
+								this.setState({ modalType: CollectionManagerModalType.NONE });
 							}
 						}, 500);
 						return updateSuccess;
@@ -699,157 +681,36 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	renderModal(currentView: CollectionViewType) {
 		const { modalType, launchGameWithErrors } = this.state;
 		const { appState } = this.props;
-		const { activeCollection, mods, updateState, config } = appState;
+		const { activeCollection, mods } = appState;
 
-		const launchAnyway = () => {
-			this.setState({ launchGameWithErrors: true });
-			const modList: ModData[] = (activeCollection ? [...activeCollection!.mods].map((mod) => getByUID(mods, mod)) : []) as ModData[];
-			this.baseLaunchGame(modList);
-		};
-
-		switch (modalType) {
-			case ModalType.DESELCTING_MOD_MANAGER: {
-				const managerUID = this.getModManagerUID();
-				const managerData: ModData = getByUID(mods, managerUID)!;
-				return (
-					<Modal
-						title="Useless Operation"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="launch"
-								type="primary"
-								onClick={() => {
-									this.setState({ modalType: ModalType.NONE });
-								}}
-							>
-								OK
-							</Button>
-						]}
-					>
-						<p>You are attempting to deselect the mod manager.</p>
-						<p>An external mod manager is current required for TerraTech to load some mods properly.</p>
-						<p>Your current selected manager is {`${managerData.name} (${config.workshopID})`}</p>
-						<p>If you would like to change your manager, do so by entering the workshop file ID in the settings tab.</p>
-					</Modal>
-				);
-			}
-			case ModalType.ERRORS_FOUND:
-				return (
-					<Modal
-						title="Errors Found in Configuration"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="cancel"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({
-										modalType: ModalType.NONE
-									});
-									updateState({ launchingGame: false });
-								}}
-							>
-								Manually Fix
-							</Button>,
-							/* <Button
-								key="auto-fix"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									updateState({ launchingGame: false });
-									this.setState({ guidedFixActive: true });
-								}}
-							>
-								Guided Fix
-							</Button>, */
-							<Button
-								key="launch"
-								danger
-								type="primary"
-								disabled={launchGameWithErrors}
-								loading={launchGameWithErrors}
-								onClick={launchAnyway}
-							>
-								Launch Anyway
-							</Button>
-						]}
-					>
-						<p>One or more mods have either missing dependencies, or is selected alongside incompatible mods.</p>
-						<p>Launching the game with this mod list may lead to crashes, or even save game corruption.</p>
-						<p>
-							Mods that share the same Mod ID (Not the same as Workshop ID) are explicitly incompatible, and only the first one TerraTech
-							loads will be used. All others will be ignored.
-						</p>
-
-						<p>Do you want to continue anyway?</p>
-					</Modal>
-				);
-			case ModalType.WARNINGS_FOUND:
-				return (
-					<Modal
-						title="Minor Errors Found in Configuration"
-						visible
-						closable={false}
-						footer={[
-							<Button
-								key="cancel"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									this.setState({
-										modalType: ModalType.NONE
-									});
-									updateState({ launchingGame: false });
-								}}
-							>
-								Manually Fix
-							</Button>,
-							/* <Button
-								key="auto-fix"
-								type="primary"
-								disabled={launchGameWithErrors}
-								onClick={() => {
-									updateState({ launchingGame: false });
-									this.setState({ guidedFixActive: true });
-								}}
-							>
-								Guided Fix
-							</Button>, */
-							<Button
-								key="launch"
-								danger
-								type="primary"
-								disabled={launchGameWithErrors}
-								loading={launchGameWithErrors}
-								onClick={launchAnyway}
-							>
-								Launch Anyway
-							</Button>
-						]}
-					>
-						<p>Unable to validate one or more mods in the collection.</p>
-						<p>This is probably because you are not subscribed to them.</p>
-						<p>Do you want to continue anyway?</p>
-					</Modal>
-				);
-			default:
-				return null;
-		}
+		return (
+			<CollectionManagerModal
+				appState={appState}
+				launchAnyway={() => {
+					this.setState({ launchGameWithErrors: true });
+					const modList: ModData[] = (activeCollection ? [...activeCollection!.mods].map((mod) => getByUID(mods, mod)) : []) as ModData[];
+					this.baseLaunchGame(modList);
+				}}
+				modalType={modalType}
+				launchGameWithErrors={!!launchGameWithErrors}
+				currentView={currentView}
+				openNotification={openNotification}
+				closeModal={() => {
+					this.setState({ modalType: CollectionManagerModalType.NONE });
+				}}
+			/>
+		);
 	}
 
 	renderContent(currentView: CollectionViewType) {
-		const { filteredRows, madeEdits, lastValidationStatus, guidedFixActive, bigDetails } = this.state;
+		const { filteredRows, madeEdits, lastValidationStatus, guidedFixActive, bigDetails, currentRecord } = this.state;
 		const { appState } = this.props;
 		const { mods, config } = appState;
 		const { viewConfigs } = config;
 
 		const rows = getRows(mods);
 
-		return bigDetails ? null : (
+		return bigDetails && currentRecord ? null : (
 			<SizeMe monitorHeight monitorWidth refreshMode="debounce">
 				{({ size }) => {
 					let actualContent = null;
@@ -895,11 +756,14 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 								this.handleClick(false, id);
 							},
 							getModDetails: (uid: string, record: ModData, showBigDetails?: boolean) => {
-								const { currentRecord } = this.state;
 								if (!currentRecord || currentRecord.uid !== uid) {
-									this.setState({ currentRecord: record, bigDetails: showBigDetails });
+									const change: any = { currentRecord: record };
+									if (showBigDetails !== undefined) {
+										change.bigDetails = showBigDetails;
+									}
+									this.setState(change);
 								} else {
-									this.setState({ currentRecord: undefined, bigDetails: false });
+									this.setState({ currentRecord: undefined });
 								}
 							}
 						};
@@ -929,7 +793,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					bigDetails={!!bigDetails}
 					currentRecord={currentRecord}
 					closeFooterCallback={() => {
-						this.setState({ bigDetails: false, currentRecord: undefined });
+						this.setState({ currentRecord: undefined });
 					}}
 					enableModCallback={(uid: string) => {
 						this.handleClick(true, uid);
@@ -950,7 +814,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			<Button
 				type="primary"
 				loading={launchingGame}
-				disabled={overrideGameRunning || gameRunning || modalType !== ModalType.NONE || launchingGame}
+				disabled={overrideGameRunning || gameRunning || modalType !== CollectionManagerModalType.NONE || launchingGame}
 				onClick={this.launchGame}
 			>
 				Launch Game
@@ -1028,6 +892,12 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						deleteCollectionCallback={this.deleteCollection}
 						saveCollectionCallback={() => {
 							this.saveCollection(appState.activeCollection as ModCollection, true);
+						}}
+						openViewSettingsCallback={() => {
+							if (!config.viewConfigs) {
+								config.viewConfigs = {};
+							}
+							this.setState({ modalType: CollectionManagerModalType.VIEW_SETTINGS });
 						}}
 					/>
 				</Header>

@@ -1,4 +1,5 @@
-import { CollectionConfig } from './AppConfig';
+import { CSSProperties, ReactNode } from 'react';
+import { CollectionConfig } from './CollectionConfig';
 import { ModData } from './Mod';
 
 export interface ModCollection {
@@ -28,4 +29,28 @@ export interface CollectionViewProps {
 	setEnabledCallback: (mod: string) => any;
 	setDisabledCallback: (mod: string) => any;
 	getModDetails: (mod: string, modData: ModData, bigData?: boolean) => void;
+}
+
+export enum CollectionManagerModalType {
+	NONE = 0,
+	DESELECTING_MOD_MANAGER = 1,
+	VIEW_SETTINGS = 2,
+	ERRORS_FOUND = 'errors_found',
+	WARNINGS_FOUND = 'warnings_found'
+}
+
+export interface NotificationProps {
+	placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+	message: ReactNode;
+	description?: ReactNode;
+	btn?: ReactNode;
+	className?: string;
+	closeIcon?: ReactNode;
+	duration: number | null;
+	key?: string;
+	style?: CSSProperties;
+	onClick?: () => void;
+	onClose?: () => void;
+	top?: number;
+	bottom?: number;
 }

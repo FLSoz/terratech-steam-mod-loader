@@ -5,3 +5,4 @@ export * from './Mod';
 export * from './CollectionValidation';
 export * from './SessionMods';
 export * from './ModCollection';
+export * from './MainCollectionView';

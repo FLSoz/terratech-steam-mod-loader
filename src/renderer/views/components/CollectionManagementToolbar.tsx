@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable react/require-default-props */
 import React, { Component } from 'react';
-import { AppState } from 'model';
+import { AppState, CollectionViewType } from 'model';
 import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
 import {
 	EditOutlined,
@@ -13,7 +13,8 @@ import {
 	CopyOutlined,
 	ImportOutlined,
 	ExportOutlined,
-	CloseCircleOutlined
+	CloseCircleOutlined,
+	SettingFilled
 } from '@ant-design/icons';
 import api from 'renderer/Api';
 
@@ -40,6 +41,7 @@ interface CollectionManagementToolbarProps {
 	numResults?: number;
 	lastValidationStatus?: boolean;
 	loadingMods?: boolean;
+	openViewSettingsCallback: () => void;
 	onSearchCallback: (search: string) => void;
 	onSearchChangeCallback: (search: string) => void;
 	saveCollectionCallback: () => void;
@@ -153,7 +155,8 @@ export default class CollectionManagementToolbarComponent extends Component<
 			onSearchChangeCallback,
 			searchString,
 			madeEdits,
-			lastValidationStatus
+			lastValidationStatus,
+			openViewSettingsCallback
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
 		return (
@@ -279,9 +282,9 @@ export default class CollectionManagementToolbarComponent extends Component<
 					</Col>
 				</Row>
 				<Row key="row2" justify="space-between" align="top" gutter={16} style={{ lineHeight: '32px' }}>
-					<Col span={14}>
+					<Col span={12}>
 						<Row gutter={24}>
-							<Col span={numResults !== undefined ? 18 : 24} key="search">
+							<Col span={numResults !== undefined ? 16 : 24} key="search">
 								<div style={{ lineHeight: '32px' }}>
 									<Search
 										placeholder="input search text"
@@ -299,7 +302,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 								</div>
 							</Col>
 							{numResults !== undefined ? (
-								<Col span={6} key="right">
+								<Col span={8} key="right">
 									<div style={{ lineHeight: '32px' }}>
 										<span>{numResults} mods found</span>
 									</div>
@@ -323,6 +326,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 							>
 								Validate
 							</Button>
+							<Button icon={<SettingFilled />} onClick={openViewSettingsCallback} />
 						</Space>
 					</Col>
 				</Row>
