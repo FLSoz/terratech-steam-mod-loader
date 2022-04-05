@@ -6,10 +6,9 @@ import { ColumnType } from 'antd/lib/table';
 import { CompareFn, TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
 import { CollectionViewProps, DisplayModData, MainCollectionConfig, MainColumnTitles, ModErrors, ModType } from 'model';
-import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone } from '@ant-design/icons';
+import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled } from '@ant-design/icons';
 import { formatDateStr } from 'util/Date';
 
-import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
 import Corp_Icon_HE from '../../../../assets/Corp_Icon_HE.png';
@@ -32,7 +31,7 @@ function getImageSrcFromType(type: ModType, size = 15) {
 		case ModType.LOCAL:
 			return (
 				<Tooltip title="This is a local mod">
-					<img src={local} width={size} alt="" key="type" />
+					<HddFilled width={size} />
 				</Tooltip>
 			);
 		case ModType.TTQMM:
@@ -48,11 +47,7 @@ function getImageSrcFromType(type: ModType, size = 15) {
 				</Tooltip>
 			);
 		default:
-			return (
-				<Tooltip title="This is a local mod">
-					<img src={local} width={size} alt="" key="type" />
-				</Tooltip>
-			);
+			return null;
 	}
 }
 
@@ -334,7 +329,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 				}
 
 				// If everything is fine, only return OK if we have actually validated it
-				if (lastValidationStatus !== undefined && !!errors) {
+				if (lastValidationStatus !== undefined) {
 					return (
 						<Tag key="OK" color="green">
 							OK

@@ -23,19 +23,31 @@ import {
 import {
 	ClockCircleTwoTone,
 	CloseOutlined,
+	FolderOpenFilled,
 	FullscreenExitOutlined,
 	FullscreenOutlined,
+	HddFilled,
 	StopTwoTone,
 	WarningTwoTone
 } from '@ant-design/icons';
 import api from 'renderer/Api';
-import { AppState, DisplayModData, getDescriptor, ModCollection, ModDescriptor, ModErrors, ModErrorType, ModType } from 'model';
+import {
+	AppConfig,
+	AppState,
+	DisplayModData,
+	getDescriptor,
+	ModCollection,
+	ModDescriptor,
+	ModErrors,
+	ModErrorType,
+	ModType,
+	NotificationProps
+} from 'model';
 import { formatDateStr } from 'util/Date';
 
 import missing from '../../../../assets/missing.png';
 import { ColumnType } from 'antd/lib/table';
 
-import local from '../../../../assets/local.png';
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
 import { TableRowSelection } from 'antd/lib/table/interface';
@@ -51,7 +63,7 @@ function getImageSrcFromType(type: ModType, size = 15) {
 		case ModType.LOCAL:
 			return (
 				<Tooltip title="This is a local mod">
-					<img src={local} width={size} alt="" key="type" />
+					<HddFilled width={size} />
 				</Tooltip>
 			);
 		case ModType.TTQMM:
@@ -97,6 +109,8 @@ interface ModDetailsFooterProps {
 	// eslint-disable-next-line react/no-unused-prop-types
 	disableModCallback: (uid: string) => void;
 	setModSubsetCallback: (changes: { [uid: string]: boolean }) => void;
+	openNotification: (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => void;
+	validateCollection: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -106,29 +120,10 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 		this.state = {};
 	}
 
-	getTreeModData(descriptors: ModDescriptor[]): DisplayModData[] {
-		const { appState } = this.props;
-		const { mods } = appState;
-		return descriptors.map((modDescriptor) => {
-			const uids = modDescriptor.UIDs;
-			if (uids.size <= 1) {
-				const uid = [...uids][0];
-				return mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID };
-			}
-			return {
-				uid: `${ModType.DESCRIPTOR}:${modDescriptor.modID}`,
-				id: modDescriptor.modID || null,
-				type: ModType.DESCRIPTOR,
-				name: `${modDescriptor.modID} Mod Group`,
-				children: [...uids].map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID })
-			};
-		});
-	}
-
 	generateIgnoredRender(type: DependenciesTableType) {
-		const { appState } = this.props;
+		const { appState, currentRecord, openNotification } = this.props;
 		const { config, updateState } = appState;
-		const ignoreBadValidation: Map<ModErrorType, string[]> = config.ignoredValidationErrors;
+		const ignoreBadValidation: Map<ModErrorType, { [uid: string]: string[] }> = config.ignoredValidationErrors;
 
 		let errorType: ModErrorType | undefined;
 		switch (type) {
@@ -142,27 +137,70 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 		if (errorType) {
 			return (_: unknown, record: DisplayModData) => {
 				const ignoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
-				const isSelected = ignoredErrors?.includes(record.uid);
+				const myIgnoredErrors = ignoredErrors ? ignoredErrors[currentRecord.uid] || [] : [];
+				const isSelected =
+					(type === DependenciesTableType.REQUIRED && myIgnoredErrors.includes(record.id!)) ||
+					(type === DependenciesTableType.CONFLICT && myIgnoredErrors.includes(record.uid));
+
+				const { validateCollection } = this.props;
+				const saveUpdates = () => {
+					validateCollection();
+					api.updateConfig(config as AppConfig).catch((error) => {
+						api.logger.error(error);
+						openNotification(
+							{
+								message: 'Failed to udpate config',
+								placement: 'bottomLeft',
+								duration: null
+							},
+							'error'
+						);
+					});
+				};
+
 				return (
 					<Checkbox
 						checked={isSelected}
-						disabled={record.type === ModType.DESCRIPTOR}
+						disabled={record.type !== ModType.DESCRIPTOR && type === DependenciesTableType.REQUIRED}
 						onChange={(evt) => {
-							const errors = ignoreBadValidation.get(errorType as ModErrorType);
-							if (errors) {
-								if (evt.target.checked) {
-									ignoreBadValidation.set(errorType as ModErrorType, [...new Set(errors).add(record.uid)]);
-									this.setState({});
-								} else {
-									ignoreBadValidation.set(
-										errorType as ModErrorType,
-										errors.filter((ignoredUID) => ignoredUID !== record.uid)
-									);
-									this.setState({});
+							if (type === DependenciesTableType.REQUIRED && record.id) {
+								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
+								if (!allIgnoredErrors) {
+									allIgnoredErrors = {};
+									ignoreBadValidation.set(errorType as ModErrorType, allIgnoredErrors);
 								}
-							} else if (evt.target.checked) {
-								ignoreBadValidation.set(errorType as ModErrorType, [record.uid]);
-								this.setState({});
+								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
+								if (thisIgnoredErrors) {
+									if (evt.target.checked) {
+										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record.id)];
+										this.setState({}, saveUpdates);
+									} else {
+										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record.id);
+										this.setState({}, saveUpdates);
+									}
+								} else if (evt.target.checked) {
+									allIgnoredErrors[currentRecord.uid] = [record.id];
+									this.setState({}, saveUpdates);
+								}
+							} else if (type === DependenciesTableType.CONFLICT) {
+								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
+								if (!allIgnoredErrors) {
+									allIgnoredErrors = {};
+									ignoreBadValidation.set(errorType as ModErrorType, allIgnoredErrors);
+								}
+								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
+								if (thisIgnoredErrors) {
+									if (evt.target.checked) {
+										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record.uid)];
+										this.setState({}, saveUpdates);
+									} else {
+										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record.uid);
+										this.setState({}, saveUpdates);
+									}
+								} else if (evt.target.checked) {
+									allIgnoredErrors[currentRecord.uid] = [record.uid];
+									this.setState({}, saveUpdates);
+								}
 							}
 						}}
 					/>
@@ -222,6 +260,9 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 					return 0;
 				},
 				render: (name: string, record: DisplayModData) => {
+					if (record.type === ModType.DESCRIPTOR && record.children && record.children.length > 0) {
+						return <span><FolderOpenFilled /> {name}</span>
+					}
 					let updateIcon = null;
 					let updateType: 'danger' | 'warning' | undefined;
 					if (record.needsUpdate) {
@@ -312,10 +353,10 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 
 					// Handle folder item
 					if (record.type === ModType.DESCRIPTOR) {
-						const children = record.children!.map((data) => data.uid);
+						const children = record.children?.map((data) => data.uid) || [];
 						const selectedChildren = children.filter((uid) => selectedMods.includes(uid));
 						if (selectedChildren.length > 1) {
-							return <Tag color="red">Conflicts</Tag>
+							return <Tag color="red">Conflicts</Tag>;
 						}
 					}
 
@@ -426,28 +467,24 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			selectedRowKeys: mods,
 			checkStrictly: false,
 			onChange: (selectedRowKeys: React.Key[]) => {
-				console.log(data);
-				console.log(selectedRowKeys);
-				api.logger.debug(`selecting ${selectedRowKeys}`);
 				const changes: { [uid: string]: boolean } = {};
 				data.forEach((record) => {
 					if (record.type === ModType.DESCRIPTOR) {
-						record.children!.forEach((childData) => {
-							changes[childData.uid] = selectedRowKeys.includes(childData.uid);
-							if (changes[childData.uid]) {
-								console.log(`SELECTING ${childData.uid}`);
-							}
-						});
+						if (record.children) {
+							record.children.forEach((childData) => {
+								changes[childData.uid] = selectedRowKeys.includes(childData.uid);
+							});
+						} else {
+							changes[record.uid] = selectedRowKeys.includes(record.uid);
+						}
 					} else {
 						changes[record.uid] = selectedRowKeys.includes(record.uid);
 					}
 				});
-				api.logger.debug(`CHANGES ${JSON.stringify(changes, null, 2)}`);
 				setModSubsetCallback(changes);
 			},
 			onSelect: (record: DisplayModData, selected: boolean) => {
 				if (record.type !== ModType.DESCRIPTOR) {
-					api.logger.debug(`selecting ${record.uid}: ${selected}`);
 					if (selected) {
 						if (!mods.includes(record.uid)) {
 							mods.push(record.uid);
@@ -463,9 +500,13 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 				const changes: { [uid: string]: boolean } = {};
 				data.forEach((record) => {
 					if (record.type === ModType.DESCRIPTOR) {
-						record.children!.forEach((childData) => {
-							changes[childData.uid] = true;
-						});
+						if (record.children) {
+							record.children.forEach((childData) => {
+								changes[childData.uid] = true;
+							});
+						} else {
+							changes[record.uid] = true;
+						}
 					} else {
 						changes[record.uid] = true;
 					}
@@ -477,9 +518,13 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 				const changes: { [uid: string]: boolean } = {};
 				data.forEach((record) => {
 					if (record.type === ModType.DESCRIPTOR) {
-						record.children!.forEach((childData) => {
-							changes[childData.uid] = false;
-						});
+						if (record.children) {
+							record.children.forEach((childData) => {
+								changes[childData.uid] = false;
+							});
+						} else {
+							changes[record.uid] = false;
+						}
 					} else {
 						changes[record.uid] = false;
 					}
@@ -638,8 +683,39 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 		const dependentModDescriptors = currentRecord.isDependencyFor || [];
 		const requiredModDescriptors = currentRecord.dependsOn || [];
 
-		const requiredModData: DisplayModData[] = this.getTreeModData(requiredModDescriptors);
-		const dependentModData: DisplayModData[] = this.getTreeModData(dependentModDescriptors);
+		const requiredModData: DisplayModData[] = requiredModDescriptors.map((modDescriptor) => {
+			const uids = modDescriptor.UIDs;
+			if (uids.size <= 1) {
+				const uid = [...uids][0];
+				const modData = mods.modIdToModDataMap.get(uid);
+				if (modData) {
+					return { ...modData, type: ModType.DESCRIPTOR };
+				} else {
+					return { uid, id: 'INVALID', type: ModType.INVALID };
+				}
+			}
+			return {
+				uid: `${ModType.DESCRIPTOR}:${modDescriptor.modID}`,
+				id: modDescriptor.modID || null,
+				type: ModType.DESCRIPTOR,
+				name: modDescriptor.modID,
+				children: [...uids].map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID })
+			};
+		});
+		const dependentModData: DisplayModData[] = dependentModDescriptors.map((modDescriptor) => {
+			const uids = modDescriptor.UIDs;
+			if (uids.size <= 1) {
+				const uid = [...uids][0];
+				return mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID };
+			}
+			return {
+				uid: `${ModType.DESCRIPTOR}:${modDescriptor.modID}`,
+				id: modDescriptor.modID || null,
+				type: ModType.DESCRIPTOR,
+				name: `${modDescriptor.modID} Mod Group`,
+				children: [...uids].map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID })
+			};
+		});
 		const conflictingModData: DisplayModData[] = [...(modDescriptor?.UIDs || [])]
 			.filter((uid) => uid !== currentRecord.uid)
 			.map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID });

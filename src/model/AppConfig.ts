@@ -24,7 +24,7 @@ export interface AppConfig {
 		separated?: SeparatedCollectionConfig;
 	};
 
-	ignoredValidationErrors: Map<ModErrorType, string[]>;
+	ignoredValidationErrors: Map<ModErrorType, { [uid: string]: string[] }>;
 }
 
 export interface RawCollectionConfig extends CollectionConfig {

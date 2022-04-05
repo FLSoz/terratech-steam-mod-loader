@@ -231,9 +231,7 @@ export function validateCollection(session: SessionMods, collection: ModCollecti
 				}
 				return undefined;
 			});
-			console.log(presentDescriptorsList);
 			const presentDescriptors: Set<ModDescriptor> = new Set(descriptorToActiveMap.keys());
-			console.log(presentDescriptors);
 			presentDescriptorsList.forEach((wrappedDescriptor, i: number) => {
 				if (wrappedDescriptor) {
 					const { modData, descriptor } = wrappedDescriptor;
@@ -252,8 +250,6 @@ export function validateCollection(session: SessionMods, collection: ModCollecti
 								return !presentDescriptors.has(dependency);
 							});
 							if (missingDependencies.length > 0) {
-								console.log(dependencies);
-								console.log(missingDependencies);
 								modErrors.missingDependencies = missingDependencies;
 							}
 						}

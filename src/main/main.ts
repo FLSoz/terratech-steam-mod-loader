@@ -383,9 +383,9 @@ ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 			appConfig.viewConfigs = {};
 		}
 		if (appConfig.ignoredValidationErrors) {
-			const convertedMap: Map<ModErrorType, string[]> = new Map();
-			const castObject = appConfig.ignoredValidationErrors as { [modID: number]: string[] };
-			Object.entries(castObject).forEach(([key, value]: [string, string[]]) => {
+			const convertedMap: Map<ModErrorType, {[uid: string]: string[]}> = new Map();
+			const castObject = appConfig.ignoredValidationErrors as { [modID: number]: {[uid: string]: string[]} };
+			Object.entries(castObject).forEach(([key, value]: [string, {[uid: string]: string[]}]) => {
 				convertedMap.set(parseInt(key) as ModErrorType, value);
 			});
 			appConfig.ignoredValidationErrors = convertedMap;

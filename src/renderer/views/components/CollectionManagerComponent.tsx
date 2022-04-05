@@ -19,7 +19,8 @@ import {
 	DisplayModData,
 	CollectionViewType,
 	CollectionManagerModalType,
-	NotificationProps
+	NotificationProps,
+	ModErrorType
 } from 'model';
 import api from 'renderer/Api';
 import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'util/Promise';
@@ -149,9 +150,10 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		this.setState({ gameRunning: running });
 	}
 
-	setModErrors(collectionErrors: CollectionErrors, launchIfValid: boolean) {
+	setModErrors(collectionErrors: CollectionErrors, launchIfValid: boolean): boolean {
 		const { appState } = this.props;
-		const { mods } = appState;
+		const { mods, config } = appState;
+		const { ignoredValidationErrors } = config;
 		const rows = getRows(mods);
 
 		if (!!collectionErrors && Object.keys(collectionErrors).length > 0) {
@@ -160,14 +162,41 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			let missingSubscriptions = false;
 			let missingDependenciesFound = false;
 
+			const incompatibleIgnoredErrors = ignoredValidationErrors.get(ModErrorType.INCOMPATIBLE_MODS);
+			const invalidIgnoredErrors = ignoredValidationErrors.get(ModErrorType.INVALID_ID);
+			const dependencyIgnoredErrors = ignoredValidationErrors.get(ModErrorType.MISSING_DEPENDENCIES);
+
+			let nonIgnoredFailed = false;
+
 			rows.forEach((mod: DisplayModData) => {
 				const thisModErrors = collectionErrors[mod.uid];
 				if (thisModErrors) {
-					mod.errors = thisModErrors;
+					if (incompatibleIgnoredErrors && incompatibleIgnoredErrors[mod.uid]) {
+						if (!!thisModErrors.incompatibleMods) {
+							const nonIgnoredErrors = thisModErrors.incompatibleMods.filter((uid) => !incompatibleIgnoredErrors[mod.uid].includes(uid));
+							thisModErrors.incompatibleMods = nonIgnoredErrors.length > 0 ? nonIgnoredErrors : undefined;
+						}
+					}
 					incompatibleModsFound ||= !!thisModErrors.incompatibleMods && thisModErrors.incompatibleMods.length > 0;
+					if (invalidIgnoredErrors && invalidIgnoredErrors[mod.uid]) {
+						if (!!thisModErrors.invalidId) {
+							thisModErrors.invalidId = invalidIgnoredErrors[mod.uid].length > 0;
+						}
+					}
 					invalidIdsFound ||= !!thisModErrors.invalidId;
 					missingSubscriptions ||= !!thisModErrors.notSubscribed;
+					if (dependencyIgnoredErrors && dependencyIgnoredErrors[mod.uid]) {
+						if (!!thisModErrors.missingDependencies) {
+							const nonIgnoredErrors = thisModErrors.missingDependencies.filter(
+								(descriptor) => !dependencyIgnoredErrors[mod.uid].includes(descriptor.modID!)
+							);
+							thisModErrors.missingDependencies = nonIgnoredErrors.length > 0 ? nonIgnoredErrors : undefined;
+						}
+					}
 					missingDependenciesFound ||= !!thisModErrors.missingDependencies && thisModErrors.missingDependencies.length > 0;
+					mod.errors = thisModErrors;
+
+					nonIgnoredFailed ||= !!thisModErrors.needsUpdate || !!thisModErrors.notInstalled;
 				} else {
 					mod.errors = undefined;
 				}
@@ -175,7 +204,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 			this.setState({
 				collectionErrors
 			});
-			if (launchIfValid) {
+			nonIgnoredFailed ||= invalidIdsFound || incompatibleModsFound || missingDependenciesFound || missingSubscriptions;
+			if (launchIfValid && nonIgnoredFailed) {
 				this.setState({
 					modalType:
 						invalidIdsFound || incompatibleModsFound || missingDependenciesFound
@@ -183,11 +213,13 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							: CollectionManagerModalType.WARNINGS_FOUND
 				});
 			}
+			return !nonIgnoredFailed;
 		} else {
 			rows.forEach((mod: DisplayModData) => {
 				mod.errors = undefined;
 			});
 			this.setState({ collectionErrors: undefined });
+			return true;
 		}
 	}
 
@@ -576,11 +608,10 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 		const { appState } = this.props;
 		const { activeCollection, mods } = appState;
 
-		const success = !errors || Object.keys(errors).length === 0;
-
 		setTimeout(() => this.setState({ validatingMods: false }), 100);
 		if (activeCollection) {
-			this.setModErrors(errors, launchIfValid);
+			let success = !errors || Object.keys(errors).length === 0;
+			success = this.setModErrors(errors, launchIfValid) || success; // always set mod errors, and count it as a success if it returns successfully
 			const collectionMods = [...activeCollection.mods];
 			if (success) {
 				this.setState({ lastValidationStatus: true });
@@ -837,6 +868,8 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							}
 						}
 					}}
+					openNotification={openNotification}
+					validateCollection={() => {this.validateActiveCollection(false)}}
 				/>
 			);
 		}
