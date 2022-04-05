@@ -194,6 +194,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 													);
 												})
 												.finally(() => {
+													this.setState({ savingConfig: false });
 													closeModal();
 												});
 										});

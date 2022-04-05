@@ -49,5 +49,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 
 	currentPath: 'collections/main',
 
-	viewConfigs: {}
+	viewConfigs: {},
+
+	ignoredValidationErrors: new Map()
 };

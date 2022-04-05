@@ -2,11 +2,13 @@
 export enum ModType {
 	WORKSHOP = 'workshop',
 	LOCAL = 'local',
-	TTQMM = 'ttqmm'
+	TTQMM = 'ttqmm',
+	INVALID = 'invalid',
+	DESCRIPTOR = 'descriptor'
 }
 
 export interface ModDescriptor {
-	workshopIDs: Set<bigint>;
+	UIDs: Set<string>;
 	modID?: string;
 	name?: string;
 }

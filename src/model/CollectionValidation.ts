@@ -24,4 +24,5 @@ export interface CollectionErrors {
 
 export interface DisplayModData extends ModData {
 	errors?: ModErrors;
+	children?: DisplayModData[];
 }

@@ -1,18 +1,75 @@
 /* eslint-disable no-nested-ternary */
-import React, { Component, CSSProperties, ReactNode } from 'react';
-import { Layout, Button, Typography, Col, Row, Tabs, Image, Space, Card, PageHeader, Descriptions, Tag, Collapse } from 'antd';
-import { CloseOutlined, FullscreenExitOutlined, FullscreenOutlined } from '@ant-design/icons';
-import { SizeMe } from 'react-sizeme';
-import { AppState, DisplayModData, ModData } from 'model';
+import React, { Component } from 'react';
+import {
+	Empty,
+	Layout,
+	Button,
+	Typography,
+	Col,
+	Row,
+	Tabs,
+	Image,
+	Space,
+	Card,
+	PageHeader,
+	Descriptions,
+	Tag,
+	Collapse,
+	Table,
+	Checkbox,
+	Tooltip,
+	ConfigProvider
+} from 'antd';
+import {
+	ClockCircleTwoTone,
+	CloseOutlined,
+	FullscreenExitOutlined,
+	FullscreenOutlined,
+	StopTwoTone,
+	WarningTwoTone
+} from '@ant-design/icons';
+import api from 'renderer/Api';
+import { AppState, DisplayModData, getDescriptor, ModCollection, ModDescriptor, ModErrors, ModErrorType, ModType } from 'model';
 import { formatDateStr } from 'util/Date';
 
 import missing from '../../../../assets/missing.png';
+import { ColumnType } from 'antd/lib/table';
+
+import local from '../../../../assets/local.png';
+import steam from '../../../../assets/steam.png';
+import ttmm from '../../../../assets/ttmm.png';
+import { TableRowSelection } from 'antd/lib/table/interface';
 
 const { Header, Footer, Content } = Layout;
 const { Panel } = Collapse;
 const { TabPane } = Tabs;
 const { Meta } = Card;
 const { Text, Paragraph } = Typography;
+
+function getImageSrcFromType(type: ModType, size = 15) {
+	switch (type) {
+		case ModType.LOCAL:
+			return (
+				<Tooltip title="This is a local mod">
+					<img src={local} width={size} alt="" key="type" />
+				</Tooltip>
+			);
+		case ModType.TTQMM:
+			return (
+				<Tooltip title="This is a TTMM mod">
+					<img src={ttmm} width={size} alt="" key="type" />
+				</Tooltip>
+			);
+		case ModType.WORKSHOP:
+			return (
+				<Tooltip title="This is a Steam mod">
+					<img src={steam} width={size} alt="" key="type" />
+				</Tooltip>
+			);
+		default:
+			return null;
+	}
+}
 
 function getImagePreview(path?: string) {
 	return (
@@ -22,8 +79,15 @@ function getImagePreview(path?: string) {
 	);
 }
 
+enum DependenciesTableType {
+	REQUIRED = 0,
+	DEPENDENT = 1,
+	CONFLICT = 2
+}
+
 interface ModDetailsFooterProps {
 	bigDetails: boolean;
+	lastValidationStatus?: boolean;
 	appState: AppState;
 	currentRecord: DisplayModData;
 	expandFooterCallback: (expand: boolean) => void;
@@ -32,6 +96,7 @@ interface ModDetailsFooterProps {
 	enableModCallback: (uid: string) => void;
 	// eslint-disable-next-line react/no-unused-prop-types
 	disableModCallback: (uid: string) => void;
+	setModSubsetCallback: (changes: { [uid: string]: boolean }) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -39,6 +104,391 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 	constructor(props: ModDetailsFooterProps) {
 		super(props);
 		this.state = {};
+	}
+
+	getTreeModData(descriptors: ModDescriptor[]): DisplayModData[] {
+		const { appState } = this.props;
+		const { mods } = appState;
+		return descriptors.map((modDescriptor) => {
+			const uids = modDescriptor.UIDs;
+			if (uids.size <= 1) {
+				const uid = [...uids][0];
+				return mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID };
+			}
+			return {
+				uid: `${ModType.DESCRIPTOR}:${modDescriptor.modID}`,
+				id: modDescriptor.modID || null,
+				type: ModType.DESCRIPTOR,
+				name: `${modDescriptor.modID} Mod Group`,
+				children: [...uids].map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID })
+			};
+		});
+	}
+
+	generateIgnoredRender(type: DependenciesTableType) {
+		const { appState } = this.props;
+		const { config, updateState } = appState;
+		const ignoreBadValidation: Map<ModErrorType, string[]> = config.ignoredValidationErrors;
+
+		let errorType: ModErrorType | undefined;
+		switch (type) {
+			case DependenciesTableType.REQUIRED:
+				errorType = ModErrorType.MISSING_DEPENDENCIES;
+				break;
+			case DependenciesTableType.CONFLICT:
+				errorType = ModErrorType.INCOMPATIBLE_MODS;
+				break;
+		}
+		if (errorType) {
+			return (_: unknown, record: DisplayModData) => {
+				const ignoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
+				const isSelected = ignoredErrors?.includes(record.uid);
+				return (
+					<Checkbox
+						checked={isSelected}
+						disabled={record.type === ModType.DESCRIPTOR}
+						onChange={(evt) => {
+							const errors = ignoreBadValidation.get(errorType as ModErrorType);
+							if (errors) {
+								if (evt.target.checked) {
+									ignoreBadValidation.set(errorType as ModErrorType, [...new Set(errors).add(record.uid)]);
+									this.setState({});
+								} else {
+									ignoreBadValidation.set(
+										errorType as ModErrorType,
+										errors.filter((ignoredUID) => ignoredUID !== record.uid)
+									);
+									this.setState({});
+								}
+							} else if (evt.target.checked) {
+								ignoreBadValidation.set(errorType as ModErrorType, [record.uid]);
+								this.setState({});
+							}
+						}}
+					/>
+				);
+			};
+		}
+		return undefined;
+	}
+
+	getDependenciesSchema(type: DependenciesTableType) {
+		const { appState, enableModCallback, disableModCallback, lastValidationStatus, setModSubsetCallback } = this.props;
+		const { activeCollection } = appState;
+		const { mods } = activeCollection!;
+
+		const DEPENDENCY_IGNORED_TYPE: ColumnType<DisplayModData> = {
+			title: 'Ignored',
+			render: (_: unknown, record: DisplayModData) => {
+				const isSelected = false;
+				return (
+					<Checkbox
+						checked={isSelected}
+						onChange={(evt) => {
+							if (record.type === ModType.DESCRIPTOR) {
+								const changes: { [uid: string]: boolean } = {};
+								(record.children || []).forEach((childData) => {
+									changes[childData.uid] = evt.target.checked;
+									setModSubsetCallback(changes);
+								});
+							} else {
+								if (evt.target.checked) {
+									enableModCallback(record.uid);
+								} else {
+									disableModCallback(record.uid);
+								}
+							}
+						}}
+					/>
+				);
+			}
+		};
+
+		const DESCRIPTOR_COLUMN_SCHEMA: ColumnType<DisplayModData>[] = [
+			{
+				title: 'Name',
+				dataIndex: 'name',
+				defaultSortOrder: 'ascend',
+				sorter: (a: DisplayModData, b: DisplayModData) => {
+					if (a.name) {
+						if (b.name) {
+							return a.name > b.name ? 1 : -1;
+						}
+						return 1;
+					}
+					if (b.name) {
+						return -1;
+					}
+					return 0;
+				},
+				render: (name: string, record: DisplayModData) => {
+					let updateIcon = null;
+					let updateType: 'danger' | 'warning' | undefined;
+					if (record.needsUpdate) {
+						updateIcon = (
+							<Tooltip title="Needs update">
+								<WarningTwoTone twoToneColor="red" />
+							</Tooltip>
+						);
+						updateType = 'danger';
+						if (record.downloadPending) {
+							updateIcon = (
+								<Tooltip title="Download pending">
+									<ClockCircleTwoTone twoToneColor="orange" />
+								</Tooltip>
+							);
+							updateType = 'warning';
+						}
+						if (record.downloading) {
+							updateIcon = (
+								<Tooltip title="Downloading">
+									<StopTwoTone spin twoToneColor="orange" />
+								</Tooltip>
+							);
+							updateType = 'warning';
+						}
+					}
+					return (
+						<span>
+							{updateIcon}
+							<Text strong={record.needsUpdate} type={updateType}>{` ${name}`}</Text>
+						</span>
+					);
+				}
+			},
+			{
+				title: 'Type',
+				dataIndex: 'type',
+				render: (type: ModType) => getImageSrcFromType(type, 20),
+				width: 65,
+				align: 'center'
+			},
+			{
+				title: 'Authors',
+				dataIndex: 'authors',
+				defaultSortOrder: 'ascend',
+				sorter: (a, b) => {
+					const v1 = a;
+					const v2 = b;
+					if (v1.authors) {
+						if (v2.authors) {
+							const l1 = v1.authors.length;
+							const l2 = v2.authors.length;
+							let ind = 0;
+							while (ind < l1 && ind < l2) {
+								if (v1.authors[ind] > v2.authors[ind]) {
+									return 1;
+								}
+								if (v1.authors[ind] < v2.authors[ind]) {
+									return -1;
+								}
+								ind += 1;
+							}
+							if (l1 > l2) {
+								return 1;
+							}
+							if (l1 < l2) {
+								return -1;
+							}
+							return 0;
+						}
+						return 1;
+					}
+					return -1;
+				},
+				// eslint-disable-next-line @typescript-eslint/ban-types
+				render: (authors: string[] | undefined) => {
+					return (authors || []).map((author) => {
+						return <Tag key={author}>{author}</Tag>;
+					});
+				}
+			},
+			{
+				title: 'State',
+				dataIndex: 'errors',
+				render: (errors: ModErrors | undefined, record: DisplayModData) => {
+					const collection = appState.activeCollection as ModCollection;
+					const selectedMods = collection.mods;
+
+					// Handle folder item
+					if (record.type === ModType.DESCRIPTOR) {
+						const children = record.children!.map((data) => data.uid);
+						const selectedChildren = children.filter((uid) => selectedMods.includes(uid));
+						if (selectedChildren.length > 1) {
+							return <Tag color="red">Conflicts</Tag>
+						}
+					}
+
+					if (!selectedMods.includes(record.uid)) {
+						if (!record.subscribed && record.workshopID && record.workshopID > 0) {
+							return <Tag key="notSubscribed">Not subscribed</Tag>;
+						}
+						if (record.subscribed && !record.installed) {
+							return <Tag key="notInstalled">Not installed</Tag>;
+						}
+						return null;
+					}
+					const errorTags: { text: string; color: string }[] = [];
+					if (errors) {
+						if (errors.incompatibleMods && errors.incompatibleMods.length > 0) {
+							errorTags.push({
+								text: 'Conflicts',
+								color: 'red'
+							});
+						}
+						if (errors.invalidId) {
+							errorTags.push({
+								text: 'Invalid ID',
+								color: 'volcano'
+							});
+						}
+						if (errors.missingDependencies && errors.missingDependencies.length > 0) {
+							errorTags.push({
+								text: 'Missing dependencies',
+								color: 'orange'
+							});
+						}
+
+						// Installation status errors
+						if (errors.notSubscribed) {
+							errorTags.push({
+								text: 'Not subscribed',
+								color: 'yellow'
+							});
+						} else if (errors.notInstalled) {
+							errorTags.push({
+								text: 'Not installed',
+								color: 'yellow'
+							});
+						} else if (errors.needsUpdate) {
+							errorTags.push({
+								text: 'Needs update',
+								color: 'yellow'
+							});
+						}
+					}
+					if (errorTags.length > 0) {
+						return errorTags.map((tagConfig) => {
+							return (
+								<Tag key={tagConfig.text} color={tagConfig.color}>
+									{tagConfig.text}
+								</Tag>
+							);
+						});
+					}
+
+					// If everything is fine, only return OK if we have actually validated it
+					if (lastValidationStatus !== undefined && !!errors) {
+						return (
+							<Tag key="OK" color="green">
+								OK
+							</Tag>
+						);
+					}
+					return null;
+				}
+			},
+			{
+				title: 'ID',
+				dataIndex: 'id',
+				sorter: (a, b) => {
+					if (a.id) {
+						if (b.id) {
+							return a.id > b.id ? 1 : -1;
+						}
+						return 1;
+					}
+					if (b.id) {
+						return -1;
+					}
+					return 0;
+				}
+			}
+		];
+
+		const ignoredRenderer = this.generateIgnoredRender(type);
+		if (ignoredRenderer) {
+			DESCRIPTOR_COLUMN_SCHEMA.push({
+				title: 'Ignored',
+				render: ignoredRenderer
+			});
+		}
+		return DESCRIPTOR_COLUMN_SCHEMA;
+	}
+
+	getDependenciesRowSelection(type: DependenciesTableType, data: DisplayModData[]) {
+		const { appState, enableModCallback, disableModCallback, setModSubsetCallback } = this.props;
+		const { activeCollection } = appState;
+		const { mods } = activeCollection!;
+
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		const rowSelection: TableRowSelection<DisplayModData> = {
+			selectedRowKeys: mods,
+			checkStrictly: false,
+			onChange: (selectedRowKeys: React.Key[]) => {
+				console.log(data);
+				console.log(selectedRowKeys);
+				api.logger.debug(`selecting ${selectedRowKeys}`);
+				const changes: { [uid: string]: boolean } = {};
+				data.forEach((record) => {
+					if (record.type === ModType.DESCRIPTOR) {
+						record.children!.forEach((childData) => {
+							changes[childData.uid] = selectedRowKeys.includes(childData.uid);
+							if (changes[childData.uid]) {
+								console.log(`SELECTING ${childData.uid}`);
+							}
+						});
+					} else {
+						changes[record.uid] = selectedRowKeys.includes(record.uid);
+					}
+				});
+				api.logger.debug(`CHANGES ${JSON.stringify(changes, null, 2)}`);
+				setModSubsetCallback(changes);
+			},
+			onSelect: (record: DisplayModData, selected: boolean) => {
+				if (record.type !== ModType.DESCRIPTOR) {
+					api.logger.debug(`selecting ${record.uid}: ${selected}`);
+					if (selected) {
+						if (!mods.includes(record.uid)) {
+							mods.push(record.uid);
+						}
+						enableModCallback(record.uid);
+					} else {
+						disableModCallback(record.uid);
+					}
+				}
+			},
+			onSelectAll: (selected: boolean) => {
+				api.logger.debug(`selecting full subset: ${selected}`);
+				const changes: { [uid: string]: boolean } = {};
+				data.forEach((record) => {
+					if (record.type === ModType.DESCRIPTOR) {
+						record.children!.forEach((childData) => {
+							changes[childData.uid] = true;
+						});
+					} else {
+						changes[record.uid] = true;
+					}
+				});
+				setModSubsetCallback(changes);
+			},
+			onSelectNone: () => {
+				api.logger.debug(`clearing sub-selection`);
+				const changes: { [uid: string]: boolean } = {};
+				data.forEach((record) => {
+					if (record.type === ModType.DESCRIPTOR) {
+						record.children!.forEach((childData) => {
+							changes[childData.uid] = false;
+						});
+					} else {
+						changes[record.uid] = false;
+					}
+				});
+				setModSubsetCallback(changes);
+			}
+		};
+
+		return rowSelection;
 	}
 
 	renderInfoTab() {
@@ -70,11 +520,12 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 
 	renderInspectTab() {
 		const { appState, currentRecord } = this.props;
-		const { activeCollection } = appState;
+		const { activeCollection, mods } = appState;
 
-		// return JSON.stringify(currentRecord, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
+		const modDescriptor = getDescriptor(mods, currentRecord);
+
 		return (
-			<Collapse className="ModDetailInspect" defaultActiveKey={['info', 'properties', 'status']}>
+			<Collapse className="ModDetailInspect" defaultActiveKey={['info', 'descriptor', 'properties', 'status']}>
 				<Panel header="Mod Info" key="info">
 					<Descriptions column={1} bordered size="small" labelStyle={{ width: 150 }}>
 						<Descriptions.Item label="Author">{currentRecord.authors}</Descriptions.Item>
@@ -83,6 +534,13 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 						<Descriptions.Item label="UID">{currentRecord.uid}</Descriptions.Item>
 						<Descriptions.Item label="Name">{currentRecord.name}</Descriptions.Item>
 						<Descriptions.Item label="Tags">{currentRecord.tags ? currentRecord.tags.join(', ') : null}</Descriptions.Item>
+					</Descriptions>
+				</Panel>
+				<Panel header="Mod Descriptor" key="descriptor">
+					<Descriptions column={1} bordered size="small" labelStyle={{ width: 150 }}>
+						<Descriptions.Item label="Name">{modDescriptor?.name}</Descriptions.Item>
+						<Descriptions.Item label="ID">{modDescriptor?.modID}</Descriptions.Item>
+						<Descriptions.Item label="Equivalent UIDs">{[...(modDescriptor?.UIDs || [])].join(', ')}</Descriptions.Item>
 					</Descriptions>
 				</Panel>
 				<Panel header="Mod Properties" key="properties">
@@ -123,15 +581,71 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 		);
 	}
 
-	renderDependenciesTab() {
-		const { appState, currentRecord } = this.props;
-		return JSON.stringify(currentRecord.dependsOn, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
+	renderDependenciesTab(requiredModData: DisplayModData[], dependentModData: DisplayModData[], conflictingModData: DisplayModData[]) {
+		// return JSON.stringify(currentRecord.dependsOn, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
+		return (
+			<ConfigProvider
+				renderEmpty={() => {
+					return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ marginTop: 5, marginBottom: 5 }} />;
+				}}
+			>
+				<Collapse className="ModDetailDependencies" defaultActiveKey={['info', 'properties', 'status']}>
+					<Panel header="Required mods:" key="info">
+						<Table
+							pagination={false}
+							size="small"
+							rowKey="uid"
+							sticky
+							dataSource={requiredModData}
+							rowSelection={this.getDependenciesRowSelection(DependenciesTableType.REQUIRED, requiredModData)}
+							columns={this.getDependenciesSchema(DependenciesTableType.REQUIRED)}
+						/>
+					</Panel>
+					<Panel header="Dependent mods:" key="properties">
+						<Table
+							pagination={false}
+							size="small"
+							rowKey="uid"
+							sticky
+							dataSource={dependentModData}
+							rowSelection={this.getDependenciesRowSelection(DependenciesTableType.DEPENDENT, dependentModData)}
+							columns={this.getDependenciesSchema(DependenciesTableType.DEPENDENT)}
+						/>
+					</Panel>
+					<Panel header="Conflicting mods:" key="status">
+						<Table
+							pagination={false}
+							size="small"
+							rowKey="uid"
+							sticky
+							dataSource={conflictingModData}
+							rowSelection={this.getDependenciesRowSelection(DependenciesTableType.CONFLICT, conflictingModData)}
+							columns={this.getDependenciesSchema(DependenciesTableType.CONFLICT)}
+						/>
+					</Panel>
+				</Collapse>
+			</ConfigProvider>
+		);
 	}
 
 	render() {
-		const { bigDetails, currentRecord, closeFooterCallback, expandFooterCallback } = this.props;
-		const normalStyle = { minHeight: '25%', maxHeight: 400 };
+		const { appState, bigDetails, currentRecord, closeFooterCallback, expandFooterCallback } = this.props;
+		const normalStyle = { minHeight: '25%', maxHeight: '50%' };
 		const bigStyle = {};
+
+		const { mods } = appState;
+		const modDescriptor = getDescriptor(mods, currentRecord);
+		const dependentModDescriptors = currentRecord.isDependencyFor || [];
+		const requiredModDescriptors = currentRecord.dependsOn || [];
+
+		const requiredModData: DisplayModData[] = this.getTreeModData(requiredModDescriptors);
+		const dependentModData: DisplayModData[] = this.getTreeModData(dependentModDescriptors);
+		const conflictingModData: DisplayModData[] = [...(modDescriptor?.UIDs || [])]
+			.filter((uid) => uid !== currentRecord.uid)
+			.map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID });
+
+		const showDependenciesTab = requiredModData.length > 0 || dependentModData.length > 0 || conflictingModData.length > 0;
+
 		return (
 			<Content className="ModDetailFooter" style={bigDetails ? bigStyle : normalStyle}>
 				<PageHeader
@@ -164,8 +678,8 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 								<TabPane tab="Inspect" key="inspect">
 									{this.renderInspectTab()}
 								</TabPane>
-								<TabPane tab="Dependencies" key="dependencies">
-									{this.renderDependenciesTab()}
+								<TabPane tab="Dependencies" key="dependencies" disabled={!showDependenciesTab}>
+									{this.renderDependenciesTab(requiredModData, dependentModData, conflictingModData)}
 								</TabPane>
 							</Tabs>
 						</Content>

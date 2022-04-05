@@ -784,11 +784,12 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 	}
 
 	renderFooter(currentView: CollectionViewType) {
-		const { currentRecord, bigDetails } = this.state;
+		const { currentRecord, bigDetails, lastValidationStatus } = this.state;
 		const { appState } = this.props;
 		if (currentView === CollectionViewType.MAIN && currentRecord) {
 			return (
 				<ModDetailsFooter
+					lastValidationStatus={lastValidationStatus}
 					appState={appState}
 					bigDetails={!!bigDetails}
 					currentRecord={currentRecord}
@@ -803,6 +804,38 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 					}}
 					expandFooterCallback={(expand: boolean) => {
 						this.setState({ bigDetails: expand });
+					}}
+					setModSubsetCallback={(changes: { [uid: string]: boolean }) => {
+						const { appState } = this.props;
+						const { activeCollection } = appState;
+						if (activeCollection) {
+							let changed = false;
+							let deselectingModManager = false;
+							Object.entries(changes).forEach(([uid, checked]: [string, boolean]) => {
+								if (checked) {
+									if (!activeCollection.mods.includes(uid)) {
+										changed = true;
+										activeCollection.mods.push(uid);
+									}
+								} else if (uid !== this.getModManagerUID()) {
+									activeCollection.mods = activeCollection.mods.filter((mod) => mod !== uid);
+									changed = true;
+								} else {
+									// display modal
+									deselectingModManager = true;
+								}
+							});
+							if (deselectingModManager) {
+								this.setState({ modalType: CollectionManagerModalType.DESELECTING_MOD_MANAGER });
+							}
+							if (changed) {
+								const { validationPromise } = this.state;
+								if (validationPromise) {
+									validationPromise.cancel();
+								}
+								this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
+							}
+						}
 					}}
 				/>
 			);

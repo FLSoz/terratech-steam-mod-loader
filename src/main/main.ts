@@ -18,7 +18,7 @@ import fs from 'fs';
 import child_process from 'child_process';
 import psList from 'ps-list';
 
-import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig } from '../model';
+import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig, ModErrorType } from '../model';
 import Steamworks, { EResult } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
@@ -378,11 +378,21 @@ ipcMain.handle(ValidChannel.DELETE_COLLECTION, async (_event, collection: string
 ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
 	try {
-		const appConfig: AppConfig = JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
+		const appConfig = JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
 		if (!appConfig.viewConfigs) {
 			appConfig.viewConfigs = {};
 		}
-		return appConfig;
+		if (appConfig.ignoredValidationErrors) {
+			const convertedMap: Map<ModErrorType, string[]> = new Map();
+			const castObject = appConfig.ignoredValidationErrors as { [modID: number]: string[] };
+			Object.entries(castObject).forEach(([key, value]: [string, string[]]) => {
+				convertedMap.set(parseInt(key) as ModErrorType, value);
+			});
+			appConfig.ignoredValidationErrors = convertedMap;
+		} else {
+			appConfig.ignoredValidationErrors = new Map();
+		}
+		return appConfig as AppConfig;
 	} catch (error) {
 		log.error(error);
 		return null;
@@ -394,6 +404,9 @@ ipcMain.handle(ValidChannel.UPDATE_CONFIG, async (_event, config) => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
 	try {
 		log.info('updated config');
+		if (config.ignoredValidationErrors) {
+			config.ignoredValidationErrors = Object.fromEntries(config.ignoredValidationErrors);
+		}
 		fs.writeFileSync(filepath, JSON.stringify(config, null, 4), {
 			encoding: 'utf8',
 			flag: 'w'

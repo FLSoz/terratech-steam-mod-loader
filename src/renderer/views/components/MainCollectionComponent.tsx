@@ -606,7 +606,6 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 						rowSelection={this.getRowSelection()}
 						columns={this.getColumnSchema()}
 						sticky
-						tableLayout="fixed"
 						onRow={(record, rowIndex) => {
 							return {
 								onClick: (event) => {

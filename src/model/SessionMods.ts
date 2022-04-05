@@ -48,11 +48,9 @@ export function setupDescriptors(session: SessionMods) {
 			if (mod.id) {
 				descriptor = modIdToModDescriptor.get(mod.id);
 			}
-			if (descriptor) {
-				descriptor.workshopIDs.add(workshopID);
-			} else {
+			if (!descriptor) {
 				descriptor = {
-					workshopIDs: new Set()
+					UIDs: new Set()
 				};
 				if (mod.id) {
 					descriptor.modID = mod.id;
@@ -63,7 +61,7 @@ export function setupDescriptors(session: SessionMods) {
 				descriptor.name = mod.name;
 			}
 
-			descriptor.workshopIDs.add(workshopID);
+			descriptor.UIDs.add(mod.uid);
 			workshopIdToModDescriptor.set(workshopID, descriptor);
 			if (mod.id) {
 				modIdToModDescriptor.set(mod.id, descriptor);
@@ -75,16 +73,24 @@ export function setupDescriptors(session: SessionMods) {
 		if (mod.type !== ModType.WORKSHOP) {
 			if (mod.id) {
 				if (!modIdToModDataMap.get(mod.uid)) {
+					// Don't expect this to ever happen
 					const descriptor: ModDescriptor = {
 						modID: mod.id,
-						workshopIDs: new Set(),
+						UIDs: new Set(),
 						name: mod.name
 					};
-					if (mod.workshopID) {
-						// Don't expect to happen - it's only possible when there's a manual override in place
-						descriptor.workshopIDs.add(mod.workshopID);
-					}
+					descriptor.UIDs.add(mod.uid);
 					modIdToModDescriptor.set(mod.id, descriptor);
+				} else {
+					let descriptor: ModDescriptor | undefined = modIdToModDescriptor.get(mod.id);
+					if (!descriptor) {
+						descriptor = {
+							UIDs: new Set()
+						};
+						descriptor.modID = mod.id;
+						modIdToModDescriptor.set(mod.id, descriptor);
+					}
+					descriptor.UIDs.add(mod.uid);
 				}
 			}
 		}
