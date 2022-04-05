@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
-import React, { Component, CSSProperties, ReactNode } from 'react';
+import React, { Component } from 'react';
 import { useOutletContext, Outlet, useLocation, Location } from 'react-router-dom';
-import { Layout, Button, Popover, notification, Typography } from 'antd';
+import { Layout, Button, Popover, notification } from 'antd';
 import { SizeMe } from 'react-sizeme';
 import {
 	ModData,
@@ -25,13 +25,12 @@ import {
 import api from 'renderer/Api';
 import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'util/Promise';
 import { pause } from 'util/Sleep';
-import CollectionManagerToolbar from './CollectionManagementToolbar';
-import ModDetailsFooter from './ModDetailsFooter';
-import ModLoadingView from './ModLoadingComponent';
-import CollectionManagerModal from './CollectionManagerModal';
+import CollectionManagerToolbar from '../components/collections/CollectionManagementToolbar';
+import ModDetailsFooter from '../components/collections/ModDetailsFooter';
+import ModLoadingView from '../components/loading/ModLoading';
+import CollectionManagerModal from '../components/collections/CollectionManagerModal';
 
 const { Header, Footer, Content } = Layout;
-const { Text, Title } = Typography;
 
 interface CollectionManagerState {
 	updatePromiseManager: CancellablePromiseManager;
@@ -61,7 +60,7 @@ const openNotification = (props: NotificationProps, type?: 'info' | 'error' | 's
 	notification[type || 'open']({ ...props });
 };
 
-class CollectionManagerComponent extends Component<{ appState: AppState; location: Location }, CollectionManagerState> {
+class CollectionView extends Component<{ appState: AppState; location: Location }, CollectionManagerState> {
 	constructor(props: { appState: AppState; location: Location }) {
 		super(props);
 		this.state = {
@@ -172,21 +171,21 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				const thisModErrors = collectionErrors[mod.uid];
 				if (thisModErrors) {
 					if (incompatibleIgnoredErrors && incompatibleIgnoredErrors[mod.uid]) {
-						if (!!thisModErrors.incompatibleMods) {
+						if (thisModErrors.incompatibleMods) {
 							const nonIgnoredErrors = thisModErrors.incompatibleMods.filter((uid) => !incompatibleIgnoredErrors[mod.uid].includes(uid));
 							thisModErrors.incompatibleMods = nonIgnoredErrors.length > 0 ? nonIgnoredErrors : undefined;
 						}
 					}
 					incompatibleModsFound ||= !!thisModErrors.incompatibleMods && thisModErrors.incompatibleMods.length > 0;
 					if (invalidIgnoredErrors && invalidIgnoredErrors[mod.uid]) {
-						if (!!thisModErrors.invalidId) {
+						if (thisModErrors.invalidId) {
 							thisModErrors.invalidId = invalidIgnoredErrors[mod.uid].length > 0;
 						}
 					}
 					invalidIdsFound ||= !!thisModErrors.invalidId;
 					missingSubscriptions ||= !!thisModErrors.notSubscribed;
 					if (dependencyIgnoredErrors && dependencyIgnoredErrors[mod.uid]) {
-						if (!!thisModErrors.missingDependencies) {
+						if (thisModErrors.missingDependencies) {
 							const nonIgnoredErrors = thisModErrors.missingDependencies.filter(
 								(descriptor) => !dependencyIgnoredErrors[mod.uid].includes(descriptor.modID!)
 							);
@@ -214,13 +213,12 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 				});
 			}
 			return !nonIgnoredFailed;
-		} else {
-			rows.forEach((mod: DisplayModData) => {
-				mod.errors = undefined;
-			});
-			this.setState({ collectionErrors: undefined });
-			return true;
 		}
+		rows.forEach((mod: DisplayModData) => {
+			mod.errors = undefined;
+		});
+		this.setState({ collectionErrors: undefined });
+		return true;
 	}
 
 	recalculateModData() {
@@ -788,6 +786,7 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 							},
 							getModDetails: (uid: string, record: ModData, showBigDetails?: boolean) => {
 								if (!currentRecord || currentRecord.uid !== uid) {
+									// eslint-disable-next-line @typescript-eslint/no-explicit-any
 									const change: any = { currentRecord: record };
 									if (showBigDetails !== undefined) {
 										change.bigDetails = showBigDetails;
@@ -837,7 +836,6 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						this.setState({ bigDetails: expand });
 					}}
 					setModSubsetCallback={(changes: { [uid: string]: boolean }) => {
-						const { appState } = this.props;
 						const { activeCollection } = appState;
 						if (activeCollection) {
 							let changed = false;
@@ -869,7 +867,9 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 						}
 					}}
 					openNotification={openNotification}
-					validateCollection={() => {this.validateActiveCollection(false)}}
+					validateCollection={() => {
+						this.validateActiveCollection(false);
+					}}
 				/>
 			);
 		}
@@ -976,5 +976,5 @@ class CollectionManagerComponent extends Component<{ appState: AppState; locatio
 }
 
 export default () => {
-	return <CollectionManagerComponent appState={useOutletContext<AppState>()} location={useLocation()} />;
+	return <CollectionView appState={useOutletContext<AppState>()} location={useLocation()} />;
 };

@@ -10,15 +10,15 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 
 import App from './App';
-import ConfigLoadingView from './views/components/ConfigLoadingComponent';
+import ConfigLoadingComponent from './components/loading/ConfigLoading';
 import LoadingView from './views/LoadingView';
 import ModsBrowserView from './views/ModsBrowserView';
 import SettingsView from './views/SettingsView';
-import TTQMMBrowser from './views/components/TTQMMBrowser';
-import SteamBrowser from './views/components/SteamBrowser';
-import CollectionManagerComponent from './views/components/CollectionManagerComponent';
-import MainCollectionComponent from './views/components/MainCollectionComponent';
-import RawCollectionComponent from './views/components/RawCollectionComponent';
+import TTQMMBrowser from './components/browser/TTQMMBrowser';
+import SteamBrowser from './components/browser/SteamBrowser';
+import CollectionView from './views/CollectionView';
+import MainCollectionComponent from './components/collections/MainCollectionComponent';
+import RawCollectionComponent from './components/collections/RawCollectionComponent';
 
 const rootElement = document.getElementById('root');
 render(
@@ -29,10 +29,10 @@ render(
 				<Route path="settings" element={<SettingsView />} />
 				{/* Paths that indicate the application is processing request to load something from disk */}
 				<Route path="loading" element={<LoadingView />}>
-					<Route path="config" element={<ConfigLoadingView />} />
+					<Route path="config" element={<ConfigLoadingComponent />} />
 				</Route>
 				{/* The actual collection management components */}
-				<Route path="collections" element={<CollectionManagerComponent />}>
+				<Route path="collections" element={<CollectionView />}>
 					<Route path="main" element={<MainCollectionComponent />} />
 					<Route path="rawMods" element={<RawCollectionComponent />} />
 				</Route>

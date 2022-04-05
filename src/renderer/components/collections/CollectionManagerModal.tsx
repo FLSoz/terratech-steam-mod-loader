@@ -213,11 +213,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 											}}
 										/>
 									</Form.Item>
-									<Form.Item
-										name="ignoreFailures"
-										label="Ignore Validation Failures"
-										initialValue={!!mainConfig?.ignoreBadValidation}
-									>
+									<Form.Item name="ignoreFailures" label="Ignore Validation Failures" initialValue={!!mainConfig?.ignoreBadValidation}>
 										<Switch
 											checked={!!mainConfig?.ignoreBadValidation}
 											onChange={(checked: boolean) => {

@@ -7,7 +7,7 @@ import { AppState, SessionMods, ModCollection, ValidChannel } from 'model';
 import { Outlet, useLocation, Location, useNavigate, NavigateFunction } from 'react-router-dom';
 
 import api from 'renderer/Api';
-import MenuBar from './views/components/MenuBar';
+import MenuBar from './components/MenuBar';
 import { DEFAULT_CONFIG } from './Constants';
 
 const { Sider } = Layout;

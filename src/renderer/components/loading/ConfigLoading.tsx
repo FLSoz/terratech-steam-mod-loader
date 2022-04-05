@@ -44,7 +44,7 @@ interface ConfigLoadingState {
 	updatingSteamMod: boolean;
 }
 
-class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; appState: AppState }, ConfigLoadingState> {
+class ConfigLoadingView extends Component<{ navigate: NavigateFunction; appState: AppState }, ConfigLoadingState> {
 	CONFIG_PATH: string | undefined = undefined;
 
 	constructor(props: { navigate: NavigateFunction; appState: AppState }) {
@@ -242,5 +242,5 @@ class ConfigLoadingComponent extends Component<{ navigate: NavigateFunction; app
 }
 
 export default () => {
-	return <ConfigLoadingComponent navigate={useNavigate()} appState={useOutletContext<AppState>()} />;
+	return <ConfigLoadingView navigate={useNavigate()} appState={useOutletContext<AppState>()} />;
 };

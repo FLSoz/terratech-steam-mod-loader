@@ -30,6 +30,8 @@ import {
 	StopTwoTone,
 	WarningTwoTone
 } from '@ant-design/icons';
+import { ColumnType } from 'antd/lib/table';
+import { TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
 import {
 	AppConfig,
@@ -37,7 +39,6 @@ import {
 	DisplayModData,
 	getDescriptor,
 	ModCollection,
-	ModDescriptor,
 	ModErrors,
 	ModErrorType,
 	ModType,
@@ -46,16 +47,13 @@ import {
 import { formatDateStr } from 'util/Date';
 
 import missing from '../../../../assets/missing.png';
-import { ColumnType } from 'antd/lib/table';
 
 import steam from '../../../../assets/steam.png';
 import ttmm from '../../../../assets/ttmm.png';
-import { TableRowSelection } from 'antd/lib/table/interface';
 
-const { Header, Footer, Content } = Layout;
+const { Content } = Layout;
 const { Panel } = Collapse;
 const { TabPane } = Tabs;
-const { Meta } = Card;
 const { Text, Paragraph } = Typography;
 
 function getImageSrcFromType(type: ModType, size = 15) {
@@ -120,128 +118,8 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 		this.state = {};
 	}
 
-	generateIgnoredRender(type: DependenciesTableType) {
-		const { appState, currentRecord, openNotification } = this.props;
-		const { config, updateState } = appState;
-		const ignoreBadValidation: Map<ModErrorType, { [uid: string]: string[] }> = config.ignoredValidationErrors;
-
-		let errorType: ModErrorType | undefined;
-		switch (type) {
-			case DependenciesTableType.REQUIRED:
-				errorType = ModErrorType.MISSING_DEPENDENCIES;
-				break;
-			case DependenciesTableType.CONFLICT:
-				errorType = ModErrorType.INCOMPATIBLE_MODS;
-				break;
-		}
-		if (errorType) {
-			return (_: unknown, record: DisplayModData) => {
-				const ignoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
-				const myIgnoredErrors = ignoredErrors ? ignoredErrors[currentRecord.uid] || [] : [];
-				const isSelected =
-					(type === DependenciesTableType.REQUIRED && myIgnoredErrors.includes(record.id!)) ||
-					(type === DependenciesTableType.CONFLICT && myIgnoredErrors.includes(record.uid));
-
-				const { validateCollection } = this.props;
-				const saveUpdates = () => {
-					validateCollection();
-					api.updateConfig(config as AppConfig).catch((error) => {
-						api.logger.error(error);
-						openNotification(
-							{
-								message: 'Failed to udpate config',
-								placement: 'bottomLeft',
-								duration: null
-							},
-							'error'
-						);
-					});
-				};
-
-				return (
-					<Checkbox
-						checked={isSelected}
-						disabled={record.type !== ModType.DESCRIPTOR && type === DependenciesTableType.REQUIRED}
-						onChange={(evt) => {
-							if (type === DependenciesTableType.REQUIRED && record.id) {
-								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
-								if (!allIgnoredErrors) {
-									allIgnoredErrors = {};
-									ignoreBadValidation.set(errorType as ModErrorType, allIgnoredErrors);
-								}
-								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
-								if (thisIgnoredErrors) {
-									if (evt.target.checked) {
-										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record.id)];
-										this.setState({}, saveUpdates);
-									} else {
-										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record.id);
-										this.setState({}, saveUpdates);
-									}
-								} else if (evt.target.checked) {
-									allIgnoredErrors[currentRecord.uid] = [record.id];
-									this.setState({}, saveUpdates);
-								}
-							} else if (type === DependenciesTableType.CONFLICT) {
-								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
-								if (!allIgnoredErrors) {
-									allIgnoredErrors = {};
-									ignoreBadValidation.set(errorType as ModErrorType, allIgnoredErrors);
-								}
-								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
-								if (thisIgnoredErrors) {
-									if (evt.target.checked) {
-										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record.uid)];
-										this.setState({}, saveUpdates);
-									} else {
-										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record.uid);
-										this.setState({}, saveUpdates);
-									}
-								} else if (evt.target.checked) {
-									allIgnoredErrors[currentRecord.uid] = [record.uid];
-									this.setState({}, saveUpdates);
-								}
-							}
-						}}
-					/>
-				);
-			};
-		}
-		return undefined;
-	}
-
-	getDependenciesSchema(type: DependenciesTableType) {
-		const { appState, enableModCallback, disableModCallback, lastValidationStatus, setModSubsetCallback } = this.props;
-		const { activeCollection } = appState;
-		const { mods } = activeCollection!;
-
-		const DEPENDENCY_IGNORED_TYPE: ColumnType<DisplayModData> = {
-			title: 'Ignored',
-			render: (_: unknown, record: DisplayModData) => {
-				const isSelected = false;
-				return (
-					<Checkbox
-						checked={isSelected}
-						onChange={(evt) => {
-							if (record.type === ModType.DESCRIPTOR) {
-								const changes: { [uid: string]: boolean } = {};
-								(record.children || []).forEach((childData) => {
-									changes[childData.uid] = evt.target.checked;
-									setModSubsetCallback(changes);
-								});
-							} else {
-								if (evt.target.checked) {
-									enableModCallback(record.uid);
-								} else {
-									disableModCallback(record.uid);
-								}
-							}
-						}}
-					/>
-				);
-			}
-		};
-
+	getDependenciesSchema(tableType: DependenciesTableType) {
+		const { appState, lastValidationStatus } = this.props;
 		const DESCRIPTOR_COLUMN_SCHEMA: ColumnType<DisplayModData>[] = [
 			{
 				title: 'Name',
@@ -261,7 +139,11 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 				},
 				render: (name: string, record: DisplayModData) => {
 					if (record.type === ModType.DESCRIPTOR && record.children && record.children.length > 0) {
-						return <span><FolderOpenFilled /> {name}</span>
+						return (
+							<span>
+								<FolderOpenFilled /> {name}
+							</span>
+						);
 					}
 					let updateIcon = null;
 					let updateType: 'danger' | 'warning' | undefined;
@@ -447,7 +329,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			}
 		];
 
-		const ignoredRenderer = this.generateIgnoredRender(type);
+		const ignoredRenderer = this.getIgnoredRenderer(tableType);
 		if (ignoredRenderer) {
 			DESCRIPTOR_COLUMN_SCHEMA.push({
 				title: 'Ignored',
@@ -455,6 +337,97 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			});
 		}
 		return DESCRIPTOR_COLUMN_SCHEMA;
+	}
+
+	getIgnoredRenderer(type: DependenciesTableType) {
+		const { appState, currentRecord, openNotification } = this.props;
+		const { config } = appState;
+		const ignoreBadValidation: Map<ModErrorType, { [uid: string]: string[] }> = config.ignoredValidationErrors;
+
+		let errorType: ModErrorType | undefined;
+		// eslint-disable-next-line default-case
+		switch (type) {
+			case DependenciesTableType.REQUIRED:
+				errorType = ModErrorType.MISSING_DEPENDENCIES;
+				break;
+			case DependenciesTableType.CONFLICT:
+				errorType = ModErrorType.INCOMPATIBLE_MODS;
+				break;
+		}
+		if (errorType) {
+			return (_: unknown, record: DisplayModData) => {
+				const ignoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
+				const myIgnoredErrors = ignoredErrors ? ignoredErrors[currentRecord.uid] || [] : [];
+				const isSelected =
+					(type === DependenciesTableType.REQUIRED && myIgnoredErrors.includes(record.id!)) ||
+					(type === DependenciesTableType.CONFLICT && myIgnoredErrors.includes(record.uid));
+
+				const { validateCollection } = this.props;
+				const saveUpdates = () => {
+					validateCollection();
+					api.updateConfig(config as AppConfig).catch((error) => {
+						api.logger.error(error);
+						openNotification(
+							{
+								message: 'Failed to udpate config',
+								placement: 'bottomLeft',
+								duration: null
+							},
+							'error'
+						);
+					});
+				};
+
+				return (
+					<Checkbox
+						checked={isSelected}
+						disabled={record.type !== ModType.DESCRIPTOR && type === DependenciesTableType.REQUIRED}
+						onChange={(evt) => {
+							if (type === DependenciesTableType.REQUIRED && record.id) {
+								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
+								if (!allIgnoredErrors) {
+									allIgnoredErrors = {};
+									ignoreBadValidation.set(errorType as ModErrorType, allIgnoredErrors);
+								}
+								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
+								if (thisIgnoredErrors) {
+									if (evt.target.checked) {
+										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record.id)];
+										this.setState({}, saveUpdates);
+									} else {
+										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record.id);
+										this.setState({}, saveUpdates);
+									}
+								} else if (evt.target.checked) {
+									allIgnoredErrors[currentRecord.uid] = [record.id];
+									this.setState({}, saveUpdates);
+								}
+							} else if (type === DependenciesTableType.CONFLICT) {
+								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
+								if (!allIgnoredErrors) {
+									allIgnoredErrors = {};
+									ignoreBadValidation.set(errorType as ModErrorType, allIgnoredErrors);
+								}
+								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
+								if (thisIgnoredErrors) {
+									if (evt.target.checked) {
+										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record.uid)];
+										this.setState({}, saveUpdates);
+									} else {
+										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record.uid);
+										this.setState({}, saveUpdates);
+									}
+								} else if (evt.target.checked) {
+									allIgnoredErrors[currentRecord.uid] = [record.uid];
+									this.setState({}, saveUpdates);
+								}
+							}
+						}}
+					/>
+				);
+			};
+		}
+		return undefined;
 	}
 
 	getDependenciesRowSelection(type: DependenciesTableType, data: DisplayModData[]) {
@@ -683,36 +656,35 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 		const dependentModDescriptors = currentRecord.isDependencyFor || [];
 		const requiredModDescriptors = currentRecord.dependsOn || [];
 
-		const requiredModData: DisplayModData[] = requiredModDescriptors.map((modDescriptor) => {
-			const uids = modDescriptor.UIDs;
+		const requiredModData: DisplayModData[] = requiredModDescriptors.map((descriptor) => {
+			const uids = descriptor.UIDs;
 			if (uids.size <= 1) {
 				const uid = [...uids][0];
 				const modData = mods.modIdToModDataMap.get(uid);
 				if (modData) {
 					return { ...modData, type: ModType.DESCRIPTOR };
-				} else {
-					return { uid, id: 'INVALID', type: ModType.INVALID };
 				}
+				return { uid, id: 'INVALID', type: ModType.INVALID };
 			}
 			return {
-				uid: `${ModType.DESCRIPTOR}:${modDescriptor.modID}`,
-				id: modDescriptor.modID || null,
+				uid: `${ModType.DESCRIPTOR}:${descriptor.modID}`,
+				id: descriptor.modID || null,
 				type: ModType.DESCRIPTOR,
-				name: modDescriptor.modID,
+				name: descriptor.modID,
 				children: [...uids].map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID })
 			};
 		});
-		const dependentModData: DisplayModData[] = dependentModDescriptors.map((modDescriptor) => {
-			const uids = modDescriptor.UIDs;
+		const dependentModData: DisplayModData[] = dependentModDescriptors.map((descriptor) => {
+			const uids = descriptor.UIDs;
 			if (uids.size <= 1) {
 				const uid = [...uids][0];
 				return mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID };
 			}
 			return {
-				uid: `${ModType.DESCRIPTOR}:${modDescriptor.modID}`,
-				id: modDescriptor.modID || null,
+				uid: `${ModType.DESCRIPTOR}:${descriptor.modID}`,
+				id: descriptor.modID || null,
 				type: ModType.DESCRIPTOR,
-				name: `${modDescriptor.modID} Mod Group`,
+				name: `${descriptor.modID} Mod Group`,
 				children: [...uids].map((uid) => mods.modIdToModDataMap.get(uid) || { uid, id: 'INVALID', type: ModType.INVALID })
 			};
 		});
