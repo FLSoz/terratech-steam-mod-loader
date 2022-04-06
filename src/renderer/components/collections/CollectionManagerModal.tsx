@@ -1,5 +1,5 @@
-import React, { Component, CSSProperties, ReactNode } from 'react';
-import { Layout, Button, Popover, Modal, notification, Typography, Form, Switch, FormInstance } from 'antd';
+import React, { Component } from 'react';
+import { Button, Modal, Typography, Form, Switch, FormInstance, Row, Col, Divider } from 'antd';
 import {
 	AppConfig,
 	AppState,
@@ -47,7 +47,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 
 	render() {
 		const { appState, modalType, launchGameWithErrors, launchAnyway, openNotification, currentView, closeModal } = this.props;
-		const { activeCollection, mods, updateState, config } = appState;
+		const { mods, updateState, config } = appState;
 
 		switch (modalType) {
 			case CollectionManagerModalType.DESELECTING_MOD_MANAGER: {
@@ -55,6 +55,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 				const managerData: ModData = getByUID(mods, managerUID)!;
 				return (
 					<Modal
+						key="manager-warning-modal"
 						title="Useless Operation"
 						visible
 						closable={false}
@@ -74,6 +75,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 			case CollectionManagerModalType.ERRORS_FOUND:
 				return (
 					<Modal
+						key="error-modal"
 						title="Errors Found in Configuration"
 						visible
 						closable={false}
@@ -125,6 +127,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 			case CollectionManagerModalType.WARNINGS_FOUND:
 				return (
 					<Modal
+						key="warning-modal"
 						title="Minor Errors Found in Configuration"
 						visible
 						closable={false}
@@ -175,8 +178,28 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 						const { viewConfigs } = config;
 						const mainConfig = viewConfigs.main;
 						return (
-							<Modal title="Editing Collection View Settings" visible closable={false} footer={null}>
+							<Modal
+								key="settings-modal"
+								className="CollectionSettingsModal"
+								title="Editing Collection View Settings"
+								visible
+								closable={false}
+								footer={[
+									<Button
+										loading={savingConfig}
+										disabled={savingConfig}
+										type="primary"
+										htmlType="submit"
+										onClick={() => {
+											this.formRef.current?.submit();
+										}}
+									>
+										Save Settings
+									</Button>
+								]}
+							>
 								<Form
+									className="CollectionSettingsForm"
 									ref={this.formRef}
 									onFinish={() => {
 										this.setState({ savingConfig: true }, () => {
@@ -200,84 +223,97 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 										});
 									}}
 								>
-									<Form.Item name="smallRows" label="Compact Rows" initialValue={!!mainConfig?.smallRows}>
-										<Switch
-											checked={!!mainConfig?.smallRows}
-											onChange={(checked: boolean) => {
-												if (!mainConfig) {
-													viewConfigs.main = {};
-												}
-												const actualMainConfig = viewConfigs.main!;
-												actualMainConfig.smallRows = checked;
-												this.setState({});
-											}}
-										/>
-									</Form.Item>
-									<Form.Item name="ignoreFailures" label="Ignore Validation Failures" initialValue={!!mainConfig?.ignoreBadValidation}>
-										<Switch
-											checked={!!mainConfig?.ignoreBadValidation}
-											onChange={(checked: boolean) => {
-												if (!mainConfig) {
-													viewConfigs.main = {};
-												}
-												const actualMainConfig = viewConfigs.main!;
-												actualMainConfig.ignoreBadValidation = checked;
-												this.setState({});
-											}}
-										/>
-									</Form.Item>
-									<Paragraph>
-										<Title level={4}>Visible Columns</Title>
-									</Paragraph>
-									{Object.values(MainColumnTitles).map((id: string) => {
-										const configPresent = !!mainConfig?.columnActiveConfig;
-										const colConfig: { [colID: string]: boolean } = mainConfig?.columnActiveConfig || {};
-										const colPresent = colConfig[id] === undefined ? true : colConfig[id];
-										const isChecked = colPresent || !configPresent;
-
-										const cannotDisable =
-											isChecked &&
-											((id === MainColumnTitles.ID && (mainConfig?.columnActiveConfig || {})[MainColumnTitles.NAME] === false) ||
-												(id === MainColumnTitles.NAME && (mainConfig?.columnActiveConfig || {})[MainColumnTitles.ID] === false));
-
-										return (
-											<Form.Item
-												name={id}
-												label={id}
-												initialValue={isChecked}
-												tooltip={
-													cannotDisable
-														? {
-																overlayInnerStyle: { minWidth: 300 },
-																// eslint-disable-next-line max-len
-																title: <Text>{`Must enable either the ${MainColumnTitles.ID} or ${MainColumnTitles.NAME} column`}</Text>
-														  }
-														: undefined
-												}
-											>
+									<Row justify="space-between" gutter={16} className="CollectionSettings">
+										<Col span={10} key="misc-settings">
+											<Form.Item key="smallRows" name="smallRows" label="Compact Rows" initialValue={!!mainConfig?.smallRows}>
 												<Switch
-													checked={isChecked}
-													disabled={cannotDisable}
+													size="small"
+													checked={!!mainConfig?.smallRows}
 													onChange={(checked: boolean) => {
 														if (!mainConfig) {
 															viewConfigs.main = {};
 														}
 														const actualMainConfig = viewConfigs.main!;
-														if (!configPresent) {
-															actualMainConfig.columnActiveConfig = {};
-														}
-														actualMainConfig.columnActiveConfig![id] = checked;
+														actualMainConfig.smallRows = checked;
 														this.setState({});
 													}}
 												/>
 											</Form.Item>
-										);
-									})}
-									<Form.Item wrapperCol={{ offset: 10 }}>
-										<Button loading={savingConfig} disabled={savingConfig} type="primary" htmlType="submit">
-											Save Settings
-										</Button>
-									</Form.Item>
+											<Form.Item
+												key="ignoreFailures"
+												name="ignoreFailures"
+												label="Ignore Errors"
+												initialValue={!!mainConfig?.ignoreBadValidation}
+											>
+												<Switch
+													size="small"
+													checked={!!mainConfig?.ignoreBadValidation}
+													onChange={(checked: boolean) => {
+														if (!mainConfig) {
+															viewConfigs.main = {};
+														}
+														const actualMainConfig = viewConfigs.main!;
+														actualMainConfig.ignoreBadValidation = checked;
+														this.setState({});
+													}}
+												/>
+											</Form.Item>
+										</Col>
+										<Col span={1} key="divider" style={{ height: '100%' }}>
+											<Divider type="vertical" orientation="center" style={{ height: '25em' }} />
+										</Col>
+										<Col span={13} key="columns" className="CollectionColumnSelection">
+											<Paragraph>
+												<Title level={5}>Select visible columns</Title>
+											</Paragraph>
+											{Object.values(MainColumnTitles).map((id: string) => {
+												const configPresent = !!mainConfig?.columnActiveConfig;
+												const colConfig: { [colID: string]: boolean } = mainConfig?.columnActiveConfig || {};
+												const colPresent = colConfig[id] === undefined ? true : colConfig[id];
+												const isChecked = colPresent || !configPresent;
+
+												const cannotDisable =
+													isChecked &&
+													((id === MainColumnTitles.ID && (mainConfig?.columnActiveConfig || {})[MainColumnTitles.NAME] === false) ||
+														(id === MainColumnTitles.NAME && (mainConfig?.columnActiveConfig || {})[MainColumnTitles.ID] === false));
+
+												return (
+													<Form.Item
+														key={id}
+														name={id}
+														label={id}
+														initialValue={isChecked}
+														tooltip={
+															cannotDisable
+																? {
+																		overlayInnerStyle: { minWidth: 300 },
+																		// eslint-disable-next-line max-len
+																		title: <Text>{`Must enable either the ${MainColumnTitles.ID} or ${MainColumnTitles.NAME} column`}</Text>
+																  }
+																: undefined
+														}
+													>
+														<Switch
+															size="small"
+															checked={isChecked}
+															disabled={cannotDisable}
+															onChange={(checked: boolean) => {
+																if (!mainConfig) {
+																	viewConfigs.main = {};
+																}
+																const actualMainConfig = viewConfigs.main!;
+																if (!configPresent) {
+																	actualMainConfig.columnActiveConfig = {};
+																}
+																actualMainConfig.columnActiveConfig![id] = checked;
+																this.setState({});
+															}}
+														/>
+													</Form.Item>
+												);
+											})}
+										</Col>
+									</Row>
 								</Form>
 							</Modal>
 						);

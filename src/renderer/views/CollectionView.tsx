@@ -819,6 +819,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		if (currentView === CollectionViewType.MAIN && currentRecord) {
 			return (
 				<ModDetailsFooter
+					key="mod-details"
 					lastValidationStatus={lastValidationStatus}
 					appState={appState}
 					bigDetails={!!bigDetails}

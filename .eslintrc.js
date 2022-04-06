@@ -22,7 +22,7 @@ module.exports = {
     'max-len': [
       'warn',
       {
-        code: 160,
+        code: 180,
         ignoreComments: true,
 				ignoreUrls: true,
         ignoreTrailingComments: true
