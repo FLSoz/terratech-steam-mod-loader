@@ -63,6 +63,84 @@ async function getSteamSubscribedPage(pageNum: number): Promise<SteamPageResults
 	});
 }
 
+export async function getModDetailsFromPath(potentialMod: ModData, modPath: string, type: ModType): Promise<ModData | null> {
+	log.debug(`Reading mod metadata for ${modPath}`);
+	return new Promise((resolve, reject) => {
+		fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
+			try {
+				if (err) {
+					log.error(`fs.readdir failed on path ${modPath}`);
+					log.error(err);
+					reject(err);
+				} else {
+					let validModData = false;
+					try {
+						const stats = fs.statSync(modPath);
+						potentialMod.lastUpdate = stats.mtime;
+						if (!potentialMod.dateAdded) {
+							potentialMod.dateAdded = stats.birthtime;
+						}
+					} catch (e) {
+						log.error(`Failed to get file details for path ${modPath}`);
+						log.error(e);
+					}
+					const fileSizes = files.map((file) => {
+						let size = 0;
+						if (file.isFile()) {
+							try {
+								const stats = fs.statSync(path.join(modPath, file.name));
+								size = stats.size;
+								if (!potentialMod.lastUpdate || stats.mtime > potentialMod.lastUpdate) {
+									potentialMod.lastUpdate = stats.mtime;
+								}
+							} catch (e) {
+								log.error(`Failed to get file details for ${file.name} under ${modPath}`);
+							}
+							if (file.name === 'preview.png' && !potentialMod.preview) {
+								potentialMod.preview = `image://${path.join(modPath, file.name)}`;
+							} else if (file.name.match(/^(.*)\.dll$/)) {
+								potentialMod.hasCode = true;
+							} else if (file.name === 'ttsmm.json') {
+								Object.assign(potentialMod, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
+							} else {
+								const matches = file.name.match(/^(.*)_bundle$/);
+								if (matches && matches.length > 1) {
+									// eslint-disable-next-line prefer-destructuring
+									potentialMod.id = matches[1];
+									if (type !== ModType.WORKSHOP) {
+										potentialMod.uid = `${type}:${potentialMod.id}`;
+									}
+									if (!potentialMod.name) {
+										// eslint-disable-next-line prefer-destructuring
+										potentialMod.name = matches[1];
+									}
+									potentialMod.path = modPath;
+									validModData = true;
+								}
+								log.silly(`Found file: ${file.name} under mod path ${modPath}`);
+							}
+						}
+						return size;
+					});
+
+					// We are done, increment counter and return
+					if (validModData) {
+						potentialMod.size = fileSizes.reduce((acc: number, curr: number) => acc + curr, 0);
+						resolve(potentialMod);
+					} else {
+						log.warn(`Marking potential mod at ${modPath} as invalid mod`);
+						resolve(null);
+					}
+				}
+			} catch (e) {
+				log.error(`Failed to get local mod details at ${modPath}:`);
+				log.error(e);
+				reject(e);
+			}
+		});
+	});
+}
+
 export default class ModFetcher {
 	localPath: string;
 
@@ -101,87 +179,6 @@ export default class ModFetcher {
 		});
 	}
 
-	async getModDetailsFromPath(potentialMod: ModData, modPath: string, type: ModType): Promise<ModData | null> {
-		log.debug(`Reading mod metadata for ${modPath}`);
-		return new Promise((resolve, reject) => {
-			fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
-				try {
-					if (err) {
-						log.error(`fs.readdir failed on path ${modPath}`);
-						log.error(err);
-						this.updateModLoadingProgress(1);
-						reject(err);
-					} else {
-						let validModData = false;
-						try {
-							const stats = fs.statSync(modPath);
-							potentialMod.lastUpdate = stats.mtime;
-							if (!potentialMod.dateAdded) {
-								potentialMod.dateAdded = stats.birthtime;
-							}
-						} catch (e) {
-							log.error(`Failed to get file details for path ${modPath}`);
-							log.error(e);
-						}
-						const fileSizes = files.map((file) => {
-							let size = 0;
-							if (file.isFile()) {
-								try {
-									const stats = fs.statSync(path.join(modPath, file.name));
-									size = stats.size;
-									if (!potentialMod.lastUpdate || stats.mtime > potentialMod.lastUpdate) {
-										potentialMod.lastUpdate = stats.mtime;
-									}
-								} catch (e) {
-									log.error(`Failed to get file details for ${file.name} under ${modPath}`);
-								}
-								if (file.name === 'preview.png' && !potentialMod.preview) {
-									potentialMod.preview = `image://${path.join(modPath, file.name)}`;
-								} else if (file.name.match(/^(.*)\.dll$/)) {
-									potentialMod.hasCode = true;
-								} else if (file.name === 'ttsmm.json') {
-									Object.assign(potentialMod, JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8')));
-								} else {
-									const matches = file.name.match(/^(.*)_bundle$/);
-									if (matches && matches.length > 1) {
-										// eslint-disable-next-line prefer-destructuring
-										potentialMod.id = matches[1];
-										if (type !== ModType.WORKSHOP) {
-											potentialMod.uid = `${type}:${potentialMod.id}`;
-										}
-										if (!potentialMod.name) {
-											// eslint-disable-next-line prefer-destructuring
-											potentialMod.name = matches[1];
-										}
-										potentialMod.path = modPath;
-										validModData = true;
-									}
-									log.silly(`Found file: ${file.name} under mod path ${modPath}`);
-								}
-							}
-							return size;
-						});
-
-						// We are done, increment counter and return
-						this.updateModLoadingProgress(1);
-						if (validModData) {
-							potentialMod.size = fileSizes.reduce((acc: number, curr: number) => acc + curr, 0);
-							resolve(potentialMod);
-						} else {
-							log.warn(`Marking potential mod at ${modPath} as invalid mod`);
-							resolve(null);
-						}
-					}
-				} catch (e) {
-					log.error(`Failed to get local mod details at ${modPath}:`);
-					log.error(e);
-					this.updateModLoadingProgress(1);
-					reject(e);
-				}
-			});
-		});
-	}
-
 	async fetchLocalMods(localModDirs: string[]): Promise<ModData[]> {
 		const modResponses = await Promise.allSettled<ModData | null>(
 			localModDirs.map((subDir: string) => {
@@ -193,7 +190,9 @@ export default class ModFetcher {
 					hasCode: false,
 					path: modPath
 				};
-				return this.getModDetailsFromPath(potentialMod, modPath, ModType.LOCAL);
+				return getModDetailsFromPath(potentialMod, modPath, ModType.LOCAL).finally(() => {
+					this.updateModLoadingProgress(1);
+				});
 			})
 		);
 		return filterOutNullValues(modResponses);
@@ -205,6 +204,7 @@ export default class ModFetcher {
 				workshopIDs.map((workshopID) => workshopID.toString()),
 				// eslint-disable-next-line consistent-return
 				async (steamDetails: SteamUGCDetails[]) => {
+					log.silly(`Raw workshop list results: ${JSON.stringify(steamDetails, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2)}`);
 					resolve(this.processSteamModResults(steamDetails));
 				},
 				(err: Error) => {
@@ -222,17 +222,21 @@ export default class ModFetcher {
 		modList: Set<bigint>
 	): Promise<Set<bigint>> {
 		const modChunks: bigint[][] = chunk([...modList], MAX_MODS_PER_PAGE);
+		log.silly(JSON.stringify(modChunks, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 
 		const modDependencies: Set<bigint> = new Set();
 
 		// eslint-disable-next-line no-plusplus
 		for (let i = 0; i < modChunks.length; i++) {
 			try {
+				log.silly(`Processing known mod chunk: ${JSON.stringify(modChunks[i], (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2)}`);
 				// eslint-disable-next-line no-await-in-loop
 				await this.getDetailsForWorkshopModList(modChunks[i])
 					// eslint-disable-next-line promise/always-return
 					.then((modDetails) => {
+						log.silly(`Got mod details: ${JSON.stringify(modDetails, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2)}`);
 						modDetails.forEach((mod: ModData) => {
+							log.silly(`Got results for workshop mod ${mod.name} (${mod.uid})`);
 							const modid = mod.workshopID!;
 							this.knownWorkshopMods.delete(modid);
 							knownInvalidMods.delete(modid);
@@ -296,7 +300,7 @@ export default class ModFetcher {
 					potentialMod.needsUpdate = !!(state & UGCItemState.NeedsUpdate);
 				}
 
-				let validMod = true;
+				let validMod = steamUGCDetails.steamIDOwner !== '0';
 				try {
 					if (Steamworks.requestUserInformation(steamUGCDetails.steamIDOwner, true)) {
 						// eslint-disable-next-line no-await-in-loop
@@ -311,13 +315,16 @@ export default class ModFetcher {
 
 				const installInfo = Steamworks.ugcGetItemInstallInfo(workshopid);
 				if (installInfo) {
+					log.silly(`Workshop mod is installed at path: ${installInfo.folder}`);
 					// augment workshop mod with data
 					potentialMod.lastUpdate = new Date(installInfo.timestamp * 1000);
 					potentialMod.size = parseInt(installInfo.sizeOnDisk, 10);
 					try {
 						const modPath = installInfo.folder;
 						// eslint-disable-next-line no-await-in-loop
-						validMod = !!(await this.getModDetailsFromPath(potentialMod, modPath, ModType.WORKSHOP));
+						validMod = !!(await getModDetailsFromPath(potentialMod, modPath, ModType.WORKSHOP).finally(() => {
+							this.updateModLoadingProgress(1);
+						}));
 					} catch (error) {
 						log.error(`Error parsing mod info for workshop:${workshopid}`);
 						log.error(error);
@@ -395,10 +402,11 @@ export default class ModFetcher {
 			// eslint-disable-next-line no-await-in-loop
 			missingKnownWorkshopMods = await this.processWorkshopModList(workshopMap, knownInvalidMods, missingKnownWorkshopMods);
 			this.knownWorkshopMods.forEach((workshopID) => {
+				log.error(`Known workshop mod ${workshopID} is invalid`);
 				knownInvalidMods.add(workshopID);
 			});
 			this.knownWorkshopMods.clear();
-			this.knownWorkshopMods = missingKnownWorkshopMods;
+			this.knownWorkshopMods = new Set(missingKnownWorkshopMods);
 		}
 
 		return [...workshopMap.values()];

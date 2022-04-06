@@ -11,29 +11,31 @@
 // eslint-disable-next-line prettier/prettier
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
+import React from 'react';
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, protocol, dialog } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, protocol, dialog, Menu, MenuItemConstructorOptions } from 'electron';
 import log from 'electron-log';
 import fs from 'fs';
 import child_process from 'child_process';
 import psList from 'ps-list';
 
 import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig, ModErrorType } from '../model';
-import Steamworks, { EResult } from './steamworks';
+import Steamworks, { EResult, UGCItemState } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import ModFetcher from './mod-fetcher';
+import ModFetcher, { getModDetailsFromPath } from './mod-fetcher';
 
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 class App {
 	constructor() {
 		log.transports.file.level = isDevelopment ? 'debug' : 'warn';
+		log.transports.console.level = isDevelopment ? 'debug' : 'warn';
 	}
 }
 
 // enforce minimum of 1000 pixels wide
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindow | undefined;
 let STEAMWORKS_INITED = false;
 
 if (process.env.NODE_ENV === 'production') {
@@ -106,7 +108,7 @@ const createWindow = async () => {
 	});
 
 	mainWindow.on('closed', () => {
-		mainWindow = null;
+		mainWindow = undefined;
 	});
 
 	const menuBuilder = new MenuBuilder(mainWindow);
@@ -243,16 +245,21 @@ ipcMain.on(ValidChannel.DOWNLOAD_MOD, async (event, workshopID: bigint) => {
 
 ipcMain.on(ValidChannel.UPDATE_LOG_LEVEL, async (_event, level: log.LogLevel) => {
 	log.transports.file.level = level;
+	if (isDevelopment) {
+		log.transports.console.level = level;
+	}
 });
 
 ipcMain.on(ValidChannel.READ_MOD_METADATA, async (event, localDir: string, allKnownMods: Set<string>) => {
 	// load workshop mods
 	const knownWorkshopMods: bigint[] = [];
 	allKnownMods.forEach((uid: string) => {
+		log.debug(`Found known mod ${uid}`);
 		const parts: string[] = uid.split(':');
 		if (parts.length === 2) {
 			if (parts[0] === ModType.WORKSHOP) {
 				try {
+					log.debug(`Found workshop mod ${parts[1]}`);
 					const workshopID = BigInt(parts[1]);
 					knownWorkshopMods.push(workshopID);
 				} catch (e) {
@@ -363,6 +370,9 @@ ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 		const appConfig = JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
 		if (appConfig.logLevel) {
 			log.transports.file.level = appConfig.logLevel;
+			if (isDevelopment) {
+				log.transports.console.level = appConfig.logLevel;
+			}
 		}
 		if (!appConfig.viewConfigs) {
 			appConfig.viewConfigs = {};
@@ -376,6 +386,9 @@ ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 			appConfig.ignoredValidationErrors = convertedMap;
 		} else {
 			appConfig.ignoredValidationErrors = new Map();
+		}
+		if (appConfig.workshopID) {
+			appConfig.workshopID = BigInt(appConfig.workshopID);
 		}
 		return appConfig as AppConfig;
 	} catch (error) {
@@ -391,6 +404,9 @@ ipcMain.handle(ValidChannel.UPDATE_CONFIG, async (_event, config) => {
 		log.info('updated config');
 		if (config.ignoredValidationErrors) {
 			config.ignoredValidationErrors = Object.fromEntries(config.ignoredValidationErrors);
+		}
+		if (config.workshopID) {
+			config.workshopID = config.workshopID.toString();
 		}
 		fs.writeFileSync(filepath, JSON.stringify(config, null, 4), {
 			encoding: 'utf8',
@@ -603,4 +619,106 @@ ipcMain.on(ValidChannel.SELECT_PATH, async (event, target: string, directory: bo
 			log.error(error);
 			event.reply(ValidChannel.SELECT_PATH, null, target);
 		});
+});
+
+ipcMain.on(ValidChannel.OPEN_MOD_CONTEXT_MENU, async (event, record: ModData, x: number, y: number) => {
+	const template: MenuItemConstructorOptions[] = [];
+	if (record.path) {
+		template.push({
+			label: 'Show in Explorer',
+			click: () => {
+				shell.openPath(record.path!);
+			}
+		});
+	}
+	if (record.workshopID) {
+		template.push({
+			label: 'Show in Steam',
+			click: () => {
+				shell.openExternal(`steam://url/CommunityFilePage/${record.workshopID}`);
+			}
+		});
+		template.push({
+			label: 'Show in Browser',
+			click: () => {
+				shell.openExternal(`https://steamcommunity.com/sharedfiles/filedetails/?id=${record.workshopID}`);
+			}
+		});
+		template.push({ type: 'separator' });
+		const getUpdatedInfo = async () => {
+			const update = {
+				lastUpdate: record.lastUpdate,
+				size: record.size,
+				path: record.path,
+				installed: record.installed,
+				downloadPending: record.downloadPending,
+				downloading: record.downloading,
+				needsUpdate: record.needsUpdate,
+				id: record.id
+			};
+			const state: UGCItemState = Steamworks.ugcGetItemState(record.workshopID!);
+			if (state) {
+				// eslint-disable-next-line no-bitwise
+				update.installed = !!(state & UGCItemState.Installed);
+				// eslint-disable-next-line no-bitwise
+				update.downloadPending = !!(state & UGCItemState.DownloadPending);
+				// eslint-disable-next-line no-bitwise
+				update.downloading = !!(state & UGCItemState.Downloading);
+				// eslint-disable-next-line no-bitwise
+				update.needsUpdate = !!(state & UGCItemState.NeedsUpdate);
+			}
+			const installInfo = Steamworks.ugcGetItemInstallInfo(record.workshopID!);
+			if (installInfo) {
+				log.verbose(`Workshop mod is installed at path: ${installInfo.folder}`);
+				// augment workshop mod with data
+				update.lastUpdate = new Date(installInfo.timestamp * 1000);
+				update.size = parseInt(installInfo.sizeOnDisk, 10);
+				update.path = installInfo.folder;
+
+				await getModDetailsFromPath(update as ModData, installInfo.folder, record.type);
+			} else {
+				log.verbose(`FAILED to get install info for mod ${record.workshopID}`);
+			}
+			mainWindow?.webContents.send(ValidChannel.MOD_METADATA_UPDATE, `${ModType.WORKSHOP}:${record.workshopID}`, update);
+		};
+		if (record.subscribed) {
+			template.push({
+				label: 'Unsubscribe',
+				click: () => {
+					Steamworks.ugcUnsubscribe(record.workshopID!, () => {
+						log.verbose(`Unsubscribed from ${record.workshopID}`);
+						mainWindow?.webContents.send(ValidChannel.MOD_METADATA_UPDATE, `${ModType.WORKSHOP}:${record.workshopID}`, {
+							subscribed: false
+						});
+						getUpdatedInfo();
+					});
+				}
+			});
+		} else {
+			template.push({
+				label: 'Subscribe',
+				click: () => {
+					Steamworks.ugcSubscribe(record.workshopID!, () => {
+						log.verbose(`Subscribed to ${record.workshopID}`);
+						mainWindow?.webContents.send(ValidChannel.MOD_METADATA_UPDATE, `${ModType.WORKSHOP}:${record.workshopID}`, {
+							subscribed: true
+						});
+						getUpdatedInfo();
+					});
+				}
+			});
+		}
+		if (record.needsUpdate) {
+			template.push({
+				label: 'Update',
+				click: () => {
+					Steamworks.ugcDownloadItem(record.workshopID!, () => {
+						log.verbose(`Updated ${record.workshopID}`);
+						getUpdatedInfo();
+					});
+				}
+			});
+		}
+	}
+	Menu.buildFromTemplate(template).popup({ window: mainWindow });
 });

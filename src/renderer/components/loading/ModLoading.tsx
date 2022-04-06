@@ -60,7 +60,7 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 
 	updateProgressCallback(type: ProgressTypes, progress: number, progressMessage: string) {
 		if (type === ProgressTypes.MOD_LOAD) {
-			api.logger.debug(`Mod loading progress: ${progress}`);
+			api.logger.silly(`Mod loading progress: ${progress}`);
 			this.setState({ progress, progressMessage });
 		}
 	}

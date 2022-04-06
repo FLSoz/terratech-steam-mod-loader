@@ -11,6 +11,8 @@ interface ElectronInterface {
 		debug: (message: any) => void;
 		warn: (message: any) => void;
 		error: (message: any) => void;
+		silly: (message: any) => void;
+		verbose: (message: any) => void;
 	};
 	ipcRenderer: {
 		close: () => void;
@@ -43,6 +45,8 @@ class API {
 		debug: (...message: any[]) => void;
 		warn: (...message: any[]) => void;
 		error: (...message: any[]) => void;
+		silly: (...message: any[]) => void;
+		verbose: (...message: any[]) => void;
 	};
 
 	constructor(window: Window) {
@@ -59,6 +63,12 @@ class API {
 			},
 			error: (message) => {
 				window.electron.log.error(message);
+			},
+			silly: (message) => {
+				window.electron.log.silly(message);
+			},
+			verbose: (message) => {
+				window.electron.log.verbose(message);
 			}
 		};
 	}

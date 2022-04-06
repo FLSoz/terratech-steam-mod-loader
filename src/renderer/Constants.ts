@@ -1,7 +1,7 @@
 import { AppConfig } from 'model';
 
 export const { platform } = window.electron;
-export const DEFAULT_WORKSHOP_ID = '2655051786';
+export const DEFAULT_WORKSHOP_ID = BigInt(2790161231);
 export const TT_APP_ID = '285920';
 
 function getDefaultLocalDir(): string {

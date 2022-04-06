@@ -10,8 +10,12 @@ const { Paragraph, Text, Title } = Typography;
 const { Content } = Layout;
 const { Search } = Input;
 
+interface EditingConfig extends AppConfig {
+	editingWorkshopID?: string;
+}
+
 interface SettingsState {
-	editingConfig?: AppConfig;
+	editingConfig?: EditingConfig;
 	selectingDirectory: boolean;
 }
 
@@ -35,7 +39,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const appState = props as AppState;
 		this.state = {
-			editingConfig: { ...(appState.config as AppConfig) },
+			editingConfig: { ...(appState.config as AppConfig), editingWorkshopID: appState.config.workshopID.toString() },
 			selectingDirectory: false
 		};
 
@@ -304,7 +308,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 									name="workshopID"
 									label="Workshop ID"
 									rules={[{ required: true }]}
-									initialValue={editingConfig!.workshopID}
+									initialValue={editingConfig!.workshopID.toString()}
 									tooltip={{
 										overlayInnerStyle: { minWidth: 300 },
 										title: (
@@ -315,10 +319,9 @@ class SettingsView extends Component<AppState, SettingsState> {
 									}}
 								>
 									<InputNumber
-										disabled
-										value={editingConfig!.workshopID}
+										value={editingConfig!.workshopID.toString()}
 										onChange={(value) => {
-											editingConfig!.workshopID = value;
+											editingConfig!.workshopID = BigInt(value);
 											updateState({ madeConfigEdits: true });
 										}}
 										style={{ width: 125 }}

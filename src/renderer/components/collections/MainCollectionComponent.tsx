@@ -5,7 +5,7 @@ import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
 import { CompareFn, TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
-import { CollectionViewProps, DisplayModData, MainCollectionConfig, MainColumnTitles, ModErrors, ModType } from 'model';
+import { CollectionViewProps, DisplayModData, MainCollectionConfig, MainColumnTitles, ModErrors, ModType, ValidChannel } from 'model';
 import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled } from '@ant-design/icons';
 import { formatDateStr } from 'util/Date';
 
@@ -270,11 +270,19 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 			const { lastValidationStatus, collection } = props;
 			return (errors: ModErrors | undefined, record: DisplayModData) => {
 				const selectedMods = collection.mods;
-				if (!selectedMods.includes(record.uid)) {
-					if (!record.subscribed && record.workshopID && record.workshopID > 0) {
+				const { uid, subscribed, workshopID, installed, id } = record;
+				if (installed && id === null) {
+					return (
+						<Tag key="notValid" color="red">
+							Invalid
+						</Tag>
+					);
+				}
+				if (!selectedMods.includes(uid)) {
+					if (!subscribed && workshopID && workshopID > 0) {
 						return <Tag key="notSubscribed">Not subscribed</Tag>;
 					}
-					if (record.subscribed && !record.installed) {
+					if (subscribed && !installed) {
 						return <Tag key="notInstalled">Not installed</Tag>;
 					}
 					return null;
@@ -605,7 +613,8 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 							return {
 								onClick: (event) => {
 									api.logger.debug(`On Click for ${record.uid}, ${event}`);
-									this.props.getModDetails(record.uid, record);
+									const { getModDetails } = this.props;
+									getModDetails(record.uid, record);
 								},
 								onDoubleClick: (event) => {
 									api.logger.debug(`Double clicking ${record.uid}, ${event}`);
@@ -613,6 +622,8 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 								},
 								onContextMenu: (event) => {
 									api.logger.debug(`Showing context menu for ${record.uid}, ${event}`);
+									const { screenX, screenY } = event;
+									api.send(ValidChannel.OPEN_MOD_CONTEXT_MENU, record, screenX, screenY);
 								}
 							};
 						}}

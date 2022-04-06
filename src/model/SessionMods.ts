@@ -38,6 +38,8 @@ export function getDescriptor(session: SessionMods, mod: ModData): ModDescriptor
 // This means that object refs are not carried over, and so relying on it as a unique ID will fail
 export function setupDescriptors(session: SessionMods) {
 	const { foundMods, modIdToModDataMap, modIdToModDescriptor, workshopIdToModDescriptor } = session;
+	modIdToModDescriptor.clear();
+	workshopIdToModDescriptor.clear();
 	// Setup ModDescriptors and other maps
 	foundMods.forEach((mod: ModData) => {
 		modIdToModDataMap.set(mod.uid, mod);

@@ -191,7 +191,8 @@ class SteamworksAPI {
 	getUGCDetails(workshop_ids: string[], success_callback: (items: SteamUGCDetails[]) => void, error_callback?: SteamErrorCallback) {
 		greenworks.getUGCDetails(
 			workshop_ids,
-			(items: SteamUGCDetails[]) => {
+			(results: SteamPageResults) => {
+				const { items } = results;
 				return success_callback(items);
 			},
 			error_callback

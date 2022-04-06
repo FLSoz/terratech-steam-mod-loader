@@ -20,7 +20,8 @@ import {
 	CollectionViewType,
 	CollectionManagerModalType,
 	NotificationProps,
-	ModErrorType
+	ModErrorType,
+	setupDescriptors
 } from 'model';
 import api from 'renderer/Api';
 import { cancellablePromise, CancellablePromise, CancellablePromiseManager } from 'util/Promise';
@@ -87,10 +88,12 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 
 		this.pollGameRunning = this.pollGameRunning.bind(this);
 		this.validateActiveCollection = this.validateActiveCollection.bind(this);
+		this.onModMetadataUpdate = this.onModMetadataUpdate.bind(this);
 	}
 
 	componentDidMount() {
 		api.on(ValidChannel.GAME_RUNNING, this.setGameRunningCallback);
+		api.on(ValidChannel.MOD_METADATA_UPDATE, this.onModMetadataUpdate);
 		this.pollGameRunning();
 
 		const { appState } = this.props;
@@ -106,6 +109,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 			validationPromise.cancel();
 		}
 		api.removeAllListeners(ValidChannel.GAME_RUNNING);
+		api.removeListener(ValidChannel.MOD_METADATA_UPDATE, this.onModMetadataUpdate);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,6 +137,22 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 				}
 				this.setState({ madeEdits: true }, () => appState.updateState({}, () => this.validateActiveCollection(false)));
 			}
+		}
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	onModMetadataUpdate(uid: string, update: any) {
+		const { appState } = this.props;
+		const { mods } = appState;
+		api.logger.debug(`Received update for mod ${uid}: ${JSON.stringify(update, null, 2)}`);
+		const modData = mods.modIdToModDataMap.get(uid);
+		if (modData) {
+			const regenerateDescriptors = update.installed && !modData.installed;
+			Object.assign(modData, update);
+			if (regenerateDescriptors) {
+				setupDescriptors(mods);
+			}
+			this.validateActiveCollection(false);
 		}
 	}
 

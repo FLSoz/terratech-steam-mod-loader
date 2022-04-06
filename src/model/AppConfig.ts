@@ -10,7 +10,7 @@ export interface AppConfig {
 
 	localDir: string;
 	gameExec: string;
-	workshopID: string;
+	workshopID: bigint;
 
 	activeCollection?: string;
 	extraParams?: string;

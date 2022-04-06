@@ -49,6 +49,8 @@ export enum ValidChannel {
 	SELECT_PATH = 'select-path',
 
 	// External go to mod details
+	OPEN_MOD_CONTEXT_MENU = 'mod-context-menu',
+	MOD_METADATA_UPDATE = 'mod-metadata-update',
 	OPEN_MOD_PATH = 'open-mod-path',
 	OPEN_MOD_BROWSER = 'open-mod-browser',
 	OPEN_MOD_STEAM = 'open-mod-steam'
