@@ -3,6 +3,9 @@ export enum ValidChannel {
 	EXIT = 'exit',
 	CLOSE = 'close',
 
+	// Logging
+	UPDATE_LOG_LEVEL = 'log-level',
+
 	// Check if game is running
 	GAME_RUNNING = 'game-running',
 	LAUNCH_GAME = 'launch-game',

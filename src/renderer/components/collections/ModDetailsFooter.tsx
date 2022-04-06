@@ -600,7 +600,6 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 	}
 
 	renderDependenciesTab(requiredModData: DisplayModData[], dependentModData: DisplayModData[], conflictingModData: DisplayModData[]) {
-		// return JSON.stringify(currentRecord.dependsOn, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
 		return (
 			<ConfigProvider
 				renderEmpty={() => {

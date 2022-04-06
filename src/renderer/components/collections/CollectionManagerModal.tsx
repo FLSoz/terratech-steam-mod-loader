@@ -186,6 +186,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 								closable={false}
 								footer={[
 									<Button
+										key="save-settings"
 										loading={savingConfig}
 										disabled={savingConfig}
 										type="primary"

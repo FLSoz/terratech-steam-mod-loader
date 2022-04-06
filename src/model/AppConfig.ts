@@ -1,3 +1,4 @@
+import { LogLevel } from './Api';
 import { CollectionConfig } from './CollectionConfig';
 import { ModErrorType } from './CollectionValidation';
 import { MainCollectionConfig } from './MainCollectionView';
@@ -12,7 +13,9 @@ export interface AppConfig {
 	workshopID: string;
 
 	activeCollection?: string;
+	extraParams?: string;
 
+	logLevel?: LogLevel;
 	logsDir: string;
 
 	steamMaxConcurrency: number;

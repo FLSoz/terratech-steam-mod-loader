@@ -96,12 +96,13 @@ export default class ModFetcher {
 			const current = this.loadedMods;
 			this.loadedMods += size;
 			const total = (this.localMods || 0) + (this.workshopMods || 0);
+			log.silly(`Loaded ${size} new mods. Old total: ${current}, Local: ${this.localMods}, Workshop: ${this.workshopMods}`);
 			this.event.reply(ValidChannel.PROGRESS_CHANGE, ProgressTypes.MOD_LOAD, (current + size) / total, 'Loading mod details');
 		});
 	}
 
 	async getModDetailsFromPath(potentialMod: ModData, modPath: string, type: ModType): Promise<ModData | null> {
-		log.info(`Reading mod metadata for ${modPath}`);
+		log.debug(`Reading mod metadata for ${modPath}`);
 		return new Promise((resolve, reject) => {
 			fs.readdir(modPath, { withFileTypes: true }, async (err, files) => {
 				try {
@@ -155,7 +156,7 @@ export default class ModFetcher {
 										potentialMod.path = modPath;
 										validModData = true;
 									}
-									log.debug(`Found file: ${file.name} under mod path ${modPath}`);
+									log.silly(`Found file: ${file.name} under mod path ${modPath}`);
 								}
 							}
 							return size;
@@ -164,7 +165,6 @@ export default class ModFetcher {
 						// We are done, increment counter and return
 						this.updateModLoadingProgress(1);
 						if (validModData) {
-							// log.debug(JSON.stringify(potentialMod, null, 2));
 							potentialMod.size = fileSizes.reduce((acc: number, curr: number) => acc + curr, 0);
 							resolve(potentialMod);
 						} else {
@@ -327,7 +327,7 @@ export default class ModFetcher {
 				}
 
 				if (validMod) {
-					log.debug(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
+					log.silly(JSON.stringify(potentialMod, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 					return potentialMod;
 				}
 				log.warn(`${potentialMod.workshopID} is NOT a valid mod`);
@@ -343,8 +343,10 @@ export default class ModFetcher {
 		let lastProcessed = 1;
 		const workshopMap: Map<bigint, ModData> = new Map();
 
-		const allSubscribedItems: bigint[] = Steamworks.getSubscribedItems();
-		log.debug(`All subscribed items: [${allSubscribedItems}]`);
+		if (log.transports.file.level === 'debug' || log.transports.file.level === 'silly') {
+			const allSubscribedItems: bigint[] = Steamworks.getSubscribedItems();
+			log.debug(`All subscribed items: [${allSubscribedItems}]`);
+		}
 
 		// We make 2 assumptions:
 		//	1. We are done if and only if reading a page returns 0 results
@@ -355,7 +357,6 @@ export default class ModFetcher {
 			// eslint-disable-next-line no-await-in-loop
 			const { items, totalItems, numReturned } = await getSteamSubscribedPage(pageNum);
 			this.workshopMods = totalItems;
-			this.loadedMods += numReturned;
 			numProcessedWorkshop += numReturned;
 			lastProcessed = numReturned;
 			log.debug(`Total items: ${totalItems}, Returned by Steam: ${numReturned}, Processed this chunk: ${items.length}`);

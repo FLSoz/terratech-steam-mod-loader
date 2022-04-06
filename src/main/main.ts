@@ -28,7 +28,7 @@ const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBU
 
 class App {
 	constructor() {
-		log.transports.file.level = 'debug'; // isDevelopment ? 'debug' : 'info';
+		log.transports.file.level = isDevelopment ? 'debug' : 'warn';
 	}
 }
 
@@ -241,27 +241,9 @@ ipcMain.on(ValidChannel.DOWNLOAD_MOD, async (event, workshopID: bigint) => {
 	);
 });
 
-/*
-else if (type === 'ttqmm') {
-						if (file.name === 'mod.json') {
-							const modConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
-							config.name = modConfig.DisplayName;
-							config.authors = [modConfig.Author];
-							if (potentialMod.ID === '') {
-								potentialMod.ID = modConfig.Id;
-								potentialMod.UID = `ttqmm:${modConfig.Id}`;
-							}
-						}
-						if (file.name === 'ttmm.json') {
-							const ttmmConfig = JSON.parse(fs.readFileSync(path.join(modPath, file.name), 'utf8'));
-							potentialMod.ID = ttmmConfig.CloudName;
-							potentialMod.UID = `ttqmm:${ttmmConfig.CloudName}`;
-							config.dependsOn = ttmmConfig.RequiredModNames;
-							config.loadAfter = ttmmConfig.RequiredModNames;
-							config.description = ttmmConfig.InlineDescription;
-						}
-					}
-*/
+ipcMain.on(ValidChannel.UPDATE_LOG_LEVEL, async (_event, level: log.LogLevel) => {
+	log.transports.file.level = level;
+});
 
 ipcMain.on(ValidChannel.READ_MOD_METADATA, async (event, localDir: string, allKnownMods: Set<string>) => {
 	// load workshop mods
@@ -379,14 +361,17 @@ ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
 	try {
 		const appConfig = JSON.parse(fs.readFileSync(filepath, 'utf8').toString());
+		if (appConfig.logLevel) {
+			log.transports.file.level = appConfig.logLevel;
+		}
 		if (!appConfig.viewConfigs) {
 			appConfig.viewConfigs = {};
 		}
 		if (appConfig.ignoredValidationErrors) {
-			const convertedMap: Map<ModErrorType, {[uid: string]: string[]}> = new Map();
-			const castObject = appConfig.ignoredValidationErrors as { [modID: number]: {[uid: string]: string[]} };
-			Object.entries(castObject).forEach(([key, value]: [string, {[uid: string]: string[]}]) => {
-				convertedMap.set(parseInt(key) as ModErrorType, value);
+			const convertedMap: Map<ModErrorType, { [uid: string]: string[] }> = new Map();
+			const castObject = appConfig.ignoredValidationErrors as { [modID: number]: { [uid: string]: string[] } };
+			Object.entries(castObject).forEach(([key, value]: [string, { [uid: string]: string[] }]) => {
+				convertedMap.set(parseInt(key, 10) as ModErrorType, value);
 			});
 			appConfig.ignoredValidationErrors = convertedMap;
 		} else {
