@@ -93,14 +93,15 @@ class API {
 
 	launchGame(gameExec: string, workshopID: string, closeOnLaunch: boolean, modList: ModData[], extraParams?: string): Promise<any> {
 		const modListStr: string = modList
-			.filter((modData) => modData.workshopID !== BigInt(workshopID))
+			.filter((modData) => modData && modData.workshopID !== BigInt(workshopID))
 			.map((mod: ModData) => {
 				return mod ? `[${mod.uid.toString().replace(' ', ':/%20')}]` : '';
 			})
 			.join(',');
-		const args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
+		let args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
 		if (extraParams) {
-			args.push(extraParams);
+			const splitParams: string[] = extraParams.split(' ');
+			args = args.concat(splitParams);
 		}
 		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, gameExec, workshopID, closeOnLaunch, args);
 	}

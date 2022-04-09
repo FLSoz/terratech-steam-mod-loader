@@ -329,13 +329,17 @@ class SettingsView extends Component<AppState, SettingsState> {
 								</Form.Item>
 								<Form.Item
 									name="logLevel"
-									label="Logging Level"
+									label="TTSMM Logging Level"
 									tooltip={{
 										overlayInnerStyle: { minWidth: 300 },
 										title: (
 											<div>
 												<p>
 													How much TTSMM logs. Recommend leaving it at Warn or Error, unless specifically requested for debugging reasons
+												</p>
+												<p>
+													This is NOT the same as the 0ModManager logging level. This will only impact how much this external application
+													logs
 												</p>
 											</div>
 										)
