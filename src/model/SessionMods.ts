@@ -4,7 +4,7 @@ import { ModCollection } from './ModCollection';
 import { CollectionErrors, ModErrors } from './CollectionValidation';
 
 export class SessionMods {
-	localPath: string;
+	localPath?: string;
 
 	foundMods: ModData[];
 
@@ -14,7 +14,7 @@ export class SessionMods {
 
 	workshopIdToModDescriptor: Map<bigint, ModDescriptor>;
 
-	constructor(localPath: string, foundMods: ModData[]) {
+	constructor(localPath: string | undefined, foundMods: ModData[]) {
 		this.localPath = localPath;
 		this.modIdToModDataMap = new Map();
 		this.modIdToModDescriptor = new Map();

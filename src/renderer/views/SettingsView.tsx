@@ -79,6 +79,9 @@ class SettingsView extends Component<AppState, SettingsState> {
 	saveChanges() {
 		const { editingConfig } = this.state;
 		const { config, updateState } = this.props;
+		if (config.localDir !== editingConfig?.localDir) {
+			updateState({ firstModLoad: false });
+		}
 		updateState({ savingConfig: true });
 		api
 			.updateConfig(editingConfig!)
@@ -136,7 +139,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 							return false;
 
 						case 'localDir':
-							if (value.toLowerCase().endsWith('localmods')) {
+							if (!value || value.toLowerCase().endsWith('localmods')) {
 								delete configErrors[field];
 								updateState({});
 								return true;
@@ -172,7 +175,10 @@ class SettingsView extends Component<AppState, SettingsState> {
 					}
 				});
 		}
-		return Promise.reject(new Error('Steam Executable Path is required'));
+		if (field === 'localDir') {
+			return Promise.resolve(true);
+		}
+		return Promise.reject(new Error('Path is required'));
 	}
 
 	render() {
@@ -214,7 +220,6 @@ class SettingsView extends Component<AppState, SettingsState> {
 									initialValue={editingConfig!.localDir}
 									rules={[
 										{
-											required: true,
 											validator: (_, value) => {
 												return this.validateFile('localDir', value);
 											}

@@ -250,7 +250,7 @@ ipcMain.on(ValidChannel.UPDATE_LOG_LEVEL, async (_event, level: log.LogLevel) =>
 	}
 });
 
-ipcMain.on(ValidChannel.READ_MOD_METADATA, async (event, localDir: string, allKnownMods: Set<string>) => {
+ipcMain.on(ValidChannel.READ_MOD_METADATA, async (event, localDir: string | undefined, allKnownMods: Set<string>) => {
 	// load workshop mods
 	const knownWorkshopMods: bigint[] = [];
 	allKnownMods.forEach((uid: string) => {

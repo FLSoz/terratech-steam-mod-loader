@@ -8,7 +8,7 @@ export interface AppConfig {
 
 	language: string;
 
-	localDir: string;
+	localDir?: string;
 	gameExec: string;
 	workshopID: bigint;
 

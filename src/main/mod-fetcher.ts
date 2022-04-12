@@ -142,7 +142,7 @@ export async function getModDetailsFromPath(potentialMod: ModData, modPath: stri
 }
 
 export default class ModFetcher {
-	localPath: string;
+	localPath?: string;
 
 	knownWorkshopMods: Set<bigint>;
 
@@ -156,7 +156,7 @@ export default class ModFetcher {
 
 	modCountMutex: Mutex;
 
-	constructor(event: IpcMainEvent, localPath: string, knownWorkshopMods: bigint[]) {
+	constructor(event: IpcMainEvent, localPath: string | undefined, knownWorkshopMods: bigint[]) {
 		this.localPath = localPath;
 		this.knownWorkshopMods = new Set();
 		this.event = event;
@@ -182,7 +182,7 @@ export default class ModFetcher {
 	async fetchLocalMods(localModDirs: string[]): Promise<ModData[]> {
 		const modResponses = await Promise.allSettled<ModData | null>(
 			localModDirs.map((subDir: string) => {
-				const modPath = path.join(this.localPath, subDir);
+				const modPath = path.join(this.localPath!, subDir);
 				const potentialMod: ModData = {
 					uid: `${ModType.LOCAL}:${subDir}`,
 					id: null,
@@ -415,14 +415,16 @@ export default class ModFetcher {
 	async fetchMods(): Promise<ModData[]> {
 		// get local fist
 		let localModDirs: string[] = [];
-		try {
-			localModDirs = fs
-				.readdirSync(this.localPath, { withFileTypes: true })
-				.filter((dirent) => dirent.isDirectory())
-				.map((dirent) => dirent.name);
-			this.localMods = localModDirs.length;
-		} catch (e) {
-			log.error(`Failed to read local mods in ${localModDirs}`);
+		if (this.localPath) {
+			try {
+				localModDirs = fs
+					.readdirSync(this.localPath, { withFileTypes: true })
+					.filter((dirent) => dirent.isDirectory())
+					.map((dirent) => dirent.name);
+				this.localMods = localModDirs.length;
+			} catch (e) {
+				log.error(`Failed to read local mods in ${localModDirs}`);
+			}
 		}
 
 		const modResponses = await Promise.allSettled<ModData[]>([this.fetchLocalMods(localModDirs), this.fetchWorkshopMods()]);
