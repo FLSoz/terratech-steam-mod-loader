@@ -12,7 +12,7 @@ async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: 
 	const fields: ('gameExec' | 'localDir')[] = ['gameExec', 'localDir'];
 	const paths = ['Steam executable', 'TerraTech Steam Workshop directory', 'TerraTech Local Mods directory'];
 	let failed = false;
-	await Promise.allSettled([api.pathExists(config.gameExec), !config.localDir ? false : api.pathExists]).then((results) => {
+	await Promise.allSettled([api.pathExists(config.gameExec), config.localDir ? api.pathExists(config.localDir) : true]).then((results) => {
 		results.forEach((result, index) => {
 			if (result.status !== 'fulfilled') {
 				errors[fields[index]] = `Unexpected error checking ${fields[index]} path (${paths[index]})`;
