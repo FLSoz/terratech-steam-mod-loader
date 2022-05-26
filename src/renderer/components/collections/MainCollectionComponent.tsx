@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Layout, Table, Tag, Tooltip, Typography } from 'antd';
+import { Button, Layout, Table, Tag, Tooltip, Typography } from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
 import { CompareFn, TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
 import { CollectionViewProps, DisplayModData, MainCollectionConfig, MainColumnTitles, ModErrors, ModType, ValidChannel } from 'model';
-import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled } from '@ant-design/icons';
+import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled, PlusOutlined } from '@ant-design/icons';
 import { formatDateStr } from 'util/Date';
 
 import steam from '../../../../assets/steam.png';
@@ -31,7 +31,7 @@ function getImageSrcFromType(type: ModType, size = 15) {
 		case ModType.LOCAL:
 			return (
 				<Tooltip title="This is a local mod">
-					<HddFilled width={size} />
+					<HddFilled style={{ fontSize: size }} />
 				</Tooltip>
 			);
 		case ModType.TTQMM:
@@ -138,6 +138,7 @@ function getCorpType(tag: string): CorpType | null {
 interface ColumnSchema<T> {
 	title: string;
 	dataIndex: string;
+	className?: string;
 	width?: number;
 	align?: 'center';
 	defaultSortOrder?: 'ascend';
@@ -159,10 +160,20 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.TYPE,
 		dataIndex: 'type',
+		className: 'CollectionRowModType',
 		renderSetup: (props: CollectionViewProps) => {
 			const { config } = props;
 			const small = (config as MainCollectionConfig | undefined)?.smallRows;
-			return (type: ModType) => getImageSrcFromType(type, small ? 20 : 35);
+			return (type: ModType, record: DisplayModData) => (
+				<Button
+					type="text"
+					onClick={() => {
+						// eslint-disable-next-line react/prop-types
+					}}
+				>
+					{getImageSrcFromType(type, small ? 20 : 35)}
+				</Button>
+			);
 		},
 		width: 65,
 		align: 'center'
@@ -170,6 +181,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.NAME,
 		dataIndex: 'name',
+		className: 'CollectionRowModName',
 		defaultSortOrder: 'ascend',
 		sorter: (a: DisplayModData, b: DisplayModData) => {
 			if (a.name) {
@@ -183,7 +195,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 			}
 			return 0;
 		},
-		renderSetup: () => {
+		renderSetup: (props: CollectionViewProps) => {
 			return (name: string, record: DisplayModData) => {
 				let updateIcon = null;
 				let updateType: 'danger' | 'warning' | undefined;
@@ -212,10 +224,35 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 					}
 				}
 				return (
-					<span>
+					<button
+						type="submit"
+						style={{
+							fontSize: 14,
+							backgroundColor: 'transparent',
+							borderRadius: 0,
+							width: '100%',
+							padding: 2,
+							paddingLeft: 6,
+							paddingRight: 4,
+							margin: 0,
+							verticalAlign: 'middle',
+							textAlign: 'left',
+							wordWrap: 'break-word',
+							display: 'block'
+						}}
+						onClick={() => {
+							// eslint-disable-next-line react/prop-types
+							const { getModDetails } = props;
+							getModDetails(record.uid, record);
+						}}
+					>
 						{updateIcon}
-						<Text strong={record.needsUpdate} type={updateType}>{` ${name}`}</Text>
-					</span>
+						<Text
+							strong={record.needsUpdate}
+							type={updateType}
+							style={{ whiteSpace: 'normal', width: '100%', verticalAlign: 'middle' }}
+						>{` ${name}`}</Text>
+					</button>
 				);
 			};
 		}
@@ -569,10 +606,11 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 			);
 		}
 		return activeColumns.map((colSchema: ColumnSchema<DisplayModData>) => {
-			const { title, dataIndex, width, defaultSortOrder, sorter, align, renderSetup } = colSchema;
+			const { title, dataIndex, className, width, defaultSortOrder, sorter, align, renderSetup } = colSchema;
 			return {
 				title,
 				dataIndex,
+				className,
 				width,
 				defaultSortOrder,
 				sorter,
@@ -611,11 +649,6 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 						sticky
 						onRow={(record, rowIndex) => {
 							return {
-								onClick: (event) => {
-									api.logger.debug(`On Click for ${record.uid}, ${event}`);
-									const { getModDetails } = this.props;
-									getModDetails(record.uid, record);
-								},
 								onDoubleClick: (event) => {
 									api.logger.debug(`Double clicking ${record.uid}, ${event}`);
 									// this.props.getModDetails(record.uid, record, true);
