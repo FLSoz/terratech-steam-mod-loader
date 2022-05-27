@@ -546,12 +546,12 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			<Collapse className="ModDetailInspect" defaultActiveKey={['info', 'descriptor', 'properties', 'status']}>
 				<Panel header="Mod Info" key="info">
 					<Descriptions column={1} bordered size="small" labelStyle={{ width: 150 }}>
-						<Descriptions.Item label="Author">{currentRecord.authors}</Descriptions.Item>
-						<Descriptions.Item label="Description">{currentRecord.description}</Descriptions.Item>
 						<Descriptions.Item label="ID">{currentRecord.id}</Descriptions.Item>
 						<Descriptions.Item label="UID">{currentRecord.uid}</Descriptions.Item>
 						<Descriptions.Item label="Name">{currentRecord.name}</Descriptions.Item>
+						<Descriptions.Item label="Author">{currentRecord.authors}</Descriptions.Item>
 						<Descriptions.Item label="Tags">{currentRecord.tags ? currentRecord.tags.join(', ') : null}</Descriptions.Item>
+						<Descriptions.Item label="Description">{currentRecord.description}</Descriptions.Item>
 					</Descriptions>
 				</Panel>
 				<Panel header="Mod Descriptor" key="descriptor">
