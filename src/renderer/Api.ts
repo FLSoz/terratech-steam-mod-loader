@@ -2,7 +2,7 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { AppConfig, ModCollection, ModData, ValidChannel, PathParams } from 'model';
+import { AppConfig, ModCollection, ModData, ValidChannel, PathParams, PathType } from 'model';
 
 interface ElectronInterface {
 	platform: string;
@@ -140,12 +140,15 @@ class API {
 	}
 
 	// file API
-	convertToPathParam(path: PathParams | string): PathParams {
+	convertToPathParam(path: PathParams | string, type?: PathType): PathParams {
 		let pathParams: PathParams;
 		if (typeof path === 'string') {
-			pathParams = { prefixes: [], path };
+			pathParams = { prefixes: [], path, type };
 		} else {
 			pathParams = path;
+			if (type !== undefined) {
+				pathParams.type = type;
+			}
 		}
 		return pathParams;
 	}
@@ -178,8 +181,8 @@ class API {
 		return ipcRenderer.invoke(ValidChannel.MKDIR, this.convertToPathParam(path));
 	}
 
-	pathExists(path: PathParams | string): Promise<any> {
-		return ipcRenderer.invoke(ValidChannel.PATH_EXISTS, this.convertToPathParam(path));
+	pathExists(path: PathParams | string, type?: PathType): Promise<any> {
+		return ipcRenderer.invoke(ValidChannel.PATH_EXISTS, this.convertToPathParam(path, type));
 	}
 
 	access(path: PathParams | string): Promise<any> {

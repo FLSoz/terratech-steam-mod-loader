@@ -1,27 +1,32 @@
 import React, { Component } from 'react';
 import api from 'renderer/Api';
-import { AppConfig, ModCollection, AppState, ValidChannel } from 'model';
+import { AppConfig, ModCollection, AppState, ValidChannel, AppConfigKeys } from 'model';
 import { Layout, Progress } from 'antd';
 import { useNavigate, NavigateFunction, useOutletContext } from 'react-router-dom';
 import { DEFAULT_CONFIG } from 'renderer/Constants';
+import { validateSettingsPath } from 'util/Validation';
 
 const { Footer, Content } = Layout;
 
 async function validateAppConfig(config: AppConfig): Promise<{ [field: string]: string } | undefined> {
 	const errors: { [field: string]: string } = {};
-	const fields: ('gameExec' | 'localDir')[] = ['gameExec', 'localDir'];
-	const paths = ['Steam executable', 'TerraTech Steam Workshop directory', 'TerraTech Local Mods directory'];
+	const fields: AppConfigKeys[] = [AppConfigKeys.GAME_EXEC, AppConfigKeys.LOCAL_DIR];
+	const paths = ['Steam executable', 'TerraTech Local Mods directory', 'TerraTech Steam Workshop directory'];
 	let failed = false;
-	await Promise.allSettled([api.pathExists(config.gameExec), config.localDir ? api.pathExists(config.localDir) : true]).then((results) => {
+	await Promise.allSettled([
+		validateSettingsPath('gameExec', config.gameExec),
+		config.localDir && config.localDir.length > 0 ? validateSettingsPath('localDir', config.localDir) : undefined
+	]).then((results) => {
 		results.forEach((result, index) => {
 			if (result.status !== 'fulfilled') {
 				errors[fields[index]] = `Unexpected error checking ${fields[index]} path (${paths[index]})`;
 				failed = true;
-			} else if (!result.value) {
-				errors[fields[index]] = `Path to ${fields[index]} (${paths[index]}) was invalid`;
+			} else if (result.value !== undefined) {
+				errors[fields[index]] = result.value;
 				failed = true;
 			}
 		});
+
 		return failed;
 	});
 

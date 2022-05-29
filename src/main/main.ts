@@ -19,7 +19,7 @@ import fs from 'fs';
 import child_process from 'child_process';
 import psList from 'ps-list';
 
-import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig, ModErrorType } from '../model';
+import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig, ModErrorType, PathType, PathParams } from '../model';
 import Steamworks, { EResult, UGCItemState } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
@@ -174,11 +174,6 @@ ipcMain.on(ValidChannel.CLOSE, () => {
 		mainWindow.close();
 	}
 });
-
-interface PathParams {
-	prefixes: string[];
-	path: string;
-}
 
 ipcMain.on(ValidChannel.OPEN_MOD_STEAM, async (event, workshopID: bigint) => {
 	shell.openExternal(`steam://url/CommunityFilePage/${workshopID}`);
@@ -543,7 +538,7 @@ ipcMain.handle(ValidChannel.LIST_SUBDIRS, async (_event, pathParams: PathParams)
 	}
 });
 
-// Check if path exists
+// Mkdir
 ipcMain.handle(ValidChannel.MKDIR, async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	log.info(`Mkdir ${filepath}`);
@@ -572,7 +567,14 @@ ipcMain.handle(ValidChannel.READ_FILE, async (_event, pathParams: PathParams) =>
 ipcMain.handle(ValidChannel.PATH_EXISTS, async (_event, pathParams: PathParams) => {
 	const filepath = path.join(...pathParams.prefixes, pathParams.path);
 	try {
-		return fs.existsSync(filepath);
+		const stats = fs.statSync(filepath);
+		if (pathParams.type === PathType.DIRECTORY) {
+			return stats.isDirectory();
+		}
+		if (pathParams.type === PathType.FILE) {
+			return stats.isFile();
+		}
+		return true;
 	} catch (error) {
 		log.error(error);
 		return false;

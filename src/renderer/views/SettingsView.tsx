@@ -1,12 +1,11 @@
 import React, { Component } from 'react';
-import { AppState, AppConfig, ValidChannel, LogLevel } from 'model';
-import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader, Select, Row, Col, Typography } from 'antd';
+import { AppState, AppConfig, ValidChannel, LogLevel, AppConfigKeys } from 'model';
+import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader, Select, Row, Col } from 'antd';
 import { useOutletContext } from 'react-router-dom';
 import api from 'renderer/Api';
 import { FolderOutlined } from '@ant-design/icons';
-import { TT_APP_ID } from 'renderer/Constants';
+import { validateSettingsPath } from 'util/Validation';
 
-const { Paragraph, Text, Title } = Typography;
 const { Content } = Layout;
 const { Search } = Input;
 
@@ -59,7 +58,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 		api.removeAllListeners(ValidChannel.SELECT_PATH);
 	}
 
-	setSelectedPath(path: string, target: 'localDir' | 'gameExec') {
+	setSelectedPath(path: string, target: AppConfigKeys.LOCAL_DIR | AppConfigKeys.LOGS_DIR | AppConfigKeys.GAME_EXEC) {
 		if (path) {
 			const { editingConfig } = this.state;
 			editingConfig![target] = path;
@@ -113,66 +112,19 @@ class SettingsView extends Component<AppState, SettingsState> {
 	validateFile(field: string, value: string) {
 		const { configErrors, updateState } = this.props;
 		if (!!value && value.length > 0) {
-			return api
-				.pathExists(value)
-				.catch((error) => {
-					api.logger.error(error);
-					configErrors[field] = error.toString();
+			return validateSettingsPath(field, value)
+				.then((error: string | undefined) => {
+					if (error !== undefined) {
+						configErrors[field] = error;
+					} else {
+						delete configErrors[field];
+					}
 					updateState({});
-					throw new Error(`Error while validating path:\n${error.toString()}`);
+					return !!error;
 				})
-				.then((success) => {
-					if (!success) {
-						configErrors[field] = 'Provided path is invalid';
-						updateState({});
-						throw new Error('Provided path is invalid');
-					}
-					switch (field) {
-						case 'gameExec':
-							if (value.toLowerCase().includes('terratech')) {
-								delete configErrors[field];
-								updateState({});
-								return true;
-							}
-							configErrors[field] = "The TerraTech executable should contain 'TerraTech'";
-							updateState({});
-							return false;
-
-						case 'localDir':
-							if (!value || value.toLowerCase().endsWith('localmods')) {
-								delete configErrors[field];
-								updateState({});
-								return true;
-							}
-							configErrors[field] = "The local mods directory should end with 'TerraTech/LocalMods'";
-							updateState({});
-							return false;
-
-						case 'workshopDir':
-							if (value.endsWith(TT_APP_ID)) {
-								delete configErrors[field];
-								updateState({});
-								return true;
-							}
-							configErrors[field] = `The workshop directory should end with TT app ID 'Steam/steamapps/workshop/content/${TT_APP_ID}'`;
-							updateState({});
-							return false;
-
-						case 'logsDir':
-							if (value.toLowerCase().includes('logs')) {
-								delete configErrors[field];
-								updateState({});
-								return true;
-							}
-							configErrors[field] = "The logs directory should contain 'Logs'";
-							updateState({});
-							return false;
-
-						default:
-							delete configErrors[field];
-							updateState({});
-							return true;
-					}
+				.catch((err) => {
+					configErrors[field] = err.toString();
+					updateState({});
 				});
 		}
 		if (field === 'localDir') {

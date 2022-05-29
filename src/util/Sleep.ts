@@ -23,7 +23,12 @@ export interface ForEachProps<Type> {
 	array: Type[];
 }
 
-function delayForEach<Type>(array: Type[], delayTime: number, func: (props: ForEachProps<Type>, ...funcArgs: any[]) => void, ...args: any[]): Promise<any> {
+function delayForEach<Type>(
+	array: Type[],
+	delayTime: number,
+	func: (props: ForEachProps<Type>, ...funcArgs: any[]) => void,
+	...args: any[]
+): Promise<any> {
 	let promise = Promise.resolve();
 	let index = 0;
 	while (index < array.length) {

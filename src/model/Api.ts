@@ -60,9 +60,15 @@ export enum ProgressTypes {
 	MOD_LOAD = 'mod-load'
 }
 
+export enum PathType {
+	FILE,
+	DIRECTORY
+}
+
 export interface PathParams {
 	prefixes: string[];
 	path: string;
+	type?: PathType;
 }
 
 export enum LogLevel {
