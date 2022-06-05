@@ -245,7 +245,6 @@ export default class CollectionManagementToolbarComponent extends Component<
 								key="export"
 								type="primary"
 								icon={<ExportOutlined />}
-								onClick={saveCollectionCallback}
 								disabled={true || disabledFeatures || !madeEdits}
 								loading={savingCollection}
 							>
@@ -256,7 +255,6 @@ export default class CollectionManagementToolbarComponent extends Component<
 								key="copy"
 								type="primary"
 								icon={<CopyOutlined />}
-								onClick={saveCollectionCallback}
 								disabled={true || disabledFeatures || !madeEdits}
 								loading={savingCollection}
 							/>

@@ -223,6 +223,11 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 						updateType = 'warning';
 					}
 				}
+				let correctedName = name;
+				const matches = name.match(/(.*)\s*\(([^()]*[Tt][Tt][Ss][Mm][Mm][^()]*)\)$/);
+				if (matches && matches[1]) {
+					correctedName = matches[1];
+				}
 				return (
 					<button
 						type="submit"
@@ -251,7 +256,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 							strong={record.needsUpdate}
 							type={updateType}
 							style={{ whiteSpace: 'normal', width: '100%', verticalAlign: 'middle' }}
-						>{` ${name}`}</Text>
+						>{` ${correctedName}`}</Text>
 					</button>
 				);
 			};

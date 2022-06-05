@@ -322,6 +322,9 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 					default:
 						return null;
 				}
+				break;
+			case CollectionManagerModalType.IMPORT_COLLECTION:
+				return null;
 			default:
 				return null;
 		}

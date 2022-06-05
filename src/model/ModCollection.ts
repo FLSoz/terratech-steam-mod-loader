@@ -5,6 +5,7 @@ import { ModData } from './Mod';
 export interface ModCollection {
 	name: string;
 	description?: string;
+	linkedId?: bigint;
 	mods: string[];
 }
 
@@ -36,7 +37,10 @@ export enum CollectionManagerModalType {
 	DESELECTING_MOD_MANAGER = 1,
 	VIEW_SETTINGS = 2,
 	ERRORS_FOUND = 'errors_found',
-	WARNINGS_FOUND = 'warnings_found'
+	WARNINGS_FOUND = 'warnings_found',
+	IMPORT_COLLECTION = 5,
+	EXPORT_COLLECTION = 6,
+	WARN_OVERWRITE_COLLECTION = 7
 }
 
 export interface NotificationProps {
