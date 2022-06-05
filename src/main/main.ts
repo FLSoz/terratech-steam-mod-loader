@@ -18,6 +18,7 @@ import log from 'electron-log';
 import fs from 'fs';
 import child_process from 'child_process';
 import psList from 'ps-list';
+import { autoUpdater } from 'electron-updater';
 
 import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig, ModErrorType, PathType, PathParams } from '../model';
 import Steamworks, { EResult, UGCItemState } from './steamworks';
@@ -133,6 +134,7 @@ const createWindow = async () => {
 	});
 
 	// Remove this if your app does not use auto updates
+	autoUpdater.checkForUpdates();
 	// eslint-disable-next-line
 	new App();
 };
@@ -424,8 +426,12 @@ ipcMain.on(ValidChannel.GAME_RUNNING, async (event) => {
 	let running = false;
 	psList()
 		.then((processes: ProcessDetails[]) => {
-			const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*mod)/.test(process.name));
+			const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*[Mm]od)/.test(process.name));
 			running = matches.length > 0;
+			if (running) {
+				log.info('Detected TerraTech is running:');
+				log.info(processes.filter((process) => /[Tt]erra[Tt]ech/.test(process.name)).map((process) => process.name));
+			}
 			event.reply(ValidChannel.GAME_RUNNING, running);
 			return running;
 		})

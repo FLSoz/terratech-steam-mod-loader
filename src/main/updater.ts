@@ -15,6 +15,10 @@ autoUpdater.logger = log;
 
 autoUpdater.on('error', (error: Error) => {
 	dialog.showErrorBox('Error: ', error == null ? 'unknown' : (error.stack || error).toString());
+	if (updater) {
+		updater.enabled = true;
+		updater = null;
+	}
 });
 
 autoUpdater.on('update-available', () => {
@@ -38,11 +42,11 @@ autoUpdater.on('update-available', () => {
 });
 
 autoUpdater.on('update-not-available', () => {
-	dialog.showMessageBox({
-		title: 'No Updates',
-		message: 'Current version is up-to-date.'
-	});
 	if (updater) {
+		dialog.showMessageBox({
+			title: 'No Updates',
+			message: 'Current version is up-to-date.'
+		});
 		updater.enabled = true;
 		updater = null;
 	}
