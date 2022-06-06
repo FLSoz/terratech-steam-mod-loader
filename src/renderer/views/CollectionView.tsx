@@ -523,6 +523,29 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 			});
 	}
 
+	changeActiveCollection() {
+		const { updatePromiseManager: promiseManager } = this.state;
+		const { appState } = this.props;
+		const { config } = appState;
+
+		promiseManager
+			.execute(api.updateConfig(config as AppConfig))
+			.catch((error) => {
+				api.logger.error(error);
+				openNotification(
+					{
+						message: 'Failed to udpate config',
+						placement: 'bottomLeft',
+						duration: null
+					},
+					'error'
+				);
+			})
+			.finally(() => {
+				this.setState({});
+			});
+	}
+
 	pollGameRunning() {
 		const { updatePromiseManager: promiseManager } = this.state;
 		api.send(ValidChannel.GAME_RUNNING);
@@ -970,7 +993,8 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 						}}
 						changeActiveCollectionCallback={(name: string) => {
 							appState.activeCollection = allCollections.get(name)!;
-							this.setState({});
+							config.activeCollection = name;
+							this.changeActiveCollection();
 						}}
 						numResults={filteredRows ? filteredRows.length : appState.mods.modIdToModDataMap.size}
 						newCollectionCallback={this.createNewCollection}
