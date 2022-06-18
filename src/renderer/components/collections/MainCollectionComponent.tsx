@@ -308,6 +308,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.STATE,
 		dataIndex: 'errors',
+		width: 150,
 		renderSetup: (props: CollectionViewProps) => {
 			const { lastValidationStatus, collection } = props;
 			return (errors: ModErrors | undefined, record: DisplayModData) => {
@@ -409,6 +410,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.SIZE,
 		dataIndex: 'size',
+		width: 80,
 		renderSetup: () => {
 			return (size?: number) => {
 				if (size && size > 0) {
@@ -478,6 +480,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.LAST_UPDATE,
 		dataIndex: 'lastUpdate',
+		width: 155,
 		renderSetup: () => {
 			return (date: Date) => {
 				return formatDateStr(date);
@@ -487,6 +490,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.DATE_ADDED,
 		dataIndex: 'dateAdded',
+		width: 155,
 		renderSetup: () => {
 			return (date: Date) => {
 				return formatDateStr(date);
