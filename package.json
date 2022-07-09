@@ -1,6 +1,6 @@
 {
   "name": "terratech-steam-mod-loader",
-  "productName": "ttsmm",
+  "productName": "TTSMM",
   "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
   "version": "1.6.0",
   "scripts": {
