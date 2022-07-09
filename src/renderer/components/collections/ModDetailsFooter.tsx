@@ -341,7 +341,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 
 	getIgnoredRenderer(type: DependenciesTableType) {
 		const { appState, currentRecord, openNotification } = this.props;
-		const { config } = appState;
+		const { config, updateState } = appState;
 		const ignoreBadValidation: Map<ModErrorType, { [uid: string]: string[] }> = config.ignoredValidationErrors;
 
 		let errorType: ModErrorType | undefined;
@@ -364,6 +364,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 
 				const { validateCollection } = this.props;
 				const saveUpdates = () => {
+					updateState({});
 					validateCollection();
 					api.updateConfig(config as AppConfig).catch((error) => {
 						api.logger.error(error);
@@ -421,6 +422,8 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 									allIgnoredErrors[currentRecord.uid] = [record.uid];
 									this.setState({}, saveUpdates);
 								}
+							} else {
+								console.log(record);
 							}
 						}}
 					/>
