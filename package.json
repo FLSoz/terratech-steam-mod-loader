@@ -35,8 +35,8 @@
     ]
   },
   "build": {
-    "productName": "ttsm",
-    "appId": "com.flsoz.ttsm",
+		"productName": "TerraTech Steam Mod Manager",
+    "appId": "com.flsoz.ttsmm",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
