@@ -19,7 +19,9 @@
     "start:preload": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.preload.dev.ts",
     "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
     "test": "jest",
-    "patch": "npm version patch && cd release/app && npm version patch && cd ../../"
+    "patch": "bash bin/version.sh patch",
+    "minor": "bash bin/version.sh minor",
+    "major": "bash bin/version.sh major"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

@@ -2,7 +2,7 @@
   "name": "terratech-steam-mod-loader",
   "productName": "TerraTech Steam Mod Manager",
   "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "main": "./dist/main/main.js",
   "author": {
     "name": "FLSoz",
@@ -11,8 +11,7 @@
   "scripts": {
     "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts",
-    "postinstall": "npm run electron-rebuild && npm run link-modules",
-		"patch": "npm run patch --no-git-tag-version"
+    "postinstall": "npm run electron-rebuild && npm run link-modules"
   },
   "license": "MIT",
   "dependencies": {
