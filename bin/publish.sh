@@ -1,8 +1,6 @@
 #!/bin/bash
 if [ $# -gt 0 ]; then
-	export GH_TOKEN=$1
-
-	# Push version tag to remote
+	# export GH_TOKEN=$1
 
 	# do the build
 	ts-node ./.erb/scripts/clean.js dist
