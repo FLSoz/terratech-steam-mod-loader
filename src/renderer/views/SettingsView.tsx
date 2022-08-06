@@ -20,7 +20,6 @@ interface SettingsState {
 
 interface SettingsFields {
 	localDir?: string;
-	gameExec?: string;
 	workshopDir?: string;
 	logsDir?: string;
 	closeOnLaunch?: boolean;
@@ -58,7 +57,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 		api.removeAllListeners(ValidChannel.SELECT_PATH);
 	}
 
-	setSelectedPath(path: string, target: AppConfigKeys.LOCAL_DIR | AppConfigKeys.LOGS_DIR | AppConfigKeys.GAME_EXEC) {
+	setSelectedPath(path: string, target: AppConfigKeys.LOCAL_DIR | AppConfigKeys.LOGS_DIR) {
 		if (path) {
 			const { editingConfig } = this.state;
 			editingConfig![target] = path;
@@ -165,6 +164,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 										title: (
 											<div>
 												<p>Path to TT Local Mods directory</p>
+												<p>This is optional, and only needed if you want to run official mods that aren&rsquo;t from Steam</p>
 												<p>It will be called &quot;LocalMods&quot;, and be under Steam/steamapps/common/TerraTech</p>
 											</div>
 										)
@@ -193,46 +193,6 @@ class SettingsView extends Component<AppState, SettingsState> {
 												api.send(ValidChannel.SELECT_PATH, 'localDir', true, 'Select TerraTech LocalMods directory');
 												this.setState({ selectingDirectory: true });
 											}
-										}}
-									/>
-								</Form.Item>
-								<Form.Item
-									name="gameExec"
-									label="TerraTech Executable"
-									tooltip={{
-										overlayInnerStyle: { minWidth: 300 },
-										title: (
-											<div>
-												<p>Path to TT executable</p>
-												<p>Generally, it should be under: Steam/steamapps/common/TerraTech. It varies by platform</p>
-											</div>
-										)
-									}}
-									initialValue={editingConfig!.gameExec}
-									rules={[
-										{
-											required: true,
-											validator: (_, value) => {
-												return this.validateFile('gameExec', value);
-											}
-										}
-									]}
-									help={configErrors && configErrors.gameExec ? configErrors.gameExec : undefined}
-									validateStatus={configErrors && configErrors.gameExec ? 'error' : undefined}
-								>
-									<Search
-										disabled={selectingDirectory}
-										value={editingConfig!.gameExec}
-										enterButton={<FolderOutlined />}
-										onSearch={() => {
-											if (!selectingDirectory) {
-												api.send(ValidChannel.SELECT_PATH, 'gameExec', false, 'Select TerraTech Executable');
-												this.setState({ selectingDirectory: true });
-											}
-										}}
-										onChange={(event) => {
-											editingConfig!.gameExec = event.target.value;
-											updateState({ madeConfigEdits: true });
 										}}
 									/>
 								</Form.Item>
