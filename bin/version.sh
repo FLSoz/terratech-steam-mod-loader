@@ -6,5 +6,4 @@ npm version $IncrType --no-git-tag-version
 cd ../../
 git add .
 git commit -m "Bump version to $version"
-hash=$(git rev-parse HEAD)
-git tag $version $hash
+git tag $version HEAD
