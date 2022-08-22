@@ -5,7 +5,16 @@ import React, { Component } from 'react';
 import { ColumnType } from 'antd/lib/table';
 import { CompareFn, TableRowSelection } from 'antd/lib/table/interface';
 import api from 'renderer/Api';
-import { CollectionViewProps, DisplayModData, MainCollectionConfig, MainColumnTitles, ModErrors, ModType, ValidChannel } from 'model';
+import {
+	CollectionViewProps,
+	DisplayModData,
+	MainCollectionConfig,
+	MainColumnTitles,
+	ModErrors,
+	ModType,
+	ValidChannel,
+	getModDataId
+} from 'model';
 import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled, PlusOutlined } from '@ant-design/icons';
 import { formatDateStr } from 'util/Date';
 
@@ -395,16 +404,30 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		title: MainColumnTitles.ID,
 		dataIndex: 'id',
 		sorter: (a, b) => {
-			if (a.id) {
-				if (b.id) {
-					return a.id > b.id ? 1 : -1;
+			const a_id = getModDataId(a);
+			const b_id = getModDataId(b);
+			if (a_id) {
+				if (b_id) {
+					return a_id > b_id ? 1 : -1;
 				}
 				return 1;
 			}
-			if (b.id) {
+			if (b_id) {
 				return -1;
 			}
 			return 0;
+		},
+		renderSetup: () => {
+			return (_: string, record: DisplayModData) => {
+				if (!!record.overrides && !!record.overrides.id) {
+					return (
+						<Tag color="gray" key="id">
+							{record.overrides.id}
+						</Tag>
+					);
+				}
+				return record.id;
+			};
 		}
 	},
 	{
@@ -504,19 +527,20 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		renderSetup: (props: CollectionViewProps) => {
 			const { config } = props;
 			const small = (config as MainCollectionConfig | undefined)?.smallRows;
-			return (tags: string[] | undefined) => {
+			return (tags: string[] | undefined, record: DisplayModData) => {
 				const iconTags: CorpType[] = [];
 				const actualTags: string[] = [];
-				(tags || [])
-					.filter((tag) => tag.toLowerCase() !== 'mods')
-					.forEach((tag: string) => {
-						const corp = getCorpType(tag);
+				const userTags: string[] = record.overrides?.tags || [];
+				new Set([...(tags || []), ...userTags]).forEach((tag: string) => {
+					const corp = getCorpType(tag);
+					if (tag.toLowerCase() !== 'mods') {
 						if (corp) {
 							iconTags.push(corp);
 						} else {
 							actualTags.push(tag);
 						}
-					});
+					}
+				});
 				return [
 					...actualTags.map((tag) => (
 						<Tag color="blue" key={tag}>

@@ -40,7 +40,8 @@ export enum CollectionManagerModalType {
 	WARNINGS_FOUND = 'warnings_found',
 	IMPORT_COLLECTION = 5,
 	EXPORT_COLLECTION = 6,
-	WARN_OVERWRITE_COLLECTION = 7
+	WARN_OVERWRITE_COLLECTION = 7,
+	EDIT_OVERRIDES = 8
 }
 
 export interface NotificationProps {

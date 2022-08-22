@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Button, Modal, Typography, Form, Switch, FormInstance, Row, Col, Divider } from 'antd';
+import { Button, Modal, Typography, Form, Switch, FormInstance, Row, Col, Divider, Input } from 'antd';
 import {
 	AppConfig,
 	AppState,
@@ -23,6 +23,7 @@ interface CollectionManagerModalProps {
 	launchAnyway: () => void;
 	openNotification: (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => void;
 	closeModal: () => void;
+	currentRecord?: ModData;
 }
 
 interface CollectionManagerModalState {
@@ -325,6 +326,82 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 				break;
 			case CollectionManagerModalType.IMPORT_COLLECTION:
 				return null;
+			case CollectionManagerModalType.EDIT_OVERRIDES: {
+				const { currentRecord } = this.props;
+				const allOverrides = config.userOverrides;
+				let thisOverride = allOverrides.get(currentRecord!.uid);
+				if (!thisOverride) {
+					thisOverride = {};
+					allOverrides.set(currentRecord!.uid, thisOverride);
+				}
+				const { savingConfig } = this.state;
+				return (
+					<Modal
+						key="manager-override-modal"
+						title={`Edit Overrides For ${currentRecord?.name}`}
+						visible
+						closable={false}
+						footer={[
+							<Button
+								key="save-settings"
+								loading={savingConfig}
+								disabled={savingConfig}
+								type="primary"
+								htmlType="submit"
+								onClick={() => {
+									this.formRef.current?.submit();
+								}}
+							>
+								Save Settings
+							</Button>
+						]}
+					>
+						<Form
+							className="ModOverrideForm"
+							ref={this.formRef}
+							onFinish={() => {
+								this.setState({ savingConfig: true }, () => {
+									api
+										.updateConfig(config as AppConfig)
+										.catch((error) => {
+											api.logger.error(error);
+											openNotification(
+												{
+													message: 'Failed to udpate config',
+													placement: 'bottomLeft',
+													duration: null
+												},
+												'error'
+											);
+										})
+										.finally(() => {
+											this.setState({ savingConfig: false });
+											closeModal();
+											updateState({ loadingMods: true });
+										});
+								});
+							}}
+						>
+							<Row justify="space-between" gutter={16} className="ModOverrides">
+								<Col span={10} key="overrides">
+									<Form.Item key="override-id" name="override-id" label="Override ID" initialValue={thisOverride!.id}>
+										<Input
+											value={thisOverride!.id}
+											onChange={(evt) => {
+												thisOverride!.id = evt.target.value;
+												updateState({ madeConfigEdits: true });
+											}}
+										/>
+									</Form.Item>
+									<Form.Item key="customTags" name="customTags" label="User Tags" initialValue={thisOverride!.tags}>
+										<Input disabled={true} />
+									</Form.Item>
+								</Col>
+							</Row>
+						</Form>
+					</Modal>
+				);
+			}
 			default:
 				return null;
 		}

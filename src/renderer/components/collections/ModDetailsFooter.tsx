@@ -21,12 +21,17 @@ import {
 	ConfigProvider
 } from 'antd';
 import {
+	CheckSquareFilled,
 	ClockCircleTwoTone,
 	CloseOutlined,
+	EditFilled,
 	FolderOpenFilled,
 	FullscreenExitOutlined,
 	FullscreenOutlined,
 	HddFilled,
+	QuestionCircleFilled,
+	QuestionCircleOutlined,
+	QuestionCircleTwoTone,
 	StopTwoTone,
 	WarningTwoTone
 } from '@ant-design/icons';
@@ -42,7 +47,9 @@ import {
 	ModErrors,
 	ModErrorType,
 	ModType,
-	NotificationProps
+	NotificationProps,
+	getModDataId,
+	CollectionManagerModalType
 } from 'model';
 import { formatDateStr } from 'util/Date';
 
@@ -109,7 +116,133 @@ interface ModDetailsFooterProps {
 	setModSubsetCallback: (changes: { [uid: string]: boolean }) => void;
 	openNotification: (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => void;
 	validateCollection: () => void;
+	openModal: (modalType: CollectionManagerModalType) => void;
 }
+
+// Dependencies display schemas
+const NAME_SCHEMA: ColumnType<DisplayModData> = {
+	title: 'Name',
+	dataIndex: 'name',
+	defaultSortOrder: 'ascend',
+	sorter: (a: DisplayModData, b: DisplayModData) => {
+		if (a.name) {
+			if (b.name) {
+				return a.name > b.name ? 1 : -1;
+			}
+			return 1;
+		}
+		if (b.name) {
+			return -1;
+		}
+		return 0;
+	},
+	render: (name: string, record: DisplayModData) => {
+		if (record.type === ModType.DESCRIPTOR && record.children && record.children.length > 0) {
+			return (
+				<span>
+					<FolderOpenFilled /> {name}
+				</span>
+			);
+		}
+		let updateIcon = null;
+		let updateType: 'danger' | 'warning' | undefined;
+		if (record.needsUpdate) {
+			updateIcon = (
+				<Tooltip title="Needs update">
+					<WarningTwoTone twoToneColor="red" />
+				</Tooltip>
+			);
+			updateType = 'danger';
+			if (record.downloadPending) {
+				updateIcon = (
+					<Tooltip title="Download pending">
+						<ClockCircleTwoTone twoToneColor="orange" />
+					</Tooltip>
+				);
+				updateType = 'warning';
+			}
+			if (record.downloading) {
+				updateIcon = (
+					<Tooltip title="Downloading">
+						<StopTwoTone spin twoToneColor="orange" />
+					</Tooltip>
+				);
+				updateType = 'warning';
+			}
+		}
+		return (
+			<span>
+				{updateIcon}
+				<Text strong={record.needsUpdate} type={updateType}>{` ${name}`}</Text>
+			</span>
+		);
+	}
+};
+const TYPE_SCHEMA: ColumnType<DisplayModData> = {
+	title: 'Type',
+	dataIndex: 'type',
+	render: (type: ModType) => getImageSrcFromType(type, 20),
+	width: 65,
+	align: 'center'
+};
+const AUTHORS_SCHEMA: ColumnType<DisplayModData> = {
+	title: 'Authors',
+	dataIndex: 'authors',
+	defaultSortOrder: 'ascend',
+	sorter: (a, b) => {
+		const v1 = a;
+		const v2 = b;
+		if (v1.authors) {
+			if (v2.authors) {
+				const l1 = v1.authors.length;
+				const l2 = v2.authors.length;
+				let ind = 0;
+				while (ind < l1 && ind < l2) {
+					if (v1.authors[ind] > v2.authors[ind]) {
+						return 1;
+					}
+					if (v1.authors[ind] < v2.authors[ind]) {
+						return -1;
+					}
+					ind += 1;
+				}
+				if (l1 > l2) {
+					return 1;
+				}
+				if (l1 < l2) {
+					return -1;
+				}
+				return 0;
+			}
+			return 1;
+		}
+		return -1;
+	},
+	// eslint-disable-next-line @typescript-eslint/ban-types
+	render: (authors: string[] | undefined) => {
+		return (authors || []).map((author) => {
+			return <Tag key={author}>{author}</Tag>;
+		});
+	}
+};
+const ID_SCHEMA: ColumnType<DisplayModData> = {
+	title: 'ID',
+	dataIndex: 'id',
+	sorter: (a, b) => {
+		const a_id = getModDataId(a);
+		const b_id = getModDataId(b);
+		if (a_id) {
+			if (b_id) {
+				return a_id > b_id ? 1 : -1;
+			}
+			return 1;
+		}
+		if (b_id) {
+			return -1;
+		}
+		return 0;
+	}
+};
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {}> {
@@ -119,215 +252,120 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 	}
 
 	getDependenciesSchema(tableType: DependenciesTableType) {
-		const { appState, lastValidationStatus } = this.props;
-		const DESCRIPTOR_COLUMN_SCHEMA: ColumnType<DisplayModData>[] = [
-			{
-				title: 'Name',
-				dataIndex: 'name',
-				defaultSortOrder: 'ascend',
-				sorter: (a: DisplayModData, b: DisplayModData) => {
-					if (a.name) {
-						if (b.name) {
-							return a.name > b.name ? 1 : -1;
-						}
-						return 1;
+		const { appState, lastValidationStatus, currentRecord } = this.props;
+
+		const STATE_SCHEMA: ColumnType<DisplayModData> = {
+			title: 'State',
+			dataIndex: 'errors',
+			render: (errors: ModErrors | undefined, record: DisplayModData) => {
+				const collection = appState.activeCollection as ModCollection;
+				const selectedMods = collection.mods;
+
+				// Handle folder item
+				if (record.type === ModType.DESCRIPTOR) {
+					const children = record.children?.map((data) => data.uid) || [];
+					const selectedChildren = children.filter((uid) => selectedMods.includes(uid));
+					if (selectedChildren.length > 1) {
+						return <Tag color="red">Conflicts</Tag>;
 					}
-					if (b.name) {
-						return -1;
-					}
-					return 0;
-				},
-				render: (name: string, record: DisplayModData) => {
-					if (record.type === ModType.DESCRIPTOR && record.children && record.children.length > 0) {
-						return (
-							<span>
-								<FolderOpenFilled /> {name}
-							</span>
-						);
-					}
-					let updateIcon = null;
-					let updateType: 'danger' | 'warning' | undefined;
-					if (record.needsUpdate) {
-						updateIcon = (
-							<Tooltip title="Needs update">
-								<WarningTwoTone twoToneColor="red" />
-							</Tooltip>
-						);
-						updateType = 'danger';
-						if (record.downloadPending) {
-							updateIcon = (
-								<Tooltip title="Download pending">
-									<ClockCircleTwoTone twoToneColor="orange" />
-								</Tooltip>
-							);
-							updateType = 'warning';
-						}
-						if (record.downloading) {
-							updateIcon = (
-								<Tooltip title="Downloading">
-									<StopTwoTone spin twoToneColor="orange" />
-								</Tooltip>
-							);
-							updateType = 'warning';
-						}
-					}
-					return (
-						<span>
-							{updateIcon}
-							<Text strong={record.needsUpdate} type={updateType}>{` ${name}`}</Text>
-						</span>
-					);
 				}
-			},
-			{
-				title: 'Type',
-				dataIndex: 'type',
-				render: (type: ModType) => getImageSrcFromType(type, 20),
-				width: 65,
-				align: 'center'
-			},
-			{
-				title: 'Authors',
-				dataIndex: 'authors',
-				defaultSortOrder: 'ascend',
-				sorter: (a, b) => {
-					const v1 = a;
-					const v2 = b;
-					if (v1.authors) {
-						if (v2.authors) {
-							const l1 = v1.authors.length;
-							const l2 = v2.authors.length;
-							let ind = 0;
-							while (ind < l1 && ind < l2) {
-								if (v1.authors[ind] > v2.authors[ind]) {
-									return 1;
-								}
-								if (v1.authors[ind] < v2.authors[ind]) {
-									return -1;
-								}
-								ind += 1;
-							}
-							if (l1 > l2) {
-								return 1;
-							}
-							if (l1 < l2) {
-								return -1;
-							}
-							return 0;
-						}
-						return 1;
-					}
-					return -1;
-				},
-				// eslint-disable-next-line @typescript-eslint/ban-types
-				render: (authors: string[] | undefined) => {
-					return (authors || []).map((author) => {
-						return <Tag key={author}>{author}</Tag>;
-					});
-				}
-			},
-			{
-				title: 'State',
-				dataIndex: 'errors',
-				render: (errors: ModErrors | undefined, record: DisplayModData) => {
-					const collection = appState.activeCollection as ModCollection;
-					const selectedMods = collection.mods;
 
-					// Handle folder item
-					if (record.type === ModType.DESCRIPTOR) {
-						const children = record.children?.map((data) => data.uid) || [];
-						const selectedChildren = children.filter((uid) => selectedMods.includes(uid));
-						if (selectedChildren.length > 1) {
-							return <Tag color="red">Conflicts</Tag>;
-						}
+				if (!selectedMods.includes(record.uid)) {
+					if (!record.subscribed && record.workshopID && record.workshopID > 0) {
+						return <Tag key="notSubscribed">Not subscribed</Tag>;
 					}
-
-					if (!selectedMods.includes(record.uid)) {
-						if (!record.subscribed && record.workshopID && record.workshopID > 0) {
-							return <Tag key="notSubscribed">Not subscribed</Tag>;
-						}
-						if (record.subscribed && !record.installed) {
-							return <Tag key="notInstalled">Not installed</Tag>;
-						}
-						return null;
-					}
-					const errorTags: { text: string; color: string }[] = [];
-					if (errors) {
-						if (errors.incompatibleMods && errors.incompatibleMods.length > 0) {
-							errorTags.push({
-								text: 'Conflicts',
-								color: 'red'
-							});
-						}
-						if (errors.invalidId) {
-							errorTags.push({
-								text: 'Invalid ID',
-								color: 'volcano'
-							});
-						}
-						if (errors.missingDependencies && errors.missingDependencies.length > 0) {
-							errorTags.push({
-								text: 'Missing dependencies',
-								color: 'orange'
-							});
-						}
-
-						// Installation status errors
-						if (errors.notSubscribed) {
-							errorTags.push({
-								text: 'Not subscribed',
-								color: 'yellow'
-							});
-						} else if (errors.notInstalled) {
-							errorTags.push({
-								text: 'Not installed',
-								color: 'yellow'
-							});
-						} else if (errors.needsUpdate) {
-							errorTags.push({
-								text: 'Needs update',
-								color: 'yellow'
-							});
-						}
-					}
-					if (errorTags.length > 0) {
-						return errorTags.map((tagConfig) => {
-							return (
-								<Tag key={tagConfig.text} color={tagConfig.color}>
-									{tagConfig.text}
-								</Tag>
-							);
-						});
-					}
-
-					// If everything is fine, only return OK if we have actually validated it
-					if (lastValidationStatus !== undefined && !!errors) {
-						return (
-							<Tag key="OK" color="green">
-								OK
-							</Tag>
-						);
+					if (record.subscribed && !record.installed) {
+						return <Tag key="notInstalled">Not installed</Tag>;
 					}
 					return null;
 				}
-			},
-			{
-				title: 'ID',
-				dataIndex: 'id',
-				sorter: (a, b) => {
-					if (a.id) {
-						if (b.id) {
-							return a.id > b.id ? 1 : -1;
-						}
-						return 1;
+				const errorTags: { text: string; color: string }[] = [];
+				if (errors) {
+					if (errors.incompatibleMods && errors.incompatibleMods.length > 0) {
+						errorTags.push({
+							text: 'Conflicts',
+							color: 'red'
+						});
 					}
-					if (b.id) {
-						return -1;
+					if (errors.invalidId) {
+						errorTags.push({
+							text: 'Invalid ID',
+							color: 'volcano'
+						});
 					}
-					return 0;
+					if (errors.missingDependencies && errors.missingDependencies.length > 0) {
+						errorTags.push({
+							text: 'Missing dependencies',
+							color: 'orange'
+						});
+					}
+
+					// Installation status errors
+					if (errors.notSubscribed) {
+						errorTags.push({
+							text: 'Not subscribed',
+							color: 'yellow'
+						});
+					} else if (errors.notInstalled) {
+						errorTags.push({
+							text: 'Not installed',
+							color: 'yellow'
+						});
+					} else if (errors.needsUpdate) {
+						errorTags.push({
+							text: 'Needs update',
+							color: 'yellow'
+						});
+					}
 				}
+				if (errorTags.length > 0) {
+					return errorTags.map((tagConfig) => {
+						return (
+							<Tag key={tagConfig.text} color={tagConfig.color}>
+								{tagConfig.text}
+							</Tag>
+						);
+					});
+				}
+
+				// If everything is fine, only return OK if we have actually validated it
+				if (lastValidationStatus !== undefined && !!errors) {
+					return (
+						<Tag key="OK" color="green">
+							OK
+						</Tag>
+					);
+				}
+				return null;
 			}
-		];
+		};
+		const AUTHOR_SPECIFIED_DEPENDENCY_SCHEMA: ColumnType<DisplayModData> = {
+			title: (
+				<Tooltip title={'Which version of the mod did the author say is the canonical dependency?'}>
+					<QuestionCircleFilled />
+				</Tooltip>
+			),
+			dataIndex: 'workshopID',
+			render: (workshopID: bigint | undefined) => {
+				if (!!workshopID && currentRecord.steamDependencies?.includes(workshopID)) {
+					return (
+						<Tooltip title={'This is the mod the author specified as the canonical dependency'}>
+							<CheckSquareFilled />
+						</Tooltip>
+					);
+				}
+				return null;
+			},
+			width: 30,
+			align: 'center'
+		};
+
+		const DESCRIPTOR_COLUMN_SCHEMA: ColumnType<DisplayModData>[] = [NAME_SCHEMA];
+
+		if (tableType === DependenciesTableType.REQUIRED) {
+			DESCRIPTOR_COLUMN_SCHEMA.push(AUTHOR_SPECIFIED_DEPENDENCY_SCHEMA);
+		}
+		[TYPE_SCHEMA, AUTHORS_SCHEMA, STATE_SCHEMA, ID_SCHEMA].forEach((schema) => DESCRIPTOR_COLUMN_SCHEMA.push(schema));
 
 		const ignoredRenderer = this.getIgnoredRenderer(tableType);
 		if (ignoredRenderer) {
@@ -358,8 +396,9 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			return (_: unknown, record: DisplayModData) => {
 				const ignoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
 				const myIgnoredErrors = ignoredErrors ? ignoredErrors[currentRecord.uid] || [] : [];
+				const record_id = getModDataId(record);
 				const isSelected =
-					(type === DependenciesTableType.REQUIRED && myIgnoredErrors.includes(record.id!)) ||
+					(type === DependenciesTableType.REQUIRED && myIgnoredErrors.includes(record_id!)) ||
 					(type === DependenciesTableType.CONFLICT && myIgnoredErrors.includes(record.uid));
 
 				const { validateCollection } = this.props;
@@ -384,7 +423,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 						checked={isSelected}
 						disabled={record.type !== ModType.DESCRIPTOR && type === DependenciesTableType.REQUIRED}
 						onChange={(evt) => {
-							if (type === DependenciesTableType.REQUIRED && record.id) {
+							if (type === DependenciesTableType.REQUIRED && record_id) {
 								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
 								if (!allIgnoredErrors) {
 									allIgnoredErrors = {};
@@ -393,14 +432,14 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
 								if (thisIgnoredErrors) {
 									if (evt.target.checked) {
-										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record.id)];
+										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record_id)];
 										this.setState({}, saveUpdates);
 									} else {
-										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record.id);
+										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record_id);
 										this.setState({}, saveUpdates);
 									}
 								} else if (evt.target.checked) {
-									allIgnoredErrors[currentRecord.uid] = [record.id];
+									allIgnoredErrors[currentRecord.uid] = [record_id];
 									this.setState({}, saveUpdates);
 								}
 							} else if (type === DependenciesTableType.CONFLICT) {
@@ -517,14 +556,18 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 
 		const descriptionLines = currentRecord.description ? currentRecord.description.split(/\r?\n/) : [];
 
+		const steamTags = currentRecord.tags?.map((tag) => <Tag key={tag}>{tag}</Tag>) || [];
+		const userTags =
+			currentRecord.overrides?.tags?.map((tag) => (
+				<Tag key={tag} color="blue">
+					{tag}
+				</Tag>
+			)) || [];
+
 		return (
 			<Descriptions column={2} bordered size="small">
 				<Descriptions.Item label="Author">{currentRecord.authors}</Descriptions.Item>
-				<Descriptions.Item label="Tags">
-					{currentRecord.tags?.map((tag) => (
-						<Tag key={tag}>{tag}</Tag>
-					))}
-				</Descriptions.Item>
+				<Descriptions.Item label="Tags">{steamTags.concat(userTags)}</Descriptions.Item>
 				<Descriptions.Item label="Created">{formatDateStr(currentRecord.dateCreated)}</Descriptions.Item>
 				<Descriptions.Item label="Installed">{formatDateStr(currentRecord.dateAdded)}</Descriptions.Item>
 				<Descriptions.Item label="Description">
@@ -540,7 +583,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 	}
 
 	renderInspectTab() {
-		const { appState, currentRecord } = this.props;
+		const { appState, currentRecord, openModal } = this.props;
 		const { activeCollection, mods } = appState;
 
 		const modDescriptor = getDescriptor(mods, currentRecord);
@@ -549,11 +592,36 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			<Collapse className="ModDetailInspect" defaultActiveKey={['info', 'descriptor', 'properties', 'status']}>
 				<Panel header="Mod Info" key="info">
 					<Descriptions column={1} bordered size="small" labelStyle={{ width: 150 }}>
-						<Descriptions.Item label="ID">{currentRecord.id}</Descriptions.Item>
+						<Descriptions.Item label="ID">
+							{!!currentRecord.id || !!currentRecord?.overrides?.id ? (
+								currentRecord.id
+							) : (
+								<Button
+									icon={<EditFilled />}
+									onClick={() => {
+										openModal(CollectionManagerModalType.EDIT_OVERRIDES);
+									}}
+								/>
+							)}
+						</Descriptions.Item>
+						{!!currentRecord?.overrides?.id ? (
+							<Descriptions.Item label="ID (Override)">
+								<Button
+									icon={<EditFilled />}
+									onClick={() => {
+										openModal(CollectionManagerModalType.EDIT_OVERRIDES);
+									}}
+								/>
+								{currentRecord.overrides.id}
+							</Descriptions.Item>
+						) : null}
 						<Descriptions.Item label="UID">{currentRecord.uid}</Descriptions.Item>
 						<Descriptions.Item label="Name">{currentRecord.name}</Descriptions.Item>
 						<Descriptions.Item label="Author">{currentRecord.authors}</Descriptions.Item>
 						<Descriptions.Item label="Tags">{currentRecord.tags ? currentRecord.tags.join(', ') : null}</Descriptions.Item>
+						{!!currentRecord?.overrides?.tags ? (
+							<Descriptions.Item label="User Tags">{currentRecord.overrides.tags.join(', ')}</Descriptions.Item>
+						) : null}
 						<Descriptions.Item label="Description">{currentRecord.description}</Descriptions.Item>
 					</Descriptions>
 				</Panel>
@@ -696,11 +764,12 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 
 		const showDependenciesTab = requiredModData.length > 0 || dependentModData.length > 0 || conflictingModData.length > 0;
 
+		const currentRecord_id = getModDataId(currentRecord);
 		return (
 			<Content className="ModDetailFooter" style={bigDetails ? bigStyle : normalStyle}>
 				<PageHeader
 					title={currentRecord.name}
-					subTitle={`${currentRecord.id} (${currentRecord.uid})`}
+					subTitle={`${currentRecord_id} (${currentRecord.uid})`}
 					style={{ width: '100%', height: 48 }}
 					extra={
 						<Space>

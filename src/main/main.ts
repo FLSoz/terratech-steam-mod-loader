@@ -20,7 +20,18 @@ import child_process from 'child_process';
 import psList from 'ps-list';
 import { autoUpdater } from 'electron-updater';
 
-import { ModData, ModCollection, ModType, SessionMods, ValidChannel, AppConfig, ModErrorType, PathType, PathParams } from '../model';
+import {
+	ModData,
+	ModCollection,
+	ModType,
+	SessionMods,
+	ValidChannel,
+	AppConfig,
+	ModErrorType,
+	PathType,
+	PathParams,
+	ModDataOverride
+} from '../model';
 import Steamworks, { EResult, UGCItemState } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
@@ -386,6 +397,16 @@ ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 		} else {
 			appConfig.ignoredValidationErrors = new Map();
 		}
+		if (appConfig.userOverrides) {
+			const convertedMap: Map<string, ModDataOverride> = new Map();
+			const castObject = appConfig.userOverrides as { [uid: string]: ModDataOverride };
+			Object.entries(castObject).forEach(([key, value]: [string, ModDataOverride]) => {
+				convertedMap.set(key, value);
+			});
+			appConfig.userOverrides = convertedMap;
+		} else {
+			appConfig.userOverrides = new Map();
+		}
 		if (appConfig.workshopID) {
 			appConfig.workshopID = BigInt(appConfig.workshopID);
 		}
@@ -403,6 +424,9 @@ ipcMain.handle(ValidChannel.UPDATE_CONFIG, async (_event, config) => {
 		log.info('updated config');
 		if (config.ignoredValidationErrors) {
 			config.ignoredValidationErrors = Object.fromEntries(config.ignoredValidationErrors);
+		}
+		if (config.userOverrides) {
+			config.userOverrides = Object.fromEntries(config.userOverrides);
 		}
 		if (config.workshopID) {
 			config.workshopID = config.workshopID.toString();

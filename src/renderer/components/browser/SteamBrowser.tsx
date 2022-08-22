@@ -43,6 +43,6 @@ class SteamBrowserView extends Component<{ location: Location }, AppState> {
 	}
 }
 
-export default (props: unknown) => {
+export default (props: any) => {
 	return <SteamBrowserView {...props} location={useLocation()} />;
 };

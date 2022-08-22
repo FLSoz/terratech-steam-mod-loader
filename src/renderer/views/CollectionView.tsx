@@ -89,6 +89,8 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		this.pollGameRunning = this.pollGameRunning.bind(this);
 		this.validateActiveCollection = this.validateActiveCollection.bind(this);
 		this.onModMetadataUpdate = this.onModMetadataUpdate.bind(this);
+
+		this.openModal = this.openModal.bind(this);
 	}
 
 	componentDidMount() {
@@ -150,7 +152,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 			const regenerateDescriptors = update.installed && !modData.installed;
 			Object.assign(modData, update);
 			if (regenerateDescriptors) {
-				setupDescriptors(mods);
+				setupDescriptors(mods, appState.config.userOverrides);
 			}
 			this.validateActiveCollection(false);
 		}
@@ -608,7 +610,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		this.setState({ overrideGameRunning: true });
 		// add a visual delay so the user gets to see the nice spinning wheel
 		promiseManager
-			.execute(pause(1000, api.launchGame, config!.workshopID, config!.closeOnLaunch, mods, config!.extraParams))
+			.execute(pause(1000, api.launchGame, config!.workshopID, config!.closeOnLaunch, mods, config!.logParams, config!.extraParams))
 			.then((success) => {
 				setTimeout(() => {
 					this.setState({ overrideGameRunning: false });
@@ -748,10 +750,14 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		);
 	}
 
+	openModal(modalType: CollectionManagerModalType) {
+		this.setState({ modalType });
+	}
+
 	// We allow you to load multiple mods with the same ID (bundle name), but only the local mod will be used
 	// If multiple workshop mods have the same ID, and you select multiple, then we will force you to choose one to use
 	renderModal(currentView: CollectionViewType) {
-		const { modalType, launchGameWithErrors } = this.state;
+		const { modalType, launchGameWithErrors, currentRecord } = this.state;
 		const { appState } = this.props;
 		const { activeCollection, mods } = appState;
 
@@ -770,6 +776,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 				closeModal={() => {
 					this.setState({ modalType: CollectionManagerModalType.NONE });
 				}}
+				currentRecord={currentRecord}
 			/>
 		);
 	}
@@ -860,6 +867,16 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		const { currentRecord, bigDetails, lastValidationStatus } = this.state;
 		const { appState } = this.props;
 		if (currentView === CollectionViewType.MAIN && currentRecord) {
+			if (appState.loadingMods) {
+				return (
+					<ModLoadingView
+						appState={appState}
+						modLoadCompleteCallback={() => {
+							this.recalculateModData();
+						}}
+					/>
+				);
+			}
 			return (
 				<ModDetailsFooter
 					key="mod-details"
@@ -914,6 +931,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 					validateCollection={() => {
 						this.validateActiveCollection(false);
 					}}
+					openModal={this.openModal}
 				/>
 			);
 		}

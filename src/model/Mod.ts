@@ -45,4 +45,19 @@ export interface ModData {
 	downloadPending?: boolean;
 	needsUpdate?: boolean;
 	installed?: boolean;
+
+	// Overrides
+	overrides?: ModDataOverride;
+}
+
+export interface ModDataOverride {
+	id?: string;
+	tags?: string[];
+}
+
+export function getModDataId(record: ModData): string | null {
+	if (!!record.overrides?.id) {
+		return record.overrides.id;
+	}
+	return record.id;
 }

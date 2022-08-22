@@ -34,5 +34,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 
 	viewConfigs: {},
 
-	ignoredValidationErrors: new Map()
+	ignoredValidationErrors: new Map(),
+
+	userOverrides: new Map()
 };

@@ -42,6 +42,6 @@ class TTQMMBrowserView extends Component<{ location: Location }, AppState> {
 	}
 }
 
-export default (props: unknown) => {
+export default (props: any) => {
 	return <TTQMMBrowserView {...props} location={useLocation()} />;
 };

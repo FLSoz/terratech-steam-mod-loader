@@ -2,7 +2,7 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { AppConfig, ModCollection, ModData, ValidChannel, PathParams, PathType } from 'model';
+import { AppConfig, ModCollection, ModData, ValidChannel, PathParams, PathType, NLogLevel } from 'model';
 
 interface ElectronInterface {
 	platform: string;
@@ -91,7 +91,13 @@ class API {
 		return ipcRenderer.exit(code);
 	}
 
-	launchGame(workshopID: string, closeOnLaunch: boolean, modList: ModData[], extraParams?: string): Promise<any> {
+	launchGame(
+		workshopID: string,
+		closeOnLaunch: boolean,
+		modList: ModData[],
+		logParams?: { [loggerID: string]: NLogLevel },
+		extraParams?: string
+	): Promise<any> {
 		const modListStr: string = modList
 			.filter((modData) => modData && modData.workshopID !== BigInt(workshopID))
 			.map((mod: ModData) => {
@@ -99,6 +105,12 @@ class API {
 			})
 			.join(',');
 		let args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
+		if (logParams) {
+			Object.entries(logParams).forEach(([loggerID, logLevel]: [string, NLogLevel]) => {
+				args.push(loggerID && loggerID.length > 0 ? `log_level_${loggerID}` : 'log_level');
+				args.push(logLevel);
+			});
+		}
 		if (extraParams) {
 			const splitParams: string[] = extraParams.split(' ');
 			args = args.concat(splitParams);

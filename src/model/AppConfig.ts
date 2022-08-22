@@ -2,11 +2,22 @@ import { LogLevel } from './Api';
 import { CollectionConfig } from './CollectionConfig';
 import { ModErrorType } from './CollectionValidation';
 import { MainCollectionConfig } from './MainCollectionView';
+import { ModDataOverride } from './Mod';
 
 export enum AppConfigKeys {
 	LOCAL_DIR = 'localDir',
 	LOGS_DIR = 'logsDir',
 	MANAGER_ID = 'workshopID'
+}
+
+export enum NLogLevel {
+	OFF = 'off',
+	FATAL = 'fatal',
+	ERROR = 'error',
+	WARN = 'warn',
+	INFO = 'info',
+	DEBUG = 'debug',
+	TRACE = 'trace'
 }
 
 export interface AppConfig {
@@ -19,6 +30,7 @@ export interface AppConfig {
 
 	activeCollection?: string;
 	extraParams?: string;
+	logParams?: { [id: string]: NLogLevel };
 
 	logLevel?: LogLevel;
 	[AppConfigKeys.LOGS_DIR]: string;
@@ -33,6 +45,8 @@ export interface AppConfig {
 	};
 
 	ignoredValidationErrors: Map<ModErrorType, { [uid: string]: string[] }>;
+
+	userOverrides: Map<string, ModDataOverride>;
 }
 
 export interface RawCollectionConfig extends CollectionConfig {
@@ -42,4 +56,9 @@ export interface RawCollectionConfig extends CollectionConfig {
 export interface SeparatedCollectionConfig extends CollectionConfig {
 	smallRows?: boolean;
 	disableTableViews?: boolean;
+}
+
+export enum SettingsViewModalType {
+	NONE = 0,
+	LOG_EDIT = 1
 }

@@ -69,7 +69,7 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 	loadModsCallback(mods: SessionMods) {
 		// We are done
 		const { appState, modLoadCompleteCallback } = this.props;
-		setupDescriptors(mods);
+		setupDescriptors(mods, appState.config.userOverrides);
 		appState.updateState({
 			mods,
 			firstModLoad: true,

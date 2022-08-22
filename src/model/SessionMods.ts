@@ -1,5 +1,5 @@
 import { ElectronLog } from 'electron-log';
-import { ModData, ModDescriptor, ModType } from './Mod';
+import { ModData, ModDescriptor, ModType, getModDataId, ModDataOverride } from './Mod';
 import { ModCollection } from './ModCollection';
 import { CollectionErrors, ModErrors } from './CollectionValidation';
 
@@ -25,8 +25,9 @@ export class SessionMods {
 
 export function getDescriptor(session: SessionMods, mod: ModData): ModDescriptor | undefined {
 	let myDescriptor: ModDescriptor | undefined;
-	if (mod.id) {
-		myDescriptor = session.modIdToModDescriptor.get(mod.id);
+	const id = getModDataId(mod);
+	if (id) {
+		myDescriptor = session.modIdToModDescriptor.get(id);
 	}
 	if (!myDescriptor && mod.workshopID) {
 		myDescriptor = session.workshopIdToModDescriptor.get(mod.workshopID);
@@ -36,26 +37,32 @@ export function getDescriptor(session: SessionMods, mod: ModData): ModDescriptor
 
 // This exists because IPC communication means objects must be deserialized from main to renderer
 // This means that object refs are not carried over, and so relying on it as a unique ID will fail
-export function setupDescriptors(session: SessionMods) {
+export function setupDescriptors(session: SessionMods, overrides: Map<string, ModDataOverride>) {
 	const { foundMods, modIdToModDataMap, modIdToModDescriptor, workshopIdToModDescriptor } = session;
 	modIdToModDescriptor.clear();
 	workshopIdToModDescriptor.clear();
 	// Setup ModDescriptors and other maps
 	foundMods.forEach((mod: ModData) => {
+		const modOverrides = overrides.get(mod.uid);
+		if (modOverrides) {
+			mod.overrides = modOverrides;
+		}
+
 		modIdToModDataMap.set(mod.uid, mod);
 		// Create mod descriptors using workshop mods as first pass
 		if (mod.type === ModType.WORKSHOP && mod.workshopID) {
 			const { workshopID } = mod;
 			let descriptor: ModDescriptor | undefined;
-			if (mod.id) {
-				descriptor = modIdToModDescriptor.get(mod.id);
+			const id = getModDataId(mod);
+			if (id) {
+				descriptor = modIdToModDescriptor.get(id);
 			}
 			if (!descriptor) {
 				descriptor = {
 					UIDs: new Set()
 				};
-				if (mod.id) {
-					descriptor.modID = mod.id;
+				if (id) {
+					descriptor.modID = id;
 				}
 			}
 
@@ -65,32 +72,33 @@ export function setupDescriptors(session: SessionMods) {
 
 			descriptor.UIDs.add(mod.uid);
 			workshopIdToModDescriptor.set(workshopID, descriptor);
-			if (mod.id) {
-				modIdToModDescriptor.set(mod.id, descriptor);
+			if (id) {
+				modIdToModDescriptor.set(id, descriptor);
 			}
 		}
 	});
 	// Fill in mod descriptors for local mods
 	foundMods.forEach((mod: ModData) => {
 		if (mod.type !== ModType.WORKSHOP) {
-			if (mod.id) {
+			const id = getModDataId(mod);
+			if (id) {
 				if (!modIdToModDataMap.get(mod.uid)) {
 					// Don't expect this to ever happen
 					const descriptor: ModDescriptor = {
-						modID: mod.id,
+						modID: id,
 						UIDs: new Set(),
 						name: mod.name
 					};
 					descriptor.UIDs.add(mod.uid);
-					modIdToModDescriptor.set(mod.id, descriptor);
+					modIdToModDescriptor.set(id, descriptor);
 				} else {
-					let descriptor: ModDescriptor | undefined = modIdToModDescriptor.get(mod.id);
+					let descriptor: ModDescriptor | undefined = modIdToModDescriptor.get(id);
 					if (!descriptor) {
 						descriptor = {
 							UIDs: new Set()
 						};
-						descriptor.modID = mod.id;
-						modIdToModDescriptor.set(mod.id, descriptor);
+						descriptor.modID = id;
+						modIdToModDescriptor.set(id, descriptor);
 					}
 					descriptor.UIDs.add(mod.uid);
 				}
@@ -174,7 +182,7 @@ export function filterRows(session: SessionMods, searchString: string | undefine
 			) {
 				return true;
 			}
-			return modData.tags?.reduce((acc: boolean, tag: string) => {
+			return [...(modData.tags || []), ...(modData.overrides?.tags || [])].reduce((acc: boolean, tag: string) => {
 				if (acc) {
 					return true;
 				}
@@ -189,7 +197,8 @@ export function validateMod(session: SessionMods, modData: ModData, logger?: Ele
 	logger?.debug(`validating ${modData.name}`);
 	const thisModErrors: ModErrors = {};
 
-	if ((!modData.id || modData.id.length <= 0) && !modData.workshopID) {
+	const id = getModDataId(modData);
+	if ((!id || id.length <= 0) && !modData.workshopID) {
 		// we couldn't find any info on this mod - should never reach here
 	}
 
