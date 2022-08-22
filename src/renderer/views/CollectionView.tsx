@@ -618,6 +618,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 					config!.workshopID,
 					config!.closeOnLaunch,
 					mods,
+					config!.pureVanilla,
 					config!.logParams,
 					config!.extraParams
 				)

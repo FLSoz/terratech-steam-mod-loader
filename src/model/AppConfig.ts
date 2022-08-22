@@ -26,6 +26,8 @@ export interface AppConfig {
 
 	language: string;
 
+	pureVanilla?: boolean;
+
 	[AppConfigKeys.LOCAL_DIR]?: string;
 	[AppConfigKeys.GAME_EXEC]: string;
 	[AppConfigKeys.MANAGER_ID]: bigint;
@@ -62,5 +64,6 @@ export interface SeparatedCollectionConfig extends CollectionConfig {
 
 export enum SettingsViewModalType {
 	NONE = 0,
-	LOG_EDIT = 1
+	LOG_EDIT = 1,
+	WORKSHOP_ID_EDIT = 2
 }

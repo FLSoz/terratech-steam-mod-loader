@@ -96,27 +96,42 @@ class API {
 		workshopID: string,
 		closeOnLaunch: boolean,
 		modList: ModData[],
+		pureVanilla?: boolean,
 		logParams?: { [loggerID: string]: NLogLevel },
 		extraParams?: string
 	): Promise<any> {
-		const modListStr: string = modList
+		const actualMods = modList
 			.filter((modData) => modData && modData.workshopID !== BigInt(workshopID))
 			.map((mod: ModData) => {
 				return mod ? `[${mod.uid.toString().replaceAll(' ', ':/%20')}]` : '';
-			})
-			.join(',');
-		let args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
-		if (logParams) {
-			Object.entries(logParams).forEach(([loggerID, logLevel]: [string, NLogLevel]) => {
-				args.push(loggerID && loggerID.length > 0 ? `+log_level_${loggerID}` : '+log_level');
-				args.push(logLevel);
 			});
+		let args: string[] = [];
+		let passedWorkshopID: string | null = workshopID;
+
+		let addMods = true;
+		// Don't block pure vanilla if only Mod Manager & Harmony are selected
+		if (actualMods.length === 0 || (actualMods.length === 1 && actualMods[0] === '[workshop:2571814511]')) {
+			if (pureVanilla) {
+				passedWorkshopID = null;
+				addMods = false;
+			}
+		}
+		if (addMods) {
+			const modListStr: string = actualMods.join(',');
+			args.push('+ttsmm_mod_list');
+			args.push(`[${modListStr}]`);
+			if (logParams) {
+				Object.entries(logParams).forEach(([loggerID, logLevel]: [string, NLogLevel]) => {
+					args.push(loggerID && loggerID.length > 0 ? `+log_level_${loggerID}` : '+log_level');
+					args.push(logLevel);
+				});
+			}
 		}
 		if (extraParams) {
 			const splitParams: string[] = extraParams.split(' ');
 			args = args.concat(splitParams);
 		}
-		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, gameExec, workshopID, closeOnLaunch, args);
+		return ipcRenderer.invoke(ValidChannel.LAUNCH_GAME, gameExec, passedWorkshopID, closeOnLaunch, args);
 	}
 
 	gameRunning(): Promise<boolean> {

@@ -33,7 +33,6 @@ interface LogConfig {
 }
 
 interface EditingConfig extends AppConfig {
-	editingWorkshopID?: string;
 	editingLogConfig: LogConfig[];
 }
 
@@ -54,7 +53,6 @@ interface SettingsFields {
 	workshopID?: string;
 	steamMaxConcurrency?: number;
 	extraParams?: string[];
-	loggingParams?: string[];
 }
 
 class SettingsView extends Component<AppState, SettingsState> {
@@ -76,7 +74,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 			});
 		}
 		this.state = {
-			editingConfig: { ...config, editingWorkshopID: appState.config.workshopID.toString(), editingLogConfig: logConfig },
+			editingConfig: { ...config, editingLogConfig: logConfig },
 			selectingDirectory: false,
 			madeLocalEdits: false,
 			modalType: SettingsViewModalType.NONE,
@@ -206,10 +204,10 @@ class SettingsView extends Component<AppState, SettingsState> {
 	}
 
 	renderModal() {
-		const { modalType, editingContext } = this.state;
+		const { modalType, editingContext, editingConfig } = this.state;
 		const { updateState } = this.props;
 		switch (modalType) {
-			case SettingsViewModalType.LOG_EDIT:
+			case SettingsViewModalType.LOG_EDIT: {
 				const config: LogConfig = editingContext as LogConfig;
 				return (
 					<Modal
@@ -249,6 +247,61 @@ class SettingsView extends Component<AppState, SettingsState> {
 						</Form>
 					</Modal>
 				);
+			}
+			case SettingsViewModalType.WORKSHOP_ID_EDIT: {
+				return (
+					<Modal
+						key="workshop-id-modal"
+						title={`Select Mod Manager`}
+						visible
+						closable={false}
+						footer={[
+							<Button
+								type="primary"
+								key="no-changes"
+								onClick={() => {
+									const { config } = this.props;
+									editingConfig.workshopID = config.workshopID;
+									this.modalFormRef.current?.resetFields();
+									this.setState({ modalType: SettingsViewModalType.NONE });
+								}}
+							>
+								Make No Changes
+							</Button>,
+							<Button
+								key="save-settings"
+								type="primary"
+								htmlType="submit"
+								danger
+								onClick={() => {
+									this.modalFormRef.current?.submit();
+								}}
+							>
+								Save Settings
+							</Button>
+						]}
+					>
+						<Form
+							className="WorkshopIDForm"
+							ref={this.modalFormRef}
+							onFinish={() => {
+								this.setState({ modalType: SettingsViewModalType.NONE });
+							}}
+						>
+							<Form.Item key="workshop-id" name="workshop-id" label="Workshop ID" initialValue={editingConfig.workshopID}>
+								<InputNumber
+									value={editingConfig!.workshopID.toString()}
+									onChange={(value) => {
+										editingConfig!.workshopID = BigInt(value);
+										updateState({ madeConfigEdits: true });
+									}}
+									style={{ width: '200px' }}
+								/>
+							</Form.Item>
+						</Form>
+					</Modal>
+				);
+			}
 			default:
 				return null;
 		}
@@ -376,34 +429,29 @@ class SettingsView extends Component<AppState, SettingsState> {
 										checked={editingConfig!.closeOnLaunch}
 										onChange={(checked) => {
 											editingConfig!.closeOnLaunch = checked;
-											/* this.formRef.current!.setFieldsValue({
-										closeOnLaunch: checked
-									}); */
 											updateState({ madeConfigEdits: true });
 										}}
 									/>
 								</Form.Item>
 								<Form.Item
-									name="workshopID"
-									label="Workshop ID"
-									rules={[{ required: true }]}
-									initialValue={editingConfig!.workshopID.toString()}
+									name="pureVanilla"
+									label="Pure Vanilla"
+									initialValue={editingConfig!.pureVanilla}
 									tooltip={{
 										overlayInnerStyle: { minWidth: 300 },
 										title: (
 											<div>
-												<p>Which workshop mod is used as the underlying mod manager</p>
+												<p>Should TTSMM launch the game without the integrated mod loader if no other mods are selected?</p>
 											</div>
 										)
 									}}
 								>
-									<InputNumber
-										value={editingConfig!.workshopID.toString()}
-										onChange={(value) => {
-											editingConfig!.workshopID = BigInt(value);
+									<Switch
+										checked={editingConfig!.pureVanilla}
+										onChange={(checked) => {
+											editingConfig!.pureVanilla = checked;
 											updateState({ madeConfigEdits: true });
 										}}
-										style={{ width: 125 }}
 									/>
 								</Form.Item>
 								<Form.Item
@@ -454,6 +502,42 @@ class SettingsView extends Component<AppState, SettingsState> {
 											<Tag color="red">SILLY</Tag>
 										</Select.Option>
 									</Select>
+								</Form.Item>
+								<Form.Item
+									name="workshopID"
+									label="Workshop ID"
+									rules={[{ required: true }]}
+									initialValue={editingConfig!.workshopID.toString()}
+									tooltip={{
+										overlayInnerStyle: { minWidth: 300 },
+										title: (
+											<div>
+												<p>Which workshop mod is used as the underlying mod manager</p>
+											</div>
+										)
+									}}
+								>
+									<Input.Group compact style={{ width: '100%' }}>
+										<InputNumber
+											value={editingConfig!.workshopID.toString()}
+											onChange={(value) => {
+												editingConfig!.workshopID = BigInt(value);
+												updateState({ madeConfigEdits: true });
+											}}
+											disabled
+											style={{ width: 175 }}
+										/>
+										<Button
+											icon={<EditFilled />}
+											type="primary"
+											danger
+											onClick={() => {
+												this.setState({
+													modalType: SettingsViewModalType.WORKSHOP_ID_EDIT
+												});
+											}}
+										/>
+									</Input.Group>
 								</Form.Item>
 							</Col>
 							<Col span={12} key="additional-commands">
