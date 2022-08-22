@@ -102,13 +102,13 @@ class API {
 		const modListStr: string = modList
 			.filter((modData) => modData && modData.workshopID !== BigInt(workshopID))
 			.map((mod: ModData) => {
-				return mod ? `[${mod.uid.toString().replace(' ', ':/%20')}]` : '';
+				return mod ? `[${mod.uid.toString().replaceAll(' ', ':/%20')}]` : '';
 			})
 			.join(',');
 		let args: string[] = ['+ttsmm_mod_list', `[${modListStr}]`];
 		if (logParams) {
 			Object.entries(logParams).forEach(([loggerID, logLevel]: [string, NLogLevel]) => {
-				args.push(loggerID && loggerID.length > 0 ? `log_level_${loggerID}` : 'log_level');
+				args.push(loggerID && loggerID.length > 0 ? `+log_level_${loggerID}` : '+log_level');
 				args.push(logLevel);
 			});
 		}
