@@ -610,7 +610,18 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		this.setState({ overrideGameRunning: true });
 		// add a visual delay so the user gets to see the nice spinning wheel
 		promiseManager
-			.execute(pause(1000, api.launchGame, config!.workshopID, config!.closeOnLaunch, mods, config!.logParams, config!.extraParams))
+			.execute(
+				pause(
+					1000,
+					api.launchGame,
+					config.gameExec,
+					config!.workshopID,
+					config!.closeOnLaunch,
+					mods,
+					config!.logParams,
+					config!.extraParams
+				)
+			)
 			.then((success) => {
 				setTimeout(() => {
 					this.setState({ overrideGameRunning: false });

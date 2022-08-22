@@ -6,6 +6,7 @@ import { ModDataOverride } from './Mod';
 
 export enum AppConfigKeys {
 	LOCAL_DIR = 'localDir',
+	GAME_EXEC = 'gameExec',
 	LOGS_DIR = 'logsDir',
 	MANAGER_ID = 'workshopID'
 }
@@ -26,6 +27,7 @@ export interface AppConfig {
 	language: string;
 
 	[AppConfigKeys.LOCAL_DIR]?: string;
+	[AppConfigKeys.GAME_EXEC]: string;
 	[AppConfigKeys.MANAGER_ID]: bigint;
 
 	activeCollection?: string;

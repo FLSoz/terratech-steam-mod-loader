@@ -21,6 +21,7 @@ export const DEFAULT_WORKSHOP_DIR = getDefaultWorkshopDir();
 export const DEFAULT_CONFIG: AppConfig = {
 	// localDir: 'E:\\Steam\\steamapps\\common\\TerraTech\\LocalMods',
 	// workshopDir: `E:\\Steam\\steamapps\\workshop\\content\\285920`,
+	gameExec: '',
 	workshopID: DEFAULT_WORKSHOP_ID,
 
 	logsDir: '',
