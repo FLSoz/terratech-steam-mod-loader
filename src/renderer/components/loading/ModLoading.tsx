@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Layout, Progress } from 'antd';
 import { AppConfig, ModData, ModType, AppState, ModCollection, ValidChannel, ProgressTypes, SessionMods, setupDescriptors } from 'model';
 import api from 'renderer/Api';
+import { CheckCircleFilled } from '@ant-design/icons';
 
 const { Footer, Content } = Layout;
 
@@ -82,16 +83,26 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 		const { progress, progressMessage } = this.state;
 		return (
 			<Layout style={{ minHeight: '100vh', minWidth: '100vw' }}>
-				<Footer>
-					<Progress
-						strokeColor={{
-							from: '#108ee9',
-							to: '#87d068'
-						}}
-						percent={progress * 100}
-					/>
-					{progressMessage}
-				</Footer>
+				<Content style={{ backgroundColor: '#222' }}>
+					<div className="e-loadholder" style={{ position: 'absolute', top: 'calc(50%)' }}>
+						<div className="m-loader">
+							<span className="e-text">Loading</span>
+						</div>
+					</div>
+					<span style={{ width: 'calc(100%)', display: 'flex', justifyContent: 'center', position: 'absolute', top: 'calc(90%)' }}>
+						<Progress
+							style={{ width: 'calc(80%)' }}
+							strokeColor={{
+								from: '#108ee9',
+								to: '#7c3bd0'
+							}}
+							percent={progress * 100}
+							format={(percent, successPercent) =>
+								percent && percent >= 100 ? <CheckCircleFilled style={{ color: '#7c3bd0' }} /> : percent?.toFixed() + '%'
+							}
+						/>
+					</span>
+				</Content>
 			</Layout>
 		);
 	}

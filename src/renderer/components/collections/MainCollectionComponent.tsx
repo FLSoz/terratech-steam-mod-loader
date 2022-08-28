@@ -15,7 +15,7 @@ import {
 	ValidChannel,
 	getModDataId
 } from 'model';
-import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled, PlusOutlined } from '@ant-design/icons';
+import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled, PlusOutlined, CodeFilled } from '@ant-design/icons';
 import { formatDateStr } from 'util/Date';
 
 import steam from '../../../../assets/steam.png';
@@ -27,6 +27,9 @@ import Corp_Icon_GSO from '../../../../assets/Corp_Icon_GSO.png';
 import Corp_Icon_VEN from '../../../../assets/Corp_Icon_VEN.png';
 import Corp_Icon_RR from '../../../../assets/Corp_Icon_EXP.png';
 import Corp_Icon_SPE from '../../../../assets/Corp_Icon_SPE.png';
+import Icon_Skins from '../../../../assets/paintbrush.svg';
+import Icon_Blocks from '../../../../assets/StandardBlocks.svg';
+import Icon_Corps from '../../../../assets/faction-flag.svg';
 
 const { Content } = Layout;
 
@@ -70,47 +73,77 @@ enum CorpType {
 	SPE = 'spe'
 }
 
+enum TypeTag {
+	CORPS = 0,
+	SKINS = 1,
+	BLOCKS = 2
+}
+
+function getTypeIcon(type: TypeTag, size = 15) {
+	switch (type) {
+		case TypeTag.SKINS:
+			return (
+				<Tooltip title="Skins" key={type}>
+					<img src={Icon_Skins} width={size - 14} alt="" key={type} />
+				</Tooltip>
+			);
+		case TypeTag.BLOCKS:
+			return (
+				<Tooltip title="Blocks" key={type}>
+					<img src={Icon_Blocks} width={size} alt="" key={type} />
+				</Tooltip>
+			);
+		case TypeTag.CORPS:
+			return (
+				<Tooltip title="Custom Corps" key={type}>
+					<img src={Icon_Corps} width={size - 10} alt="" key={type} />
+				</Tooltip>
+			);
+		default:
+			return null;
+	}
+}
 function getCorpIcon(type: CorpType, size = 15) {
 	switch (type) {
 		case CorpType.HE:
 			return (
-				<Tooltip title="Hawkeye" key={type}>
+				<Tooltip title="Hawkeye (HE)" key={type}>
 					<img src={Corp_Icon_HE} width={size} alt="" key={type} />
 				</Tooltip>
 			);
 		case CorpType.GSO:
 			return (
-				<Tooltip title="Galactic Survey Organization" key={type}>
+				<Tooltip title="Galactic Survey Organization (GSO)" key={type}>
 					<img src={Corp_Icon_GSO} width={size} alt="" key={type} />
 				</Tooltip>
 			);
 		case CorpType.GC:
 			return (
-				<Tooltip title="GeoCorp" key={type}>
+				<Tooltip title="GeoCorp (GC)" key={type}>
 					<img src={Corp_Icon_GC} width={size} alt="" key={type} />
 				</Tooltip>
 			);
 		case CorpType.BF:
 			return (
-				<Tooltip title="Better Future" key={type}>
+				<Tooltip title="Better Future (BF)" key={type}>
 					<img src={Corp_Icon_BF} width={size} alt="" key={type} />
 				</Tooltip>
 			);
 		case CorpType.RR:
 			return (
-				<Tooltip title="Reticule Research" key={type}>
+				<Tooltip title="Reticule Research (EXP)" key={type}>
 					<img src={Corp_Icon_RR} width={size} alt="" key={type} />
 				</Tooltip>
 			);
 		case CorpType.SPE:
 			return (
-				<Tooltip title="Special" key={type}>
+				<Tooltip title="Special (SPE)" key={type}>
 					<img src={Corp_Icon_SPE} width={size} alt="" key={type} />
 				</Tooltip>
 			);
 		case CorpType.VEN:
 			return (
-				<Tooltip title="Venture" key={type}>
+				<Tooltip title="Venture (VEN)" key={type}>
 					<img src={Corp_Icon_VEN} width={size} alt="" key={type} />
 				</Tooltip>
 			);
@@ -122,24 +155,29 @@ function getCorpType(tag: string): CorpType | null {
 	const lowercase = tag.toLowerCase();
 	if (lowercase === 'gso') {
 		return CorpType.GSO;
-	}
-	if (lowercase === 'he' || lowercase === 'hawkeye') {
+	} else if (lowercase === 'he' || lowercase === 'hawkeye') {
 		return CorpType.HE;
-	}
-	if (lowercase === 'gc' || lowercase === 'geocorp') {
+	} else if (lowercase === 'gc' || lowercase === 'geocorp') {
 		return CorpType.GC;
-	}
-	if (lowercase === 'ven' || lowercase === 'venture') {
+	} else if (lowercase === 'ven' || lowercase === 'venture') {
 		return CorpType.VEN;
-	}
-	if (lowercase === 'bf' || lowercase === 'betterfuture') {
+	} else if (lowercase === 'bf' || lowercase === 'betterfuture') {
 		return CorpType.BF;
-	}
-	if (lowercase === 'rr' || lowercase === 'reticuleresearch') {
+	} else if (lowercase === 'rr' || lowercase === 'reticuleresearch') {
 		return CorpType.RR;
-	}
-	if (lowercase === 'spe' || lowercase === 'special') {
+	} else if (lowercase === 'spe' || lowercase === 'special') {
 		return CorpType.SPE;
+	}
+	return null;
+}
+function getTypeTag(tag: string): TypeTag | null {
+	const lowercase = tag.toLowerCase().trim();
+	if (lowercase === 'blocks') {
+		return TypeTag.BLOCKS;
+	} else if (lowercase === 'skins') {
+		return TypeTag.SKINS;
+	} else if (lowercase === 'custom corps') {
+		return TypeTag.CORPS;
 	}
 	return null;
 }
@@ -180,7 +218,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 						// eslint-disable-next-line react/prop-types
 					}}
 				>
-					{getImageSrcFromType(type, small ? 20 : 35)}
+					{getImageSrcFromType(type, small ? 20 : 30)}
 				</Button>
 			);
 		},
@@ -235,7 +273,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 				let correctedName = name;
 				const matches = name.match(/(.*)\s*\(([^()]*[Tt][Tt][Ss][Mm][Mm][^()]*)\)$/);
 				if (matches && matches[1]) {
-					correctedName = matches[1];
+					correctedName = matches[1].trim();
 				}
 				return (
 					<button
@@ -265,7 +303,8 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 							strong={record.needsUpdate}
 							type={updateType}
 							style={{ whiteSpace: 'normal', width: '100%', verticalAlign: 'middle' }}
-						>{` ${correctedName}`}</Text>
+						>{` ${correctedName} `}</Text>
+						{record.hasCode && <CodeFilled style={{ color: 'gray', fontSize: 16, verticalAlign: 'middle' }} />}
 					</button>
 				);
 			};
@@ -523,6 +562,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.TAGS,
 		dataIndex: 'tags',
+		className: 'CollectionRowTags',
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		renderSetup: (props: CollectionViewProps) => {
 			const { config } = props;
@@ -530,24 +570,29 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 			return (tags: string[] | undefined, record: DisplayModData) => {
 				const iconTags: CorpType[] = [];
 				const actualTags: string[] = [];
+				const typeTags: TypeTag[] = [];
 				const userTags: string[] = record.overrides?.tags || [];
 				new Set([...(tags || []), ...userTags]).forEach((tag: string) => {
 					const corp = getCorpType(tag);
+					const type = getTypeTag(tag);
 					if (tag.toLowerCase() !== 'mods') {
-						if (corp) {
+						if (corp != null) {
 							iconTags.push(corp);
+						} else if (type != null) {
+							typeTags.push(type);
 						} else {
 							actualTags.push(tag);
 						}
 					}
 				});
 				return [
+					...typeTags.map((type) => getTypeIcon(type, small ? 35 : 40)),
 					...actualTags.map((tag) => (
 						<Tag color="blue" key={tag}>
 							{tag}
 						</Tag>
 					)),
-					...iconTags.map((corp) => getCorpIcon(corp, small ? 20 : 35))
+					...iconTags.map((corp) => getCorpIcon(corp, small ? 35 : 40))
 				];
 			};
 		}
@@ -654,7 +699,8 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 	}
 
 	render() {
-		const { filteredRows, launchingGame } = this.props;
+		const { config, filteredRows, launchingGame } = this.props;
+		const small = (config as MainCollectionConfig | undefined)?.smallRows;
 		// <img src={cellData} height="50px" width="50px" />
 		// <div>
 		/*
@@ -693,6 +739,7 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 								}
 							};
 						}}
+						rowClassName={() => (small ? 'CompactModRow' : 'LargeModRow')}
 					/>
 				</Content>
 			</Layout>
