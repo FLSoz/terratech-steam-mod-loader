@@ -84,7 +84,7 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 		return (
 			<Layout style={{ minHeight: '100vh', minWidth: '100vw' }}>
 				<Content style={{ backgroundColor: '#222' }}>
-					<div className="e-loadholder" style={{ position: 'absolute', top: 'calc(50%)' }}>
+					<div className="e-loadholder" style={{ position: 'absolute', top: 'calc(45%)' }}>
 						<div className="m-loader">
 							<span className="e-text">Loading</span>
 						</div>
