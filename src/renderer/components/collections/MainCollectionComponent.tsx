@@ -13,9 +13,11 @@ import {
 	ModErrors,
 	ModType,
 	ValidChannel,
-	getModDataId
+	getModDataId,
+	CorpType,
+	getCorpType
 } from 'model';
-import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled, PlusOutlined, CodeFilled } from '@ant-design/icons';
+import { WarningTwoTone, ClockCircleTwoTone, StopTwoTone, HddFilled, CodeFilled } from '@ant-design/icons';
 import { formatDateStr } from 'util/Date';
 
 import steam from '../../../../assets/steam.png';
@@ -61,16 +63,6 @@ function getImageSrcFromType(type: ModType, size = 15) {
 		default:
 			return null;
 	}
-}
-
-enum CorpType {
-	HE = 'he',
-	GSO = 'gso',
-	GC = 'gc',
-	BF = 'bf',
-	VEN = 'ven',
-	RR = 'rr',
-	SPE = 'spe'
 }
 
 enum TypeTag {
@@ -150,25 +142,6 @@ function getCorpIcon(type: CorpType, size = 15) {
 		default:
 			return null;
 	}
-}
-function getCorpType(tag: string): CorpType | null {
-	const lowercase = tag.toLowerCase();
-	if (lowercase === 'gso') {
-		return CorpType.GSO;
-	} else if (lowercase === 'he' || lowercase === 'hawkeye') {
-		return CorpType.HE;
-	} else if (lowercase === 'gc' || lowercase === 'geocorp') {
-		return CorpType.GC;
-	} else if (lowercase === 'ven' || lowercase === 'venture') {
-		return CorpType.VEN;
-	} else if (lowercase === 'bf' || lowercase === 'betterfuture') {
-		return CorpType.BF;
-	} else if (lowercase === 'rr' || lowercase === 'reticuleresearch') {
-		return CorpType.RR;
-	} else if (lowercase === 'spe' || lowercase === 'special') {
-		return CorpType.SPE;
-	}
-	return null;
 }
 function getTypeTag(tag: string): TypeTag | null {
 	const lowercase = tag.toLowerCase().trim();
@@ -304,7 +277,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 							type={updateType}
 							style={{ whiteSpace: 'normal', width: '100%', verticalAlign: 'middle' }}
 						>{` ${correctedName} `}</Text>
-						{record.hasCode && <CodeFilled style={{ color: 'gray', fontSize: 16, verticalAlign: 'middle' }} />}
+						{record.hasCode && <CodeFilled style={{ color: '#6abe39', fontSize: 16, verticalAlign: 'middle' }} />}
 					</button>
 				);
 			};

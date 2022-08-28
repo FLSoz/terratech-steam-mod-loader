@@ -2,6 +2,7 @@ import { ElectronLog } from 'electron-log';
 import { ModData, ModDescriptor, ModType, getModDataId, ModDataOverride } from './Mod';
 import { ModCollection } from './ModCollection';
 import { CollectionErrors, ModErrors } from './CollectionValidation';
+import { getCorpType } from './Corp';
 
 export class SessionMods {
 	localPath?: string;
@@ -186,7 +187,15 @@ export function filterRows(session: SessionMods, searchString: string | undefine
 				if (acc) {
 					return true;
 				}
-				return tag.toLowerCase().includes(lowerSearchString);
+				if (tag.toLowerCase().includes(lowerSearchString)) {
+					return true;
+				} else {
+					const corp = getCorpType(tag);
+					if (corp !== null) {
+						return corp.toString().toLowerCase().includes(lowerSearchString);
+					}
+				}
+				return false;
 			}, false);
 		});
 	}

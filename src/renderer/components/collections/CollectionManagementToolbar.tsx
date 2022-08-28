@@ -296,6 +296,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 										}}
 										enterButton
 										disabled={disabledFeatures}
+										allowClear
 									/>
 								</div>
 							</Col>
