@@ -2,7 +2,7 @@
   "name": "terratech-steam-mod-loader",
   "productName": "TerraTech Steam Mod Manager",
   "description": "Mod loader for TerraTech that handles Steam Workshop mod configurations",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "main": "./dist/main/main.js",
   "author": {
     "name": "FLSoz",
