@@ -41,7 +41,8 @@ export enum CollectionManagerModalType {
 	IMPORT_COLLECTION = 5,
 	EXPORT_COLLECTION = 6,
 	WARN_OVERWRITE_COLLECTION = 7,
-	EDIT_OVERRIDES = 8
+	EDIT_OVERRIDES = 8,
+	WARN_DELETE = 9
 }
 
 export interface NotificationProps {

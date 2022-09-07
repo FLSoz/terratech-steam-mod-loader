@@ -24,6 +24,8 @@ interface CollectionManagerModalProps {
 	openNotification: (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => void;
 	closeModal: () => void;
 	currentRecord?: ModData;
+	createNewCollection: (name: string) => void;
+	deleteCollection: () => void;
 }
 
 interface CollectionManagerModalState {
@@ -47,10 +49,49 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 	}
 
 	render() {
-		const { appState, modalType, launchGameWithErrors, launchAnyway, openNotification, currentView, closeModal } = this.props;
+		const { appState, modalType, launchGameWithErrors, launchAnyway, openNotification, currentView, closeModal, deleteCollection } =
+			this.props;
 		const { mods, updateState, config } = appState;
 
 		switch (modalType) {
+			case CollectionManagerModalType.WARN_DELETE: {
+				return (
+					<Modal
+						key="warning-modal"
+						title="Delete Collection?"
+						visible
+						closable={false}
+						footer={[
+							<Button
+								key="cancel"
+								type="primary"
+								disabled={launchGameWithErrors}
+								onClick={() => {
+									closeModal();
+								}}
+							>
+								Don't Delete
+							</Button>,
+							<Button
+								key="delete"
+								danger
+								type="primary"
+								disabled={launchGameWithErrors}
+								loading={launchGameWithErrors}
+								onClick={() => {
+									deleteCollection();
+									closeModal();
+								}}
+							>
+								Delete
+							</Button>
+						]}
+					>
+						<p>Are you sure you want to delete this collection?</p>
+						<p>THIS CANNOT BE UNDONE</p>
+					</Modal>
+				);
+			}
 			case CollectionManagerModalType.DESELECTING_MOD_MANAGER: {
 				const managerUID = this.getModManagerUID();
 				const managerData: ModData = getByUID(mods, managerUID)!;

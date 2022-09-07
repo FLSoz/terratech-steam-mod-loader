@@ -789,6 +789,8 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 					this.setState({ modalType: CollectionManagerModalType.NONE });
 				}}
 				currentRecord={currentRecord}
+				deleteCollection={this.deleteCollection}
+				createNewCollection={this.createNewCollection}
 			/>
 		);
 	}
@@ -1030,7 +1032,6 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 						newCollectionCallback={this.createNewCollection}
 						duplicateCollectionCallback={this.duplicateCollection}
 						renameCollectionCallback={this.renameCollection}
-						deleteCollectionCallback={this.deleteCollection}
 						saveCollectionCallback={() => {
 							this.saveCollection(appState.activeCollection as ModCollection, true);
 						}}
@@ -1041,6 +1042,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 							this.setState({ modalType: CollectionManagerModalType.VIEW_SETTINGS });
 						}}
 						openNotification={openNotification}
+						openModal={this.openModal}
 					/>
 				</Header>
 				{this.renderModal(currentView)}

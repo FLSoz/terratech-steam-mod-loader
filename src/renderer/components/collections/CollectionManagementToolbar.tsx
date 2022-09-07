@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable react/require-default-props */
 import React, { Component } from 'react';
-import { AppState, CollectionViewType, NotificationProps } from 'model';
+import { AppState, CollectionManagerModalType, CollectionViewType, NotificationProps } from 'model';
 import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
 import {
 	EditOutlined,
@@ -49,9 +49,9 @@ interface CollectionManagementToolbarProps {
 	changeActiveCollectionCallback: (name: string) => void;
 	newCollectionCallback: (name: string) => void;
 	duplicateCollectionCallback: (name: string) => void;
-	deleteCollectionCallback: () => void;
 	renameCollectionCallback: (name: string) => void;
 	openNotification: (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => void;
+	openModal: (modalType: CollectionManagerModalType) => void;
 }
 
 interface CollectionManagementToolbarModalProps {
@@ -144,7 +144,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 
 	render() {
 		const {
-			deleteCollectionCallback,
+			openModal,
 			saveCollectionCallback,
 			appState,
 			changeActiveCollectionCallback,
@@ -287,7 +287,9 @@ export default class CollectionManagementToolbarComponent extends Component<
 								key="delete"
 								shape="circle"
 								icon={<DeleteOutlined />}
-								onClick={deleteCollectionCallback}
+								onClick={() => {
+									openModal(CollectionManagerModalType.WARN_DELETE);
+								}}
 								disabled={disabledFeatures}
 							/>
 						</Space>
