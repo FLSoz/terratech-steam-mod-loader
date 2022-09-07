@@ -1040,6 +1040,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 							}
 							this.setState({ modalType: CollectionManagerModalType.VIEW_SETTINGS });
 						}}
+						openNotification={openNotification}
 					/>
 				</Header>
 				{this.renderModal(currentView)}

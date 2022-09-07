@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable react/require-default-props */
 import React, { Component } from 'react';
-import { AppState, CollectionViewType } from 'model';
+import { AppState, CollectionViewType, NotificationProps } from 'model';
 import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
 import {
 	EditOutlined,
@@ -51,6 +51,7 @@ interface CollectionManagementToolbarProps {
 	duplicateCollectionCallback: (name: string) => void;
 	deleteCollectionCallback: () => void;
 	renameCollectionCallback: (name: string) => void;
+	openNotification: (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => void;
 }
 
 interface CollectionManagementToolbarModalProps {
@@ -156,7 +157,8 @@ export default class CollectionManagementToolbarComponent extends Component<
 			searchString,
 			madeEdits,
 			lastValidationStatus,
-			openViewSettingsCallback
+			openViewSettingsCallback,
+			openNotification
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
 		return (
@@ -235,7 +237,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 								type="primary"
 								icon={<ImportOutlined />}
 								onClick={saveCollectionCallback}
-								disabled={true || disabledFeatures || !madeEdits}
+								disabled={true || disabledFeatures}
 								loading={savingCollection}
 							>
 								Import
@@ -245,7 +247,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 								key="export"
 								type="primary"
 								icon={<ExportOutlined />}
-								disabled={true || disabledFeatures || !madeEdits}
+								disabled={true || disabledFeatures}
 								loading={savingCollection}
 							>
 								Export
@@ -255,8 +257,20 @@ export default class CollectionManagementToolbarComponent extends Component<
 								key="copy"
 								type="primary"
 								icon={<CopyOutlined />}
-								disabled={true || disabledFeatures || !madeEdits}
+								disabled={disabledFeatures}
 								loading={savingCollection}
+								onClick={() => {
+									const { activeCollection } = appState;
+									navigator.clipboard.writeText(JSON.stringify(activeCollection, null, '\t'));
+									openNotification(
+										{
+											message: `Copied collection to clipboard`,
+											placement: 'topRight',
+											duration: 1
+										},
+										'success'
+									);
+								}}
 							/>
 							<Button
 								shape="circle"

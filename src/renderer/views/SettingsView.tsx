@@ -341,6 +341,8 @@ class SettingsView extends Component<AppState, SettingsState> {
 											<div>
 												<p>Path to TT Local Mods directory</p>
 												<p>It will be called &quot;LocalMods&quot;, and be under Steam/steamapps/common/TerraTech</p>
+												<p>YOU CAN LEAVE THIS BLANK</p>
+												<p>This is for mod developer testing purposes</p>
 											</div>
 										)
 									}}
@@ -468,6 +470,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 													This is NOT the same as the 0ModManager logging level. This will only impact how much this external application
 													logs
 												</p>
+												<p>Changing this will NOT impact TerraTech logging. Only change this if you were EXPLICITLY TOLD to do so.</p>
 											</div>
 										)
 									}}

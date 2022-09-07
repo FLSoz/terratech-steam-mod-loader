@@ -476,7 +476,6 @@ ipcMain.handle(ValidChannel.LAUNCH_GAME, async (_event, gameExec, workshopID, cl
 	await child_process.spawn(gameExec, allArgs, {
 		detached: true
 	});
-	shell.openExternal(`steam://run/285920//${allArgs.join(' ')}/`);
 	if (closeOnLaunch) {
 		app.quit();
 	}
