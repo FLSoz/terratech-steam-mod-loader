@@ -234,7 +234,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 							<Button
 								shape="round"
 								key="import"
-								type="primary"
+								type="default"
 								icon={<ImportOutlined />}
 								onClick={saveCollectionCallback}
 								disabled={true || disabledFeatures}
@@ -245,7 +245,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 							<Button
 								shape="round"
 								key="export"
-								type="primary"
+								type="default"
 								icon={<ExportOutlined />}
 								disabled={true || disabledFeatures}
 								loading={savingCollection}
@@ -255,7 +255,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 							<Button
 								shape="circle"
 								key="copy"
-								type="primary"
+								type="default"
 								icon={<CopyOutlined />}
 								disabled={disabledFeatures}
 								loading={savingCollection}
