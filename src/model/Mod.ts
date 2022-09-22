@@ -56,7 +56,7 @@ export interface ModDataOverride {
 }
 
 export function getModDataId(record: ModData): string | null {
-	if (!!record.overrides?.id) {
+	if (record.overrides?.id) {
 		return record.overrides.id;
 	}
 	return record.id;

@@ -17,7 +17,7 @@ export default class MenuBuilder {
 
 	buildMenu(): Menu {
 		if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
-			this.setupDevelopmentEnvironment();
+			// this.setupDevelopmentEnvironment();
 		}
 		const template = this.buildDefaultTemplate();
 		const menu = Menu.buildFromTemplate(template);
@@ -25,7 +25,7 @@ export default class MenuBuilder {
 		return menu;
 	}
 
-	setupDevelopmentEnvironment(): void {}
+	// setupDevelopmentEnvironment(): void {}
 
 	buildDefaultTemplate(): MenuItemConstructorOptions[] {
 		const subMenuFile: MenuItemConstructorOptions = {
@@ -35,6 +35,12 @@ export default class MenuBuilder {
 					label: 'Refresh mod information',
 					click: () => {
 						this.mainWindow.webContents.send(ValidChannel.MOD_REFRESH_REQUESTED);
+					}
+				},
+				{
+					label: 'Refresh Steamworks',
+					click: () => {
+						this.mainWindow.webContents.send(ValidChannel.RELOAD_STEAMWORKS);
 					}
 				}
 			]

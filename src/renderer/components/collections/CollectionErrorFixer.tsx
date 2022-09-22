@@ -497,6 +497,7 @@ switch (modalType) {
 }
 */
 
+/*
 import React, { Component } from 'react';
 import { Layout, Form, Input, InputNumber, Switch, Button, FormInstance, Space, PageHeader } from 'antd';
 
@@ -512,6 +513,7 @@ interface ErrorFixerProps {
 interface ErrorFixerState {
 	collectionErrors: CollectionErrors;
 }
+*/
 
 /*
 export default class CollectionErrorFixer extends Component<ErrorFixerProps, ErrorFixerState> {

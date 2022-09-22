@@ -11,7 +11,6 @@
 // eslint-disable-next-line prettier/prettier
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
-import React from 'react';
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, protocol, dialog, Menu, MenuItemConstructorOptions } from 'electron';
 import log from 'electron-log';
@@ -49,6 +48,7 @@ class App {
 // enforce minimum of 1000 pixels wide
 let mainWindow: BrowserWindow | undefined;
 let STEAMWORKS_INITED = false;
+let STEAMWORKS_ERROR: string | undefined;
 
 if (process.env.NODE_ENV === 'production') {
 	const sourceMapSupport = require('source-map-support');
@@ -148,7 +148,14 @@ const createWindow = async () => {
 		} else {
 			fs.writeFileSync('steam_appid.txt', '285920\n', 'utf8');
 		}
-		STEAMWORKS_INITED = Steamworks.init();
+
+		try {
+			STEAMWORKS_INITED = Steamworks.init();
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (e: any) {
+			STEAMWORKS_ERROR = e.toString();
+			log.error(e);
+		}
 	});
 
 	// Remove this if your app does not use auto updates
@@ -197,11 +204,11 @@ ipcMain.on(ValidChannel.CLOSE, () => {
 	}
 });
 
-ipcMain.on(ValidChannel.OPEN_MOD_STEAM, async (event, workshopID: bigint) => {
+ipcMain.on(ValidChannel.OPEN_MOD_STEAM, async (_event, workshopID: bigint) => {
 	shell.openExternal(`steam://url/CommunityFilePage/${workshopID}`);
 });
 
-ipcMain.on(ValidChannel.OPEN_MOD_BROWSER, async (event, workshopID: bigint) => {
+ipcMain.on(ValidChannel.OPEN_MOD_BROWSER, async (_event, workshopID: bigint) => {
 	shell.openExternal(`https://steamcommunity.com/sharedfiles/filedetails/?id=${workshopID}`);
 });
 
@@ -661,7 +668,7 @@ ipcMain.on(ValidChannel.SELECT_PATH, async (event, target: string, directory: bo
 		});
 });
 
-ipcMain.on(ValidChannel.OPEN_MOD_CONTEXT_MENU, async (event, record: ModData, x: number, y: number) => {
+ipcMain.on(ValidChannel.OPEN_MOD_CONTEXT_MENU, async (_event, record: ModData) => {
 	const template: MenuItemConstructorOptions[] = [];
 	if (record.path) {
 		template.push({
@@ -761,4 +768,22 @@ ipcMain.on(ValidChannel.OPEN_MOD_CONTEXT_MENU, async (event, record: ModData, x:
 		}
 	}
 	Menu.buildFromTemplate(template).popup({ window: mainWindow });
+});
+
+// Try to initialize steamworks, and try again
+ipcMain.handle(ValidChannel.STEAMWORKS_INITED, async () => {
+	if (!STEAMWORKS_INITED) {
+		try {
+			STEAMWORKS_INITED = Steamworks.init();
+			STEAMWORKS_ERROR = undefined;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (e: any) {
+			STEAMWORKS_ERROR = e.toString();
+			log.error(e);
+		}
+	}
+	return {
+		inited: STEAMWORKS_INITED,
+		error: STEAMWORKS_ERROR
+	};
 });

@@ -26,9 +26,9 @@ export interface CollectionViewProps {
 	launchingGame?: boolean;
 	viewType: CollectionViewType;
 	config?: CollectionConfig;
-	setEnabledModsCallback: (mods: Set<string>) => any;
-	setEnabledCallback: (mod: string) => any;
-	setDisabledCallback: (mod: string) => any;
+	setEnabledModsCallback: (mods: Set<string>) => void;
+	setEnabledCallback: (mod: string) => void;
+	setDisabledCallback: (mod: string) => void;
 	getModDetails: (mod: string, modData: ModData, bigData?: boolean) => void;
 }
 

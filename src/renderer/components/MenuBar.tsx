@@ -49,10 +49,10 @@ class MenuBar extends Component<MenuProps, never> {
 					}
 				}}
 			>
-				<Menu.Item key="collections/main" style={MenuItemStyle} icon={<AppstoreOutlined style={MenuIconStyle} />}>
+				<Menu.Item key="/collections/main" style={MenuItemStyle} icon={<AppstoreOutlined style={MenuIconStyle} />}>
 					Mod Collections
 				</Menu.Item>
-				<Menu.Item key="settings" style={MenuItemStyle} icon={<SettingOutlined style={MenuIconStyle} />}>
+				<Menu.Item key="/settings" style={MenuItemStyle} icon={<SettingOutlined style={MenuIconStyle} />}>
 					Settings
 				</Menu.Item>
 			</Menu>

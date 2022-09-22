@@ -43,6 +43,7 @@ class SteamBrowserView extends Component<{ location: Location }, AppState> {
 	}
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default (props: any) => {
 	return <SteamBrowserView {...props} location={useLocation()} />;
 };

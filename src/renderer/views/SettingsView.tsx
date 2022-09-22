@@ -15,7 +15,6 @@ import {
 	Col,
 	Divider,
 	Modal,
-	Typography,
 	Tag
 } from 'antd';
 import { useOutletContext } from 'react-router-dom';
@@ -23,7 +22,6 @@ import api from 'renderer/Api';
 import { CloseOutlined, EditFilled, FolderOutlined, PlusOutlined } from '@ant-design/icons';
 import { validateSettingsPath } from 'util/Validation';
 
-const { Text } = Typography;
 const { Content } = Layout;
 const { Search } = Input;
 
@@ -41,7 +39,7 @@ interface SettingsState {
 	madeLocalEdits: boolean;
 	selectingDirectory: boolean;
 	modalType: SettingsViewModalType;
-	editingContext: any;
+	editingContext?: LogConfig;
 }
 
 interface SettingsFields {
@@ -57,6 +55,7 @@ interface SettingsFields {
 
 class SettingsView extends Component<AppState, SettingsState> {
 	formRef = React.createRef<FormInstance>();
+
 	modalFormRef = React.createRef<FormInstance>();
 
 	constructor(props: AppState) {
@@ -78,7 +77,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 			selectingDirectory: false,
 			madeLocalEdits: false,
 			modalType: SettingsViewModalType.NONE,
-			editingContext: null
+			editingContext: undefined
 		};
 
 		this.saveChanges = this.saveChanges.bind(this);
@@ -121,8 +120,8 @@ class SettingsView extends Component<AppState, SettingsState> {
 		// correctly populate log level changes
 		if (editingConfig.editingLogConfig.length > 0) {
 			const newParams: { [loggerID: string]: NLogLevel } = {};
-			editingConfig.editingLogConfig.forEach((config: LogConfig) => {
-				newParams[config.loggerID] = config.level;
+			editingConfig.editingLogConfig.forEach((logConfig: LogConfig) => {
+				newParams[logConfig.loggerID] = logConfig.level;
 			});
 			editingConfig.logParams = newParams;
 		}
@@ -198,7 +197,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 			return config.loggerID === loggerID;
 		});
 		if (results.length > 1) {
-			return Promise.reject('Duplicate logger IDs');
+			return Promise.reject(new Error('Duplicate logger IDs'));
 		}
 		return Promise.resolve(undefined);
 	}
@@ -212,7 +211,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 				return (
 					<Modal
 						key="logger-name-modal"
-						title={`Edit Logger Name`}
+						title="Edit Logger Name"
 						visible
 						closable={false}
 						footer={[
@@ -252,7 +251,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 				return (
 					<Modal
 						key="workshop-id-modal"
-						title={`Select Mod Manager`}
+						title="Select Mod Manager"
 						visible
 						closable={false}
 						footer={[
@@ -555,7 +554,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 								</Form.Item>
 								<Divider>TTLogManager Logging Configs</Divider>
 								{editingConfig.editingLogConfig.map((config: LogConfig, index: number) => {
-									const id: string = `${config.loggerID}-${index}`;
+									const id = `${config.loggerID}-${index}`;
 									return (
 										<Form.Item
 											name={id}
@@ -603,7 +602,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 													</Select.Option>
 												</Select>
 												<Input.Group compact style={{ width: '100%' }}>
-													<Input style={{ width: 'calc(100% - 50px)' }} value={config.loggerID} disabled={true} />
+													<Input style={{ width: 'calc(100% - 50px)' }} value={config.loggerID} disabled />
 													<Button
 														icon={<EditFilled />}
 														type="primary"

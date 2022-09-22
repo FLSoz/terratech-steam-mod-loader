@@ -257,7 +257,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		);
 	}
 
-	createNewCollection(name: string) {
+	createNewCollection(name: string, mods?: string[]) {
 		const { madeEdits, updatePromiseManager: promiseManager } = this.state;
 		const { appState } = this.props;
 		const { config, allCollectionNames, allCollections, activeCollection } = appState;
@@ -268,7 +268,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		this.setState({ savingCollection: true });
 		const newCollection = {
 			name,
-			mods: []
+			mods: mods || []
 		};
 		promiseManager
 			.execute(api.updateCollection(newCollection))

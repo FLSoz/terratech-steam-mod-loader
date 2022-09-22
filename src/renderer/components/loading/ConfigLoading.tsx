@@ -179,11 +179,11 @@ class ConfigLoadingView extends Component<{ navigate: NavigateFunction; appState
 		const { config, configErrors, updateState, navigate } = appState;
 		if (!!configErrors && Object.keys(configErrors).length > 0) {
 			// We have an invalid configuration - go to Settings tab for enhanced validation logic
-			config.currentPath = 'settings';
+			config.currentPath = '/settings';
 			updateState({ loadingMods: true }, () => navigate('/settings'));
 		} else {
 			if (!config.currentPath) {
-				config.currentPath = 'collections/main';
+				config.currentPath = '/collections/main';
 			}
 			updateState({ loadingMods: true }, () => navigate(config.currentPath));
 		}

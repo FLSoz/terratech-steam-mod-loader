@@ -30,8 +30,6 @@ import {
 	FullscreenOutlined,
 	HddFilled,
 	QuestionCircleFilled,
-	QuestionCircleOutlined,
-	QuestionCircleTwoTone,
 	StopTwoTone,
 	WarningTwoTone
 } from '@ant-design/icons';
@@ -229,15 +227,15 @@ const ID_SCHEMA: ColumnType<DisplayModData> = {
 	title: 'ID',
 	dataIndex: 'id',
 	sorter: (a, b) => {
-		const a_id = getModDataId(a);
-		const b_id = getModDataId(b);
-		if (a_id) {
-			if (b_id) {
-				return a_id > b_id ? 1 : -1;
+		const aID = getModDataId(a);
+		const bID = getModDataId(b);
+		if (aID) {
+			if (bID) {
+				return aID > bID ? 1 : -1;
 			}
 			return 1;
 		}
-		if (b_id) {
+		if (bID) {
 			return -1;
 		}
 		return 0;
@@ -341,7 +339,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 		};
 		const AUTHOR_SPECIFIED_DEPENDENCY_SCHEMA: ColumnType<DisplayModData> = {
 			title: (
-				<Tooltip title={'Which version of the mod did the author say is the canonical dependency?'}>
+				<Tooltip title="Which version of the mod did the author say is the canonical dependency?">
 					<QuestionCircleFilled />
 				</Tooltip>
 			),
@@ -349,7 +347,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			render: (workshopID: bigint | undefined) => {
 				if (!!workshopID && currentRecord.steamDependencies?.includes(workshopID)) {
 					return (
-						<Tooltip title={'This is the mod the author specified as the canonical dependency'}>
+						<Tooltip title="This is the mod the author specified as the canonical dependency">
 							<CheckSquareFilled />
 						</Tooltip>
 					);
@@ -396,9 +394,9 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 			return (_: unknown, record: DisplayModData) => {
 				const ignoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
 				const myIgnoredErrors = ignoredErrors ? ignoredErrors[currentRecord.uid] || [] : [];
-				const record_id = getModDataId(record);
+				const recordID = getModDataId(record);
 				const isSelected =
-					(type === DependenciesTableType.REQUIRED && myIgnoredErrors.includes(record_id!)) ||
+					(type === DependenciesTableType.REQUIRED && myIgnoredErrors.includes(recordID!)) ||
 					(type === DependenciesTableType.CONFLICT && myIgnoredErrors.includes(record.uid));
 
 				const { validateCollection } = this.props;
@@ -423,7 +421,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 						checked={isSelected}
 						disabled={record.type !== ModType.DESCRIPTOR && type === DependenciesTableType.REQUIRED}
 						onChange={(evt) => {
-							if (type === DependenciesTableType.REQUIRED && record_id) {
+							if (type === DependenciesTableType.REQUIRED && recordID) {
 								let allIgnoredErrors = ignoreBadValidation.get(errorType as ModErrorType);
 								if (!allIgnoredErrors) {
 									allIgnoredErrors = {};
@@ -432,14 +430,14 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 								const thisIgnoredErrors = allIgnoredErrors ? allIgnoredErrors[currentRecord.uid] : [];
 								if (thisIgnoredErrors) {
 									if (evt.target.checked) {
-										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(record_id)];
+										allIgnoredErrors[currentRecord.uid] = [...new Set(thisIgnoredErrors).add(recordID)];
 										this.setState({}, saveUpdates);
 									} else {
-										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== record_id);
+										allIgnoredErrors[currentRecord.uid] = thisIgnoredErrors.filter((ignoredID) => ignoredID !== recordID);
 										this.setState({}, saveUpdates);
 									}
 								} else if (evt.target.checked) {
-									allIgnoredErrors[currentRecord.uid] = [record_id];
+									allIgnoredErrors[currentRecord.uid] = [recordID];
 									this.setState({}, saveUpdates);
 								}
 							} else if (type === DependenciesTableType.CONFLICT) {
@@ -604,7 +602,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 								/>
 							)}
 						</Descriptions.Item>
-						{!!currentRecord?.overrides?.id ? (
+						{currentRecord?.overrides?.id ? (
 							<Descriptions.Item label="ID (Override)">
 								<Button
 									icon={<EditFilled />}
@@ -619,7 +617,7 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 						<Descriptions.Item label="Name">{currentRecord.name}</Descriptions.Item>
 						<Descriptions.Item label="Author">{currentRecord.authors}</Descriptions.Item>
 						<Descriptions.Item label="Tags">{currentRecord.tags ? currentRecord.tags.join(', ') : null}</Descriptions.Item>
-						{!!currentRecord?.overrides?.tags ? (
+						{currentRecord?.overrides?.tags ? (
 							<Descriptions.Item label="User Tags">{currentRecord.overrides.tags.join(', ')}</Descriptions.Item>
 						) : null}
 						<Descriptions.Item label="Description">{currentRecord.description}</Descriptions.Item>
@@ -764,12 +762,12 @@ export default class ModDetailsFooter extends Component<ModDetailsFooterProps, {
 
 		const showDependenciesTab = requiredModData.length > 0 || dependentModData.length > 0 || conflictingModData.length > 0;
 
-		const currentRecord_id = getModDataId(currentRecord);
+		const currentRecordID = getModDataId(currentRecord);
 		return (
 			<Content className="ModDetailFooter" style={bigDetails ? bigStyle : normalStyle}>
 				<PageHeader
 					title={currentRecord.name}
-					subTitle={`${currentRecord_id} (${currentRecord.uid})`}
+					subTitle={`${currentRecordID} (${currentRecord.uid})`}
 					style={{ width: '100%', height: 48 }}
 					extra={
 						<Space>

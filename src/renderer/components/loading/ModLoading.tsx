@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import { Layout, Progress } from 'antd';
-import { AppConfig, ModData, ModType, AppState, ModCollection, ValidChannel, ProgressTypes, SessionMods, setupDescriptors } from 'model';
+import { AppConfig, ModType, AppState, ModCollection, ValidChannel, ProgressTypes, SessionMods, setupDescriptors } from 'model';
 import api from 'renderer/Api';
 import { CheckCircleFilled } from '@ant-design/icons';
 
-const { Footer, Content } = Layout;
+const { Content } = Layout;
 
 interface ModLoadingState {
 	config: AppConfig;
@@ -97,8 +97,8 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 								to: '#7c3bd0'
 							}}
 							percent={progress * 100}
-							format={(percent, successPercent) =>
-								percent && percent >= 100 ? <CheckCircleFilled style={{ color: '#7c3bd0' }} /> : percent?.toFixed() + '%'
+							format={(percent) =>
+								percent && percent >= 100 ? <CheckCircleFilled style={{ color: '#7c3bd0' }} /> : `${percent?.toFixed()}%`
 							}
 						/>
 					</span>

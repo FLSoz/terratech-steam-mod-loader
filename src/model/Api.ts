@@ -3,6 +3,10 @@ export enum ValidChannel {
 	EXIT = 'exit',
 	CLOSE = 'close',
 
+	// Steamworks initialization check
+	STEAMWORKS_INITED = 'steamworks-inited',
+	RELOAD_STEAMWORKS = 'reload-steamworks',
+
 	// Logging
 	UPDATE_LOG_LEVEL = 'log-level',
 

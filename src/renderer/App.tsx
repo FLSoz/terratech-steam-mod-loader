@@ -38,14 +38,14 @@ class App extends Component<{ location: Location; navigate: NavigateFunction }, 
 	}
 
 	componentDidMount() {
-		const { initializedConfigs: initialized } = this.state;
 		const { navigate } = this.props;
-		if (!initialized) {
-			this.setState({ initializedConfigs: true }, () => {
-				navigate('/loading/config');
-			});
-		}
+		setTimeout(() => {
+			navigate('/loading/steamworks');
+		}, 1);
 		api.on(ValidChannel.MOD_REFRESH_REQUESTED, this.onModLoadRequested);
+		api.on(ValidChannel.RELOAD_STEAMWORKS, () => {
+			navigate('/loading/steamworks');
+		});
 	}
 
 	componentWillUnmount() {

@@ -147,9 +147,11 @@ function getTypeTag(tag: string): TypeTag | null {
 	const lowercase = tag.toLowerCase().trim();
 	if (lowercase === 'blocks') {
 		return TypeTag.BLOCKS;
-	} else if (lowercase === 'skins') {
+	}
+	if (lowercase === 'skins') {
 		return TypeTag.SKINS;
-	} else if (lowercase === 'custom corps') {
+	}
+	if (lowercase === 'custom corps') {
 		return TypeTag.CORPS;
 	}
 	return null;
@@ -184,7 +186,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		renderSetup: (props: CollectionViewProps) => {
 			const { config } = props;
 			const small = (config as MainCollectionConfig | undefined)?.smallRows;
-			return (type: ModType, record: DisplayModData) => (
+			return (type: ModType) => (
 				<Button
 					type="text"
 					onClick={() => {
@@ -219,14 +221,15 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 			return (name: string, record: DisplayModData) => {
 				let updateIcon = null;
 				let updateType: 'danger' | 'warning' | undefined;
-				if (record.needsUpdate) {
+				const { needsUpdate, downloadPending, downloading, uid, hasCode } = record;
+				if (needsUpdate) {
 					updateIcon = (
 						<Tooltip title="Needs update">
 							<WarningTwoTone twoToneColor="red" />
 						</Tooltip>
 					);
 					updateType = 'danger';
-					if (record.downloadPending) {
+					if (downloadPending) {
 						updateIcon = (
 							<Tooltip title="Download pending">
 								<ClockCircleTwoTone twoToneColor="orange" />
@@ -234,7 +237,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 						);
 						updateType = 'warning';
 					}
-					if (record.downloading) {
+					if (downloading) {
 						updateIcon = (
 							<Tooltip title="Downloading">
 								<StopTwoTone spin twoToneColor="orange" />
@@ -268,16 +271,16 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 						onClick={() => {
 							// eslint-disable-next-line react/prop-types
 							const { getModDetails } = props;
-							getModDetails(record.uid, record);
+							getModDetails(uid, record);
 						}}
 					>
 						{updateIcon}
 						<Text
-							strong={record.needsUpdate}
+							strong={needsUpdate}
 							type={updateType}
 							style={{ whiteSpace: 'normal', width: '100%', verticalAlign: 'middle' }}
 						>{` ${correctedName} `}</Text>
-						{record.hasCode && <CodeFilled style={{ color: '#6abe39', fontSize: 16, verticalAlign: 'middle' }} />}
+						{hasCode && <CodeFilled style={{ color: '#6abe39', fontSize: 16, verticalAlign: 'middle' }} />}
 					</button>
 				);
 			};
@@ -353,19 +356,20 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 				}
 				const errorTags: { text: string; color: string }[] = [];
 				if (errors) {
-					if (errors.incompatibleMods && errors.incompatibleMods.length > 0) {
+					const { incompatibleMods, invalidId, missingDependencies, notInstalled, notSubscribed, needsUpdate } = errors;
+					if (incompatibleMods && incompatibleMods.length > 0) {
 						errorTags.push({
 							text: 'Conflicts',
 							color: 'red'
 						});
 					}
-					if (errors.invalidId) {
+					if (invalidId) {
 						errorTags.push({
 							text: 'Invalid ID',
 							color: 'volcano'
 						});
 					}
-					if (errors.missingDependencies && errors.missingDependencies.length > 0) {
+					if (missingDependencies && missingDependencies.length > 0) {
 						errorTags.push({
 							text: 'Missing dependencies',
 							color: 'orange'
@@ -373,17 +377,17 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 					}
 
 					// Installation status errors
-					if (errors.notSubscribed) {
+					if (notSubscribed) {
 						errorTags.push({
 							text: 'Not subscribed',
 							color: 'yellow'
 						});
-					} else if (errors.notInstalled) {
+					} else if (notInstalled) {
 						errorTags.push({
 							text: 'Not installed',
 							color: 'yellow'
 						});
-					} else if (errors.needsUpdate) {
+					} else if (needsUpdate) {
 						errorTags.push({
 							text: 'Needs update',
 							color: 'yellow'
@@ -416,29 +420,30 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 		title: MainColumnTitles.ID,
 		dataIndex: 'id',
 		sorter: (a, b) => {
-			const a_id = getModDataId(a);
-			const b_id = getModDataId(b);
-			if (a_id) {
-				if (b_id) {
-					return a_id > b_id ? 1 : -1;
+			const aID = getModDataId(a);
+			const bID = getModDataId(b);
+			if (aID) {
+				if (bID) {
+					return aID > bID ? 1 : -1;
 				}
 				return 1;
 			}
-			if (b_id) {
+			if (bID) {
 				return -1;
 			}
 			return 0;
 		},
 		renderSetup: () => {
 			return (_: string, record: DisplayModData) => {
-				if (!!record.overrides && !!record.overrides.id) {
+				const { id, overrides } = record;
+				if (!!overrides && !!overrides.id) {
 					return (
 						<Tag color="gray" key="id">
-							{record.overrides.id}
+							{overrides.id}
 						</Tag>
 					);
 				}
-				return record.id;
+				return id;
 			};
 		}
 	},
@@ -699,7 +704,7 @@ class MainCollectionComponent extends Component<CollectionViewProps, MainCollect
 						rowSelection={this.getRowSelection()}
 						columns={this.getColumnSchema()}
 						sticky
-						onRow={(record, rowIndex) => {
+						onRow={(record) => {
 							return {
 								onDoubleClick: (event) => {
 									api.logger.debug(`Double clicking ${record.uid}, ${event}`);

@@ -189,12 +189,12 @@ export function filterRows(session: SessionMods, searchString: string | undefine
 				}
 				if (tag.toLowerCase().includes(lowerSearchString)) {
 					return true;
-				} else {
-					const corp = getCorpType(tag);
-					if (corp !== null) {
-						return corp.toString().toLowerCase().includes(lowerSearchString);
-					}
 				}
+				const corp = getCorpType(tag);
+				if (corp !== null) {
+					return corp.toString().toLowerCase().includes(lowerSearchString);
+				}
+
 				return false;
 			}, false);
 		});

@@ -27,12 +27,14 @@ import {
 	SteamPageResults
 } from './types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const greenworks: any = require('greenworks');
 
 function wrapCallbackForWorkshopIDConversion(callback: (results: SteamPageResults) => void) {
 	return (apiResults: SteamPageResults) => {
 		const { items, totalItems, numReturned } = apiResults;
 		callback({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			items: items.map((result: any) => {
 				return {
 					...result,
@@ -51,6 +53,7 @@ class SteamworksAPI {
 		return greenworks.init();
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	on(channel: ValidGreenworksChannels, callback: (...props: any) => void) {
 		greenworks.on(channel, callback);
 	}
@@ -108,11 +111,11 @@ class SteamworksAPI {
 		return greenworks.getSteamId();
 	}
 
-	isAppInstalled(appId: number): boolean {
+	isAppInstalled(): boolean {
 		return greenworks.isAppInstalled();
 	}
 
-	isSubscribedApp(appId: number): boolean {
+	isSubscribedApp(): boolean {
 		return greenworks.isSubscribedApp();
 	}
 
@@ -256,6 +259,7 @@ class SteamworksAPI {
 			sync_dir,
 			(results: unknown[]) => {
 				success_callback(
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					results.map((result: any) => {
 						return {
 							...result,

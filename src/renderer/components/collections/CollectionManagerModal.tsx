@@ -24,7 +24,7 @@ interface CollectionManagerModalProps {
 	openNotification: (props: NotificationProps, type?: 'info' | 'error' | 'success' | 'warn') => void;
 	closeModal: () => void;
 	currentRecord?: ModData;
-	createNewCollection: (name: string) => void;
+	createNewCollection: (name: string, mods?: string[]) => void;
 	deleteCollection: () => void;
 }
 
@@ -49,8 +49,17 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 	}
 
 	render() {
-		const { appState, modalType, launchGameWithErrors, launchAnyway, openNotification, currentView, closeModal, deleteCollection } =
-			this.props;
+		const {
+			appState,
+			modalType,
+			launchGameWithErrors,
+			launchAnyway,
+			openNotification,
+			currentView,
+			closeModal,
+			deleteCollection,
+			createNewCollection
+		} = this.props;
 		const { mods, updateState, config } = appState;
 
 		switch (modalType) {
@@ -70,7 +79,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 									closeModal();
 								}}
 							>
-								Don't Delete
+								Don&apos;t Delete
 							</Button>,
 							<Button
 								key="delete"
@@ -366,6 +375,10 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 				}
 				break;
 			case CollectionManagerModalType.IMPORT_COLLECTION:
+				createNewCollection('');
+				return null;
+			case CollectionManagerModalType.EXPORT_COLLECTION:
+				createNewCollection('');
 				return null;
 			case CollectionManagerModalType.EDIT_OVERRIDES: {
 				const { currentRecord } = this.props;
@@ -435,7 +448,7 @@ export default class CollectionManagerModal extends Component<CollectionManagerM
 										/>
 									</Form.Item>
 									<Form.Item key="customTags" name="customTags" label="User Tags" initialValue={thisOverride!.tags}>
-										<Input disabled={true} />
+										<Input disabled />
 									</Form.Item>
 								</Col>
 							</Row>

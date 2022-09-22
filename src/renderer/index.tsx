@@ -19,6 +19,7 @@ import SteamBrowser from './components/browser/SteamBrowser';
 import CollectionView from './views/CollectionView';
 import MainCollectionComponent from './components/collections/MainCollectionComponent';
 import RawCollectionComponent from './components/collections/RawCollectionComponent';
+import SteamworksVerification from './components/loading/SteamworksVerification';
 
 const rootElement = document.getElementById('root');
 render(
@@ -30,6 +31,7 @@ render(
 				{/* Paths that indicate the application is processing request to load something from disk */}
 				<Route path="loading" element={<LoadingView />}>
 					<Route path="config" element={<ConfigLoadingComponent />} />
+					<Route path="steamworks" element={<SteamworksVerification />} />
 				</Route>
 				{/* The actual collection management components */}
 				<Route path="collections" element={<CollectionView />}>

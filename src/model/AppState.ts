@@ -18,6 +18,7 @@ export interface AppState {
 	// General initialization
 	initializedConfigs?: boolean; // Did we go load configs yet?
 	initializedMods?: boolean; // Did we go load mods yet?
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	updateState: (props: any, callback?: () => void) => void;
 	navigate: (path: string) => void;
 
