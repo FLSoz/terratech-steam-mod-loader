@@ -471,7 +471,7 @@ ipcMain.on(ValidChannel.GAME_RUNNING, async (event) => {
 // Launch steam as separate process
 ipcMain.handle(ValidChannel.LAUNCH_GAME, async (_event, gameExec, workshopID, closeOnLaunch, args) => {
 	log.info('Launching game with custom args:');
-	const allArgs = ['+custom_mod_list', !!workshopID ? `[workshop:${workshopID}]` : '[]', ...args];
+	const allArgs = ['+custom_mod_list', workshopID ? `[workshop:${workshopID}]` : '[]', ...args];
 	log.info(allArgs);
 	await child_process.spawn(gameExec, allArgs, {
 		detached: true
