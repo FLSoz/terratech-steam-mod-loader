@@ -283,7 +283,7 @@ export default class ModFetcher {
 				potentialMod.size = steamUGCDetails.fileSize;
 				potentialMod.dateAdded = new Date(steamUGCDetails.timeAddedToUserList * 1000);
 				potentialMod.dateCreated = new Date(steamUGCDetails.timeCreated * 1000);
-				potentialMod.lastUpdate = new Date(steamUGCDetails.timeUpdated * 1000);
+				potentialMod.lastWorkshopUpdate = new Date(steamUGCDetails.timeUpdated * 1000);
 				potentialMod.preview = steamUGCDetails.previewURL;
 
 				const state: UGCItemState = Steamworks.ugcGetItemState(workshopid);

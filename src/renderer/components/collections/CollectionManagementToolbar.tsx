@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable react/require-default-props */
 import React, { Component } from 'react';
-import { AppState, CollectionManagerModalType, CollectionViewType, NotificationProps } from 'model';
+import { AppState, CollectionManagerModalType, NotificationProps } from 'model';
 import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
 import {
 	EditOutlined,

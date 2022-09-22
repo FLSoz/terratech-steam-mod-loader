@@ -90,6 +90,9 @@ export default class ModLoadingComponent extends Component<ModLoadingProps, ModL
 						</div>
 					</div>
 					<span style={{ width: 'calc(100%)', display: 'flex', justifyContent: 'center', position: 'absolute', top: 'calc(90%)' }}>
+						{progressMessage ? <div>{progressMessage}</div> : null}
+					</span>
+					<span style={{ width: 'calc(100%)', display: 'flex', justifyContent: 'center', position: 'absolute', top: 'calc(85%)' }}>
 						<Progress
 							style={{ width: 'calc(80%)' }}
 							strokeColor={{

@@ -25,6 +25,7 @@ export interface ModData {
 
 	// Mod properties
 	lastUpdate?: Date;
+	lastWorkshopUpdate?: Date;
 	dateAdded?: Date;
 	dateCreated?: Date;
 	size?: number;

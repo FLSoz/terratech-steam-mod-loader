@@ -247,6 +247,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 					}
 				}
 				let correctedName = name;
+				// eslint-disable-next-line react/destructuring-assignment
 				const matches = name.match(/(.*)\s*\(([^()]*[Tt][Tt][Ss][Mm][Mm][^()]*)\)$/);
 				if (matches && matches[1]) {
 					correctedName = matches[1].trim();
@@ -520,7 +521,17 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.LAST_UPDATE,
 		dataIndex: 'lastUpdate',
-		width: 155,
+		width: 130,
+		renderSetup: () => {
+			return (date: Date) => {
+				return formatDateStr(date);
+			};
+		}
+	},
+	{
+		title: MainColumnTitles.LAST_WORKSHOP_UPDATE,
+		dataIndex: 'lastWorkshopUpdate',
+		width: 130,
 		renderSetup: () => {
 			return (date: Date) => {
 				return formatDateStr(date);
@@ -530,7 +541,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.DATE_ADDED,
 		dataIndex: 'dateAdded',
-		width: 155,
+		width: 130,
 		renderSetup: () => {
 			return (date: Date) => {
 				return formatDateStr(date);
