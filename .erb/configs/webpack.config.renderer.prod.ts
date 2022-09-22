@@ -3,7 +3,7 @@
  */
 
 import path from 'path';
-import webpack, { Configuration } from 'webpack';
+import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
@@ -18,33 +18,22 @@ import deleteSourceMaps from '../scripts/delete-source-maps';
 checkNodeEnv('production');
 deleteSourceMaps();
 
-const devtoolsConfig =
-	process.env.DEBUG_PROD === 'true'
-		? {
-				devtool: 'source-map',
-		  }
-		: {};
-
-export default merge<Configuration>(baseConfig, {
-	...devtoolsConfig,
+const configuration: webpack.Configuration = {
+	devtool: 'source-map',
 
 	mode: 'production',
 
 	target: ['web', 'electron-renderer'],
 
-	entry: [
-		'core-js',
-		'regenerator-runtime/runtime',
-		path.join(webpackPaths.srcRendererPath, 'index.tsx'),
-	],
+	entry: [path.join(webpackPaths.srcRendererPath, 'index.tsx')],
 
 	output: {
 		path: webpackPaths.distRendererPath,
 		publicPath: './',
 		filename: 'renderer.js',
 		library: {
-			type: 'umd',
-		},
+			type: 'umd'
+		}
 	},
 
 	module: {
@@ -58,48 +47,56 @@ export default merge<Configuration>(baseConfig, {
 						options: {
 							modules: true,
 							sourceMap: true,
-							importLoaders: 1,
-						},
+							importLoaders: 1
+						}
 					},
-					'sass-loader',
+					'sass-loader'
 				],
-				include: /\.module\.s?(c|a)ss$/,
+				include: /\.module\.s?(c|a)ss$/
 			},
 			{
 				test: /\.s?(a|c)ss$/,
 				use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
-				exclude: /\.module\.s?(c|a)ss$/,
+				exclude: /\.module\.s?(c|a)ss$/
 			},
-			//Font Loader
+			// Fonts
 			{
 				test: /\.(woff|woff2|eot|ttf|otf)$/i,
-				type: 'asset/resource',
+				type: 'asset/resource'
 			},
-			// SVG Font
+			// Images
 			{
-				test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-				use: {
-					loader: 'url-loader',
-					options: {
-						limit: 10000,
-						mimetype: 'image/svg+xml',
+				test: /\.(png|jpg|jpeg|gif)$/i,
+				type: 'asset/resource'
+			},
+			// SVG
+			{
+				test: /\.svg$/,
+				use: [
+					{
+						loader: '@svgr/webpack',
+						options: {
+							prettier: false,
+							svgo: false,
+							svgoConfig: {
+								plugins: [{ removeViewBox: false }]
+							},
+							titleProp: true,
+							ref: true
+						}
 					},
-				},
-			},
-			// Common Image Formats
-			{
-				test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
-				use: 'url-loader',
+					'file-loader'
+				]
 			},
 			// Less
 			{
 				test: /\.less$/,
 				use: [
 					{
-						loader: 'style-loader',
+						loader: 'style-loader'
 					},
 					{
-						loader: 'css-loader', // translates CSS into CommonJS
+						loader: 'css-loader' // translates CSS into CommonJS
 					},
 					{
 						loader: 'less-loader', // compiles Less to CSS
@@ -109,26 +106,26 @@ export default merge<Configuration>(baseConfig, {
 								modifyVars: {
 									'primary-color': '#1DA57A',
 									'link-color': '#1DA57A',
-									'border-radius-base': '2px',
+									'border-radius-base': '2px'
 								},
-								javascriptEnabled: true,
-							},
-						},
-					},
-				],
+								javascriptEnabled: true
+							}
+						}
+					}
+				]
 				// ...other rules
-			},
-		],
+			}
+		]
 	},
 
 	optimization: {
 		minimize: true,
 		minimizer: [
 			new TerserPlugin({
-				parallel: true,
+				parallel: true
 			}),
-			new CssMinimizerPlugin(),
-		],
+			new CssMinimizerPlugin()
+		]
 	},
 
 	plugins: [
@@ -143,17 +140,15 @@ export default merge<Configuration>(baseConfig, {
 		 */
 		new webpack.EnvironmentPlugin({
 			NODE_ENV: 'production',
-			DEBUG_PROD: false,
+			DEBUG_PROD: false
 		}),
 
 		new MiniCssExtractPlugin({
-			filename: 'style.css',
+			filename: 'style.css'
 		}),
 
 		new BundleAnalyzerPlugin({
-			analyzerMode:
-				process.env.OPEN_ANALYZER === 'true' ? 'server' : 'disabled',
-			openAnalyzer: process.env.OPEN_ANALYZER === 'true',
+			analyzerMode: process.env.ANALYZE === 'true' ? 'server' : 'disabled'
 		}),
 
 		new HtmlWebpackPlugin({
@@ -162,10 +157,16 @@ export default merge<Configuration>(baseConfig, {
 			minify: {
 				collapseWhitespace: true,
 				removeAttributeQuotes: true,
-				removeComments: true,
+				removeComments: true
 			},
 			isBrowser: false,
-			isDevelopment: process.env.NODE_ENV !== 'production',
+			isDevelopment: process.env.NODE_ENV !== 'production'
 		}),
-	],
-});
+
+		new webpack.DefinePlugin({
+			'process.type': '"renderer"'
+		})
+	]
+};
+
+export default merge(baseConfig, configuration);

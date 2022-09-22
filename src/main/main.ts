@@ -140,7 +140,14 @@ const createWindow = async () => {
 		mainWindow?.setTitle(`${name} v${version}`);
 		mainWindow?.maximize();
 
-		fs.writeFileSync('steam_appid.txt', '285920\n', 'utf8');
+		if (fs.existsSync('steam_appid.txt')) {
+			const appID = fs.readFileSync('steam_appid.txt', 'utf8');
+			if (!appID.toString().startsWith('285920')) {
+				fs.writeFileSync('steam_appid.txt', '285920\n', 'utf8');
+			}
+		} else {
+			fs.writeFileSync('steam_appid.txt', '285920\n', 'utf8');
+		}
 		STEAMWORKS_INITED = Steamworks.init();
 	});
 

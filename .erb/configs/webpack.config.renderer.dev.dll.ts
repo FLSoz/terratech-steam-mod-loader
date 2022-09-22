@@ -2,7 +2,7 @@
  * Builds the DLL for development electron renderer process
  */
 
-import webpack, { Configuration } from 'webpack';
+import webpack from 'webpack';
 import path from 'path';
 import { merge } from 'webpack-merge';
 import baseConfig from './webpack.config.base';
@@ -14,7 +14,7 @@ checkNodeEnv('development');
 
 const dist = webpackPaths.dllPath;
 
-export default merge<Configuration>(baseConfig, {
+const configuration: webpack.Configuration = {
 	context: webpackPaths.rootPath,
 
 	devtool: 'eval',
@@ -31,7 +31,7 @@ export default merge<Configuration>(baseConfig, {
 	module: require('./webpack.config.renderer.dev').default.module,
 
 	entry: {
-		renderer: Object.keys(dependencies || {}),
+		renderer: Object.keys(dependencies || {})
 	},
 
 	output: {
@@ -39,14 +39,14 @@ export default merge<Configuration>(baseConfig, {
 		filename: '[name].dev.dll.js',
 		library: {
 			name: 'renderer',
-			type: 'var',
-		},
+			type: 'var'
+		}
 	},
 
 	plugins: [
 		new webpack.DllPlugin({
 			path: path.join(dist, '[name].json'),
-			name: '[name]',
+			name: '[name]'
 		}),
 
 		/**
@@ -59,7 +59,7 @@ export default merge<Configuration>(baseConfig, {
 		 * development checks
 		 */
 		new webpack.EnvironmentPlugin({
-			NODE_ENV: 'development',
+			NODE_ENV: 'development'
 		}),
 
 		new webpack.LoaderOptionsPlugin({
@@ -67,9 +67,11 @@ export default merge<Configuration>(baseConfig, {
 			options: {
 				context: webpackPaths.srcPath,
 				output: {
-					path: webpackPaths.dllPath,
-				},
-			},
-		}),
-	],
-});
+					path: webpackPaths.dllPath
+				}
+			}
+		})
+	]
+};
+
+export default merge(baseConfig, configuration);

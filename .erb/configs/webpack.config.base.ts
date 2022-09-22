@@ -2,11 +2,11 @@
  * Base webpack config used across other specific configs
  */
 
-import webpack, { Configuration } from 'webpack';
+import webpack from 'webpack';
 import webpackPaths from './webpack.paths';
 import { dependencies as externals } from '../../release/app/package.json';
 
-const DEFAULT_CONFIGURATION: Configuration = {
+const configuration: webpack.Configuration = {
 	externals: [...Object.keys(externals || {})],
 
 	stats: 'errors-only',
@@ -18,18 +18,21 @@ const DEFAULT_CONFIGURATION: Configuration = {
 				exclude: /node_modules/,
 				use: {
 					loader: 'ts-loader',
-				},
-			},
-		],
+					options: {
+						// Remove this line to enable type checking in webpack builds
+						transpileOnly: true
+					}
+				}
+			}
+		]
 	},
 
 	output: {
 		path: webpackPaths.srcPath,
-		filename: undefined,
 		// https://github.com/webpack/webpack/issues/1114
 		library: {
-			type: 'commonjs2',
-		},
+			type: 'commonjs2'
+		}
 	},
 
 	/**
@@ -37,14 +40,14 @@ const DEFAULT_CONFIGURATION: Configuration = {
 	 */
 	resolve: {
 		extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
-		modules: [webpackPaths.srcPath, 'node_modules'],
+		modules: [webpackPaths.srcPath, 'node_modules']
 	},
 
 	plugins: [
 		new webpack.EnvironmentPlugin({
-			NODE_ENV: 'production',
-		}),
-	],
+			NODE_ENV: 'production'
+		})
+	]
 };
 
-export default DEFAULT_CONFIGURATION;
+export default configuration;

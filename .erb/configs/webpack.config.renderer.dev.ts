@@ -1,15 +1,15 @@
+import 'webpack-dev-server';
 import path from 'path';
 import fs from 'fs';
-import webpack, { Configuration } from 'webpack';
-import webpackDevServer from 'webpack-dev-server';
+import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import chalk from 'chalk';
 import { merge } from 'webpack-merge';
 import { execSync, spawn } from 'child_process';
+import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
-import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 
 // When an ESLint server is running, we can't set the NODE_ENV so we'll check if it's
 // at the dev webpack config is not accidentally run in a production environment
@@ -19,18 +19,18 @@ if (process.env.NODE_ENV === 'production') {
 
 const port = process.env.PORT || 1212;
 const manifest = path.resolve(webpackPaths.dllPath, 'renderer.json');
-const moduleParents: NodeModule[] = Object.values(require.cache).filter((m) => !!m && m.children.includes(module)) as NodeModule[];
-const requiredByDLLConfig = moduleParents[0].filename.includes('webpack.config.renderer.dev.dll');
+const skipDLLs =
+	module.parent?.filename.includes('webpack.config.renderer.dev.dll') || module.parent?.filename.includes('webpack.config.eslint');
 
 /**
  * Warn if the DLL is not built
  */
-if (!requiredByDLLConfig && !(fs.existsSync(webpackPaths.dllPath) && fs.existsSync(manifest))) {
+if (!skipDLLs && !(fs.existsSync(webpackPaths.dllPath) && fs.existsSync(manifest))) {
 	console.log(chalk.black.bgYellow.bold('The DLL files are missing. Sit back while we build them for you with "npm run build-dll"'));
 	execSync('npm run postinstall');
 }
 
-const devConfiguration: Configuration = {
+const configuration: webpack.Configuration = {
 	devtool: 'inline-source-map',
 
 	mode: 'development',
@@ -40,8 +40,6 @@ const devConfiguration: Configuration = {
 	entry: [
 		`webpack-dev-server/client?http://localhost:${port}/dist`,
 		'webpack/hot/only-dev-server',
-		'core-js',
-		'regenerator-runtime/runtime',
 		path.join(webpackPaths.srcRendererPath, 'index.tsx')
 	],
 
@@ -77,26 +75,34 @@ const devConfiguration: Configuration = {
 				use: ['style-loader', 'css-loader', 'sass-loader'],
 				exclude: /\.module\.s?(c|a)ss$/
 			},
-			//Font Loader
+			// Fonts
 			{
 				test: /\.(woff|woff2|eot|ttf|otf)$/i,
 				type: 'asset/resource'
 			},
-			// SVG Font
+			// Images
 			{
-				test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-				use: {
-					loader: 'url-loader',
-					options: {
-						limit: 10000,
-						mimetype: 'image/svg+xml'
-					}
-				}
+				test: /\.(png|jpg|jpeg|gif)$/i,
+				type: 'asset/resource'
 			},
-			// Common Image Formats
+			// SVG
 			{
-				test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
-				use: 'url-loader'
+				test: /\.svg$/,
+				use: [
+					{
+						loader: '@svgr/webpack',
+						options: {
+							prettier: false,
+							svgo: false,
+							svgoConfig: {
+								plugins: [{ removeViewBox: false }]
+							},
+							titleProp: true,
+							ref: true
+						}
+					},
+					'file-loader'
+				]
 			},
 			// Less
 			{
@@ -128,6 +134,16 @@ const devConfiguration: Configuration = {
 		]
 	},
 	plugins: [
+		...(skipDLLs
+			? []
+			: [
+					new webpack.DllReferencePlugin({
+						context: webpackPaths.dllPath,
+						manifest: require(manifest),
+						sourceType: 'var'
+					})
+			  ]),
+
 		new webpack.NoEmitOnErrorsPlugin(),
 
 		/**
@@ -183,7 +199,6 @@ const devConfiguration: Configuration = {
 		historyApiFallback: {
 			verbose: true
 		},
-
 		setupMiddlewares(middlewares) {
 			console.log('Starting preload.js builder...');
 			const preloadProcess = spawn('npm', ['run', 'start:preload'], {
@@ -194,7 +209,11 @@ const devConfiguration: Configuration = {
 				.on('error', (spawnError) => console.error(spawnError));
 
 			console.log('Starting Main Process...');
-			spawn('npm', ['run', 'start:main'], {
+			let args = ['run', 'start:main'];
+			if (process.env.MAIN_ARGS) {
+				args = args.concat(['--', ...process.env.MAIN_ARGS.matchAll(/"[^"]+"|[^\s"]+/g)].flat());
+			}
+			spawn('npm', args, {
 				shell: true,
 				stdio: 'inherit'
 			})
@@ -208,14 +227,4 @@ const devConfiguration: Configuration = {
 	}
 };
 
-if (!requiredByDLLConfig) {
-	devConfiguration.plugins!.push(
-		new webpack.DllReferencePlugin({
-			context: webpackPaths.dllPath,
-			manifest: require(manifest),
-			sourceType: 'var'
-		})
-	);
-}
-
-export default merge<Configuration>(baseConfig, devConfiguration);
+export default merge(baseConfig, configuration);
