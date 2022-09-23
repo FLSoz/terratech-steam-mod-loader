@@ -79,6 +79,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		this.setGameRunningCallback = this.setGameRunningCallback.bind(this);
 		this.launchGame = this.launchGame.bind(this);
 		this.baseLaunchGame = this.baseLaunchGame.bind(this);
+		this.pollGameRunning = this.pollGameRunning.bind(this);
 
 		this.renameCollection = this.renameCollection.bind(this);
 		this.createNewCollection = this.createNewCollection.bind(this);
@@ -96,7 +97,6 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 	componentDidMount() {
 		api.on(ValidChannel.GAME_RUNNING, this.setGameRunningCallback);
 		api.on(ValidChannel.MOD_METADATA_UPDATE, this.onModMetadataUpdate);
-		this.pollGameRunning();
 
 		const { appState } = this.props;
 		if (!appState.loadingMods) {
@@ -549,10 +549,12 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 	}
 
 	pollGameRunning() {
-		const { updatePromiseManager: promiseManager } = this.state;
-		api.send(ValidChannel.GAME_RUNNING);
-		if (!promiseManager.isCancelled.value) {
-			pause(5000, this.pollGameRunning);
+		const { updatePromiseManager: promiseManager, gameRunning, overrideGameRunning } = this.state;
+		if (gameRunning || overrideGameRunning) {
+			api.send(ValidChannel.GAME_RUNNING);
+			if (!promiseManager.isCancelled.value) {
+				pause(5000, this.pollGameRunning);
+			}
 		}
 	}
 
@@ -607,7 +609,9 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 		const { config, updateState } = appState;
 		api.logger.info('launching game');
 		updateState({ launchingGame: true });
-		this.setState({ overrideGameRunning: true });
+		this.setState({ overrideGameRunning: true }, () => {
+			this.pollGameRunning();
+		});
 		// add a visual delay so the user gets to see the nice spinning wheel
 		promiseManager
 			.execute(
@@ -626,7 +630,7 @@ class CollectionView extends Component<{ appState: AppState; location: Location 
 			.then((success) => {
 				setTimeout(() => {
 					this.setState({ overrideGameRunning: false });
-				}, 7000);
+				}, 5000);
 				return success;
 			})
 			.finally(() => {

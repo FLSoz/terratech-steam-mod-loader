@@ -132,6 +132,26 @@ export enum UGCItemState {
 	DownloadPending = 32
 }
 
+export enum WorkshopFileType {
+	Community = 0,
+	Microtransaction = 1,
+	Collection = 2,
+	Art = 3,
+	Video = 4,
+	Screenshot = 5,
+	Game = 6,
+	Software = 7,
+	Concept = 8,
+	WebGuide = 9,
+	IntegratedGuide = 10,
+	Merch = 11,
+	ControllerBinding = 12,
+	SteamworksAccessInvite = 13,
+	SteamVideo = 14,
+	GameManagedItem = 15,
+	Max = 16
+}
+
 export enum ItemStatistic {
 	NumSubscriptions = 0,
 	NumFavorites = 1,
@@ -191,7 +211,7 @@ export interface PublishWorkshopFileProps extends SteamworksAPIProps {
 }
 
 export interface UpdatePublishedWorkshopFileProps extends SteamworksAPIProps {
-	options?: { tags: string[] };
+	options?: { tags: string[]; app_id: number };
 	published_file_handle: string;
 	file_path: string;
 	image_path: string;

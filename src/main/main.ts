@@ -31,7 +31,7 @@ import {
 	PathParams,
 	ModDataOverride
 } from '../model';
-import Steamworks, { EResult, UGCItemState } from './steamworks';
+import Steamworks, { EResult, UGCItemState, WorkshopFileType } from './steamworks';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import ModFetcher, { getModDetailsFromPath } from './mod-fetcher';
@@ -387,6 +387,31 @@ ipcMain.handle(ValidChannel.DELETE_COLLECTION, async (_event, collection: string
 	}
 });
 
+// create steam collection
+ipcMain.handle(ValidChannel.CREATE_STEAM_COLLECTION, async (_event) => {
+	log.info(`Creating steam collection`);
+	try {
+		const result = await new Promise((resolve, reject) => {
+			Steamworks.ugcCreateItem(
+				WorkshopFileType.Collection,
+				(publishedFileId: string) => {
+					log.debug(`Successfully created collection ${publishedFileId}`);
+					resolve(publishedFileId);
+				},
+				(error) => {
+					log.error(`Failed to create collection`);
+					log.error(error);
+					reject(error);
+				}
+			);
+		});
+		return result;
+	} catch (error) {
+		log.error(error);
+		return false;
+	}
+});
+
 // return config
 ipcMain.handle(ValidChannel.READ_CONFIG, async () => {
 	const filepath = path.join(app.getPath('userData'), 'config.json');
@@ -469,8 +494,10 @@ ipcMain.on(ValidChannel.GAME_RUNNING, async (event) => {
 			const matches = processes.filter((process) => /[Tt]erra[Tt]ech(?!.*[Mm]od)/.test(process.name));
 			running = matches.length > 0;
 			if (running) {
-				log.info('Detected TerraTech is running:');
-				log.info(processes.filter((process) => /[Tt]erra[Tt]ech/.test(process.name)).map((process) => process.name));
+				log.debug('Detected TerraTech is running:');
+				log.debug(processes.filter((process) => /[Tt]erra[Tt]ech/.test(process.name)).map((process) => process.name));
+			} else {
+				log.debug('Game not running');
 			}
 			event.reply(ValidChannel.GAME_RUNNING, running);
 			return running;

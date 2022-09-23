@@ -49,6 +49,8 @@ export enum ValidChannel {
 	READ_COLLECTIONS = 'read-collections-list',
 	UPDATE_COLLECTION = 'update-collection',
 
+	CREATE_STEAM_COLLECTION = 'create-steam-collection',
+
 	// File Explorer management
 	SELECT_PATH = 'select-path',
 

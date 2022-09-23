@@ -5,7 +5,7 @@ import { ModData } from './Mod';
 export interface ModCollection {
 	name: string;
 	description?: string;
-	linkedId?: bigint;
+	linkedId?: string;
 	mods: string[];
 }
 

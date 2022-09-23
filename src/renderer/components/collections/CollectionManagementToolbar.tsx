@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable react/require-default-props */
 import React, { Component } from 'react';
-import { AppState, CollectionManagerModalType, NotificationProps } from 'model';
+import { AppState, CollectionManagerModalType, ModType, NotificationProps } from 'model';
 import { Button, Col, Dropdown, Menu, Row, Select, Space, Input, Modal } from 'antd';
 import {
 	EditOutlined,
@@ -14,9 +14,11 @@ import {
 	ImportOutlined,
 	ExportOutlined,
 	CloseCircleOutlined,
-	SettingFilled
+	SettingFilled,
+	LinkOutlined
 } from '@ant-design/icons';
 import api from 'renderer/Api';
+import steam from '../../../../assets/steam.png';
 
 const { Option } = Select;
 const { Search } = Input;
@@ -161,6 +163,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 			openNotification
 		} = this.props;
 		const disabledFeatures = this.disabledFeatures();
+		const { activeCollection } = appState;
 		return (
 			<div id="mod-collection-toolbar">
 				{this.renderModal()}
@@ -243,15 +246,29 @@ export default class CollectionManagementToolbarComponent extends Component<
 								Import
 							</Button>{' '}
 							<Button
-								shape="round"
-								key="export"
+								shape="circle"
+								key="steam-link"
 								type="default"
-								icon={<ExportOutlined />}
-								disabled={true || disabledFeatures}
+								icon={<LinkOutlined />}
+								disabled={
+									disabledFeatures ||
+									!lastValidationStatus ||
+									!!activeCollection?.linkedId ||
+									!!activeCollection?.mods.filter((uid: string) => !uid.startsWith(ModType.WORKSHOP)).length
+								}
 								loading={savingCollection}
-							>
-								Export
-							</Button>
+							/>
+							{!activeCollection?.linkedId ? null : (
+								<Button
+									shape="circle"
+									key="steam-unlink"
+									type="default"
+									icon={<LinkOutlined />}
+									danger
+									disabled={disabledFeatures}
+									loading={savingCollection}
+								/>
+							)}
 							<Button
 								shape="circle"
 								key="copy"
@@ -260,7 +277,6 @@ export default class CollectionManagementToolbarComponent extends Component<
 								disabled={disabledFeatures}
 								loading={savingCollection}
 								onClick={() => {
-									const { activeCollection } = appState;
 									navigator.clipboard.writeText(JSON.stringify(activeCollection, null, '\t'));
 									openNotification(
 										{

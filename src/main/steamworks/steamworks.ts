@@ -24,7 +24,8 @@ import {
 	// IFriends
 	SteamID,
 	SteamUGCDetails,
-	SteamPageResults
+	SteamPageResults,
+	WorkshopFileType
 } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -166,6 +167,17 @@ class SteamworksAPI {
 		return greenworks.ugcSubscribe(published_file_id.toString(), success_callback, error_callback);
 	}
 
+	ugcCreateItem(type: WorkshopFileType, success_callback: (id: string) => void, error_callback?: SteamErrorCallback) {
+		return greenworks.ugcCreateItem(
+			{
+				app_id: greenworks.getAppId(),
+				file_type: type
+			},
+			success_callback,
+			error_callback
+		);
+	}
+
 	ugcShowOverlay(published_file_id?: bigint) {
 		return greenworks.ugcShowOverlay(published_file_id?.toString());
 	}
@@ -290,9 +302,11 @@ class SteamworksAPI {
 		let actualOptions = options;
 		if (!options || Object.keys(options).length === 0) {
 			actualOptions = {
+				app_id: greenworks.getAppId(),
 				tags: [] // No tags are set
 			};
 		}
+		actualOptions!.app_id = greenworks.getAppId();
 		greenworks._updatePublishedWorkshopFile(
 			actualOptions,
 			published_file_handle,

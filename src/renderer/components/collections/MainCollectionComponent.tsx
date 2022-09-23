@@ -333,7 +333,7 @@ const MAIN_COLUMN_SCHEMA: ColumnSchema<DisplayModData>[] = [
 	{
 		title: MainColumnTitles.STATE,
 		dataIndex: 'errors',
-		width: 150,
+		width: 250,
 		renderSetup: (props: CollectionViewProps) => {
 			const { lastValidationStatus, collection } = props;
 			return (errors: ModErrors | undefined, record: DisplayModData) => {
