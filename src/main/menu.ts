@@ -172,7 +172,13 @@ export default class MenuBuilder {
 			submenu: [
 				{
 					label: 'Check for updates',
-					click: checkForUpdates
+					click: (menuItem) => {
+						try {
+							checkForUpdates(menuItem);
+						} catch (e) {
+							log.error(e);
+						}
+					}
 				}
 			]
 		};

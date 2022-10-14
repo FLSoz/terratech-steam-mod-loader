@@ -156,12 +156,17 @@ const createWindow = async () => {
 			STEAMWORKS_ERROR = e.toString();
 			log.error(e);
 		}
+
+		// Remove this if your app does not use auto updates
+		if (!isDevelopment) {
+			try {
+				autoUpdater.checkForUpdates();
+			} catch (e) {
+				log.error(e);
+			}
+		}
 	});
 
-	// Remove this if your app does not use auto updates
-	if (!isDevelopment) {
-		autoUpdater.checkForUpdates();
-	}
 	// eslint-disable-next-line
 	new App();
 };
@@ -517,9 +522,6 @@ ipcMain.handle(ValidChannel.LAUNCH_GAME, async (_event, gameExec, workshopID, cl
 	await child_process.spawn(gameExec, allArgs, {
 		detached: true
 	});
-	if (closeOnLaunch) {
-		app.quit();
-	}
 	if (closeOnLaunch) {
 		app.quit();
 	}

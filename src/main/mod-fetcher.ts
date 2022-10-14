@@ -330,6 +330,7 @@ export default class ModFetcher {
 						log.error(error);
 					}
 				} else {
+					validMod = potentialMod.tags.filter((tag: string) => tag.toLowerCase() === 'mods').length > 0;
 					this.updateModLoadingProgress(1);
 				}
 

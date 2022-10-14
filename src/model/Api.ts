@@ -3,6 +3,9 @@ export enum ValidChannel {
 	EXIT = 'exit',
 	CLOSE = 'close',
 
+	// Check for update error
+	UPDATE_CHECK_ERROR = 'update-check-error',
+
 	// Steamworks initialization check
 	STEAMWORKS_INITED = 'steamworks-inited',
 	RELOAD_STEAMWORKS = 'reload-steamworks',
