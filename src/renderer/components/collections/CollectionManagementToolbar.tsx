@@ -189,7 +189,7 @@ export default class CollectionManagementToolbarComponent extends Component<
 								</Select>
 							</Col>
 							<Col>
-								<Space align="start">
+								<Space align="center">
 									<Button
 										key="rename"
 										icon={<EditOutlined />}

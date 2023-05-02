@@ -319,6 +319,7 @@ export default class ModFetcher {
 					// augment workshop mod with data
 					potentialMod.lastUpdate = new Date(installInfo.timestamp * 1000);
 					potentialMod.size = parseInt(installInfo.sizeOnDisk, 10);
+					potentialMod.needsUpdate = potentialMod.needsUpdate || potentialMod.lastWorkshopUpdate > potentialMod.lastUpdate;
 					try {
 						const modPath = installInfo.folder;
 						// eslint-disable-next-line no-await-in-loop
