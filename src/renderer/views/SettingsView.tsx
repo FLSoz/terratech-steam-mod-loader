@@ -291,7 +291,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 								<InputNumber
 									value={editingConfig!.workshopID.toString()}
 									onChange={(value) => {
-										editingConfig!.workshopID = BigInt(value);
+										editingConfig!.workshopID = BigInt(value || 0);
 										updateState({ madeConfigEdits: true });
 									}}
 									style={{ width: '200px' }}
@@ -523,7 +523,7 @@ class SettingsView extends Component<AppState, SettingsState> {
 										<InputNumber
 											value={editingConfig!.workshopID.toString()}
 											onChange={(value) => {
-												editingConfig!.workshopID = BigInt(value);
+												editingConfig!.workshopID = BigInt(value || 0);
 												updateState({ madeConfigEdits: true });
 											}}
 											disabled
